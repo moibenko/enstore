@@ -15,15 +15,20 @@
     Specific errors that are masked:
 
     1) Linux ipv4 -- returning an error on the next UDP send or recieve
-    when an ICMP port unreachable message is recieved. The socket 
+    when an ICMP port unreachable message is recieved. The socket
     implementation will return, then automatically clear ECONNREFUSED.
-    To handle this, we transparently retry self.retry_max times 
+    To handle this, we transparently retry self.retry_max times
 
     cleanUDP.select() must be used instead of select.select()
 
 """
+from __future__ import print_function
 
 # system imports
+from builtins import str
+from builtins import range
+from builtins import object
+from future.utils import raise_
 import socket
 import Trace
 import errno
@@ -62,13 +67,13 @@ def Select(R, W, X, timeout):
     while 1:
         try:
             r, w, x = select.select(R, W, X, timeout)
-        except select.error, msg:
+        except select.error as msg:
             # If a signal interupts our select, try again.
             if msg.args[0] in [errno.EINTR]:
                 time.sleep(1)
                 continue
             else:
-                raise select.error, msg  # all other errors
+                raise_(select.error, msg)  # all other errors
 
         time_elapsed = time.time() - t0
         remaining_timeout = max(0.0, timeout - time_elapsed)
@@ -88,11 +93,11 @@ def Select(R, W, X, timeout):
                 if obj.scrub():
                     cleaned_r.append(obj)
             except:
-                #Trace.trace( 6, "non clean UDP object" )
+                # Trace.trace( 6, "non clean UDP object" )
                 cleaned_r.append(obj)
 
 
-class cleanUDP:
+class cleanUDP(object):
 
     retry_max = 10
     previous_sendto_address = "N/A"
@@ -181,9 +186,10 @@ class cleanUDP:
 
         for n in range(self.retry_max):
             try:
-                return self.socket.sendto(data, address)
+                return self.socket.sendto(data.encode(), address)
+                #return self.socket.sendto(data, address)
             except (socket.error, socket.gaierror, socket.herror,
-                    select.error), msg:
+                    select.error) as msg:
                 e_errno = getattr(msg, 'errno', msg.args[0])
                 if e_errno in [errno.EMSGSIZE]:
                     """
@@ -199,32 +205,22 @@ class cleanUDP:
                                  sys.exc_info()[1],
                                  sys.exc_info()[2])
                     """
-                    # A long message can now be
-                    # handled by generic_client and
-                    # dispatching_worker.    Don't log a
-                    # traceback here.
-
-                    # Re-raise here since with this error
-                    # retrying will never succeed.
-                    raise sys.exc_info()[0], \
-                        sys.exc_info()[1], \
-                        sys.exc_info()[2]
+                    raise_(sys.exc_info()[0],
+                           sys.exc_info()[1],
+                           sys.exc_info()[2])
                 elif e_errno in [socket.EAI_NONAME]:
                     # message = "sendto %s: %s" % \
                     #        (str(msg), address)
-                    #Trace.log(e_errors.ERROR, message)
+                    # Trace.log(e_errors.ERROR, message)
 
                     # Re-raise here since with this error
                     # retrying will never succeed.
                     # Inject the addess into the error
                     # string so the users see the address
                     # that is causing the error.
-                    raise sys.exc_info()[0], \
-                        (socket.EAI_NONAME,
+                    raise sys.exc_info()[0](socket.EAI_NONAME,
                             "%s: %s" % (str(msg),
-                                        str(address))
-                         ), \
-                        sys.exc_info()[2]
+                                        str(address))).with_traceback(sys.exc_info()[2])
                 else:
                     Trace.log(e_errors.ERROR,
                               str(sys.exc_info()[0]),
@@ -233,15 +229,11 @@ class cleanUDP:
 
         try:
             return self.socket.sendto(data, address)
-        except (socket.error), msg:
+        except (socket.error) as msg:
             if msg.args[0] in [errno.EBADF, errno.EBADFD]:
-                raise socket.error, \
-                    (msg.args[0], "%s: %s" % (msg.args[1], self.socket.fileno())), \
-                    sys.exc_info()[2]
+                raise socket.error(msg.args[0], "%s: %s" % (msg.args[1], self.socket.fileno())).with_traceback(sys.exc_info()[2])
             else:
-                raise socket.error, \
-                    (msg.args[0], "%s: %s" % (msg.args[1], address)), \
-                    sys.exc_info()[2]
+                raise socket.error(msg.args[0], "%s: %s" % (msg.args[1], address)).with_traceback(sys.exc_info()[2])
 
     def logerror(self, sendto_or_recvfrom, try_number):
         badsockerrno = self.socket.getsockopt(
@@ -266,25 +258,25 @@ if __name__ == "__main__":   # pragma: no cover
     sout.sendto("all dogs have fleas", ('localhost', 303031))
     r, w, x = select.select([sout], [sout], [sout], 1.0)
     if not x and not r and w:
-        print "expected select.select behavoir on non-linux " \
-              "and post 2.4 linux kernel"
+        print("expected select.select behavoir on non-linux " \
+              "and post 2.4 linux kernel")
     elif x and r and w:
-        print "expected select.select behavior on linux, " \
-              "pre 2.2 kernel"
+        print("expected select.select behavior on linux, " \
+              "pre 2.2 kernel")
     elif not x and r and w:
-        print "expected select.select behavior on linux, " \
-              "post 2.2 kernel"
+        print("expected select.select behavior on linux, " \
+              "post 2.2 kernel")
     else:
-        print "***unexpected    behavior on _any_ platform"
+        print("***unexpected    behavior on _any_ platform")
     r, w, x, remaining_time = Select([sout], [sout], [sout], 1.0)
 
     if not r and not x:
-        print "expected behavior"
+        print("expected behavior")
     else:
-        print "***unexpected behavior"
+        print("***unexpected behavior")
 
     sout.sendto("all dogs have fleas", ('localhost', 303031))
     sin = cleanUDP(socket.AF_INET, socket.SOCK_DGRAM)
     sin.bind(('localhost', 303031))
     sout.sendto("Expected behavior", ('localhost', 303031))
-    print sin.recvfrom(1000)
+    print(sin.recvfrom(1000))

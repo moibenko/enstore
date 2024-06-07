@@ -1,7 +1,9 @@
+from __future__ import print_function
 #
 # system import
+from builtins import str
+from builtins import object
 import time
-import string
 import os
 # enstore imports
 import enstore_functions2
@@ -33,23 +35,23 @@ PATROL_SEVERITY = {e_errors.sevdict[e_errors.ALARM]: '4',
                    }
 
 
-class GenericAlarm:
+class GenericAlarm(object):
     """
 
     GenericAlarm class
-    
-    This class is subclassed to create 
+
+    This class is subclassed to create
     various alarm objects.
     """
 
     def __init__(self):
         """Initialize an Alarm object
-        
+
         Initializes an Alarm object with default values.
-        
+
         Args:
             None
-        
+
         Returns:
             None
         """
@@ -71,13 +73,13 @@ class GenericAlarm:
 
     def set_ticket(self, condition, atype):
         """Set the ticket condition and type
-        
+
         Sets the ticket condition and type.
-        
+
         Args:
             condition (str): Ticket condition (required)
             atype (str): Ticket type (required)
-        
+
         Returns:
             None
         """
@@ -86,22 +88,22 @@ class GenericAlarm:
 
     def split_severity(self, sev):
         """Split severity into severity and number of times raised
-        
+
         Splits the severity string into the severity and the number of times
         the alarm has been raised.
-        
+
         Args:
             sev (str): Severity string
-        
+
         Returns:
             sev (str): Severity
             num_times_raised (int): Number of times raised
         """
-        l = string.split(sev)
+        l = sev.split()
         sev = l[0]
         if len(l) == 2:
-            tmp = string.replace(l[1], '(', '')
-            tmp = string.replace(tmp, ')', '')
+            tmp = l[1].replace('(', '')
+            tmp = tmp.replace(')', '')
             num_times_raised = int(tmp)
         else:
             num_times_raised = 1
@@ -110,13 +112,13 @@ class GenericAlarm:
     # output the alarm for patrol
     def prepr(self):
         """Generate a ticket in remedy for this alarm
-        
+
         Sets the patrol flag to 1, then calls repr() to generate the alarm string.
         Then sets the patrol flag back to 0.
-        
+
         Args:
             None
-        
+
         Returns:
             alarm (str): The alarm string
         """
@@ -128,12 +130,12 @@ class GenericAlarm:
     # generate a ticket in remedy for this alarm
     def ticket(self):
         """Generate a ticket for this alarm
-        
+
         Generate a ticket for this alarm, if the alarm condition is true.
-        
+
         Args:
             None
-        
+
         Returns:
             None
         """
@@ -153,22 +155,23 @@ class GenericAlarm:
             # make sure long_message does not have embedded double
             # quotes
             l_message = "%s" % (long_message,)
-            l_message = string.replace(l_message, '"', '')
-            cmd ='$ENSTORE_DIR/sbin/generate_ticket ' 
-            cmd_args = '%s "%s" "%s" "%s" %s %s %s %s "%s" %s' % (system_name, condition, short_message, l_message, submitter, user, password, category, aType, item)
+            l_message = l_message.replace('"', '')
+            cmd = '$ENSTORE_DIR/sbin/generate_ticket '
+            cmd_args = '%s "%s" "%s" "%s" %s %s %s %s "%s" %s' % (
+                system_name, condition, short_message, l_message, submitter, user, password, category, aType, item)
             cmd += cmd_args
-            print "%s" % cmd
+            print("%s" % cmd)
             os.system('. /usr/local/etc/setups.sh;setup enstore; %s' % (cmd,))
             self.ticket_generated = "YES"
 
     def seen_again(self):
         """Update the last seen time and number of times raised
-        
+
         Updates the last seen time and number of times raised.
-        
+
         Args:
             None
-        
+
         Returns:
             None
         """
@@ -181,12 +184,12 @@ class GenericAlarm:
     # return the a list of the alarm pieces we need to output
     def list_alarm(self):
         """Return a list of the alarm attributes
-        
+
         Returns a list of the alarm attributes, in the order they should be displayed.
-        
+
         Args:
             None
-        
+
         Returns:
             list: List of alarm attributes
         """
@@ -199,12 +202,12 @@ class GenericAlarm:
     # output the alarm
     def __repr__(self):
         """Return a list of the alarm attributes
-        
+
         Returns a list of the alarm attributes, in the order they should be displayed.
-        
+
         Args:
             None
-        
+
         Returns:
             list: List of alarm attributes
         """
@@ -224,7 +227,8 @@ class GenericAlarm:
         #         servername on node - text string
         # where servername and node are replaced with the appropriate values
         aStr = "%s on %s at %s (%s) - " % (self.source, self.host,
-                                           enstore_functions2.format_time(self.timedate),
+                                           enstore_functions2.format_time(
+                                               self.timedate),
                                            enstore_functions2.format_time(self.timedate_last))
 
         # look in the info dict.  if there is a key "short_text", use it to get
@@ -235,10 +239,10 @@ class GenericAlarm:
     # compare the passed in info to see if it the same as that of the alarm
     def compare(self, host, severity, root_error, source, alarm_info,
                 condition, remedy_type):
-        """Compare the passed in info with the internal 
-            alarm object to see if they are the same 
+        """Compare the passed in info with the internal
+            alarm object to see if they are the same
         Args:
-            host (str): Host name   
+            host (str): Host name
             severity (str): Severity of the alarm
             root_error (str): Root error
             source (str): Source of the alarm
@@ -254,18 +258,18 @@ class GenericAlarm:
             self.severity == severity and
             self.source == source and
             self.condition == condition and
-            self.type == remedy_type):
+                self.type == remedy_type):
             # now that all that is done we can compare the dictionary to see
             # if it is the same.  we need to ignore any r_a keywords first.
             alarm_info_t = alarm_info
-            if alarm_info_t.has_key(enstore_constants.RA):
+            if enstore_constants.RA in alarm_info_t:
                 del alarm_info_t[enstore_constants.RA]
-            if self.alarm_info.has_key(enstore_constants.RA):
+            if enstore_constants.RA in self.alarm_info:
                 del self.alarm_info[enstore_constants.RA]
             if len(alarm_info) == len(self.alarm_info):
-                keys = self.alarm_info.keys()
+                keys = list(self.alarm_info.keys())
                 for key in keys:
-                    if alarm_info.has_key(key):
+                    if key in alarm_info:
                         if not self.alarm_info[key] == alarm_info[key]:
                             # we found something that does not match
                             break
@@ -284,7 +288,7 @@ class GenericAlarm:
     def get_id(self):
         """Return the alarms unique id
         Args:
-            None    
+            None
         Returns:
             int: Alarm id
         """
@@ -347,7 +351,8 @@ class AsciiAlarm(GenericAlarm):
                      self.source, self.root_error,
                      self.condition, self.type,
                      self.ticket_generated, self.alarm_info] = en_eval(text)
-                    self.severity, self.num_times_raised = self.split_severity(sev)
+                    self.severity, self.num_times_raised = self.split_severity(
+                        sev)
                     self.timedate_last = float(self.timedate_last)
                 except (TypeError, ValueError):
                     self.id = 0    # not a valid alarm
@@ -361,21 +366,21 @@ class LogFileAlarm(GenericAlarm):
 
     def unpack_dict(self, dict):
         """Unpack a dictionary into the class attributes
-        
+
         Unpacks a dictionary into the class attributes.
-        
+
         Args:
             dict (dict): Dictionary to unpack
-        
+
         Returns:
             None
         """
-        if dict.has_key(enstore_constants.ROOT_ERROR):
+        if enstore_constants.ROOT_ERROR in dict:
             self.root_error = dict[enstore_constants.ROOT_ERROR]
             del dict[enstore_constants.ROOT_ERROR]
         else:
             self.root_error = "UNKNOWN"
-        if dict.has_key(SEVERITY):
+        if SEVERITY in dict:
             self.severity = dict[SEVERITY]
             del dict[SEVERITY]
         else:
@@ -389,11 +394,11 @@ class LogFileAlarm(GenericAlarm):
 
         # get rid of the MSG_TYPE part of the alarm
         [t, self.host, self.pid, self.uid, dummy, self.source,
-         text] = string.split(text, " ", 6)
+         text] = text.split(" ", 6)
 
         # we need to get rid of the MSG_TYPE text.  it may be at the
         # beginning or the end.
-        text = string.replace(text, Trace.MSG_ALARM, "")
+        text = text.replace(Trace.MSG_ALARM, "")
 
         # assemble the real timedate
         self.timedate = time.strptime("%s %s" % (date, t), "%Y-%m-%d %H:%M:%S")
@@ -407,7 +412,7 @@ class LogFileAlarm(GenericAlarm):
         self.id = str(self.timedate)
         self.timedate_last = self.timedate
 
-        text = string.strip(text)
+        text = text.strip()
         # text may be only a dictionary or it may be of the following format -
         #       root-error, {...} (severity : n)
         if text[0] == "{":
@@ -415,7 +420,7 @@ class LogFileAlarm(GenericAlarm):
             # split up the dictionary into components
             self.unpack_dict(aDict)
         else:
-            index = string.find(text, ", {")
+            index = text.find(", {")
             if index == -1:
                 # we could not find the substring, punt
                 self.root_error = text
@@ -425,7 +430,7 @@ class LogFileAlarm(GenericAlarm):
                 self.root_error = text[0:index]
                 # now pull out any dictionary, skip the ", "
                 index = index + 2
-                end_index = string.find(text, "} (")
+                end_index = text.find("} (")
                 if end_index == -1:
                     # couldn't find it, punt again
                     self.severity = e_errors.ALARM
@@ -434,13 +439,13 @@ class LogFileAlarm(GenericAlarm):
                     aDict = en_eval(text[index:end_index + 1])
                     self.alarm_info = aDict
                     # now get the severity
-                    index = string.rfind(text, ")")
+                    index = text.rfind(")")
                     if index == -1:
                         # could not find it
                         self.severity = e_errors.ALARM
                     else:
                         sev = text[index - 1]
-                        for k, v in e_errors.sevdict.items():
+                        for k, v in list(e_errors.sevdict.items()):
                             if v == sev:
                                 self.severity = k
                                 break
@@ -448,7 +453,8 @@ class LogFileAlarm(GenericAlarm):
                             # there was no match
                             self.severity = e_errors.ALARM
 
-if __name__ == "__main__" :
-    print "unit tests are in enstore/src/tests/test_alarm.py"
+
+if __name__ == "__main__":
+    print("unit tests are in enstore/src/tests/test_alarm.py")
     import sys
     sys.exit(0)

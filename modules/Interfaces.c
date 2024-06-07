@@ -39,8 +39,7 @@
 /***************************************************************************
  * prototypes
  **************************************************************************/
-
-void initInterfaces(void);
+PyMODINIT_FUNC PyInit_Interfaces(); //void initInterfaces(void);
 static PyObject * raise_exception(char *msg);
 static struct ifconf * interfaces(void);
 
@@ -71,10 +70,24 @@ fd_xfer(fr_fd, to_fd, no_bytes, blk_siz, crc_flag[, crc])";
  */
 
 static PyMethodDef Interfaces_Methods[] = {
-    { "interfacesGet", Interfaces_info,  1, Interfaces_get_Doc},
-    { "arpGet", Arp_info,  1, Arp_get_Doc},
-    { 0, 0}        /* Sentinel */
+    { "interfacesGet", Interfaces_info,  METH_VARARGS, Interfaces_get_Doc},
+    { "arpGet", Arp_info,  METH_VARARGS, Arp_get_Doc},
+    { NULL, NULL, 0, NULL}        /* Sentinel */
 };
+
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef moduledef = {
+  PyModuleDef_HEAD_INIT,
+  "Interfaces",     /* m_name */
+  NULL,  /* m_doc */
+  -1,                  /* m_size */
+  Interfaces_Methods,    /* m_methods */
+};
+#define PyString_FromString PyUnicode_FromString
+#define PyInt_FromLong PyLong_FromLong
+
+#endif
+
 
 /***************************************************************************
  * python defined functions
@@ -147,18 +160,20 @@ Arp_info(PyObject *self, PyObject *args)
 /***************************************************************************
  * Functions for interfaces.
  **************************************************************************/
-
-void
-initInterfaces()
+PyMODINIT_FUNC PyInit_Interfaces(void)
 {
     PyObject	*m, *d;
-    
+    #if PY_MAJOR_VERSION >= 3
+       m = PyModule_Create(&moduledef);
+    #else
     m = Py_InitModule4("Interfaces", Interfaces_Methods, Interfaces_Doc, 
 		       (PyObject*)NULL, PYTHON_API_VERSION);
+    #endif
     d = PyModule_GetDict(m);
     InterfacesErrObject = PyErr_NewException("Interfaces.error", NULL, NULL);
     if (InterfacesErrObject != NULL)
 	PyDict_SetItemString(d, "error", InterfacesErrObject);
+    return m;
 }
 
 

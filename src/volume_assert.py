@@ -7,15 +7,19 @@
 ###############################################################################
 
 # system imports
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+from future.utils import raise_
 import os
 import sys
-import string
 import socket
 import select
 import pprint
 import time
 import errno
-#import re
+# import re
 import types
 try:
     import multiprocessing
@@ -23,7 +27,7 @@ try:
 except ImportError:
     multiprocessing_available = False
 import threading
-import thread
+import _thread
 
 # enstore imports
 import configuration_client
@@ -44,7 +48,7 @@ from mover import cookie_to_long
 
 MY_NAME = "ASSERT"
 
-#Hack for migration to report an error, instead of having to go to the log
+# Hack for migration to report an error, instead of having to go to the log
 # file for every error.
 err_msg = {}
 try:
@@ -54,6 +58,8 @@ except NameError:
 
 ############################################################################
 ############################################################################
+
+
 def loc_to_cookie(loc):
     if isinstance(loc, str):
         loc = cookie_to_long(loc)
@@ -61,74 +67,76 @@ def loc_to_cookie(loc):
         loc = 0
     return '%04d_%09d_%07d' % (0, 0, loc)
 
+
 def volume_assert_client_version():
-    ##this gets changed automatically in {enstore,encp}Cut
-    ##You can edit it manually, but do not change the syntax
+    # this gets changed automatically in {enstore,encp}Cut
+    # You can edit it manually, but do not change the syntax
     version_string = "CVS $Revision$ "
     encp_file = globals().get('__file__', "")
     if encp_file: version_string = version_string + os.path.basename(encp_file)
-    #If we end up longer than the current version length supported by the
+    # If we end up longer than the current version length supported by the
     # accounting server; truncate the string.
     if len(version_string) > encp.MAX_VERSION_LENGTH:
-	version_string = version_string[:encp.MAX_VERSION_LENGTH]
+        version_string = version_string[:encp.MAX_VERSION_LENGTH]
     return version_string
 
 
-#Parse the file containing the volumes to be asserted.  It expects the first
+# Parse the file containing the volumes to be asserted.  It expects the first
 # word on each line to be the volume.  Reamining text on a line are optionally
 # location cookies to have their CRC verified.  Also, any line beginning with
 # a "#" is a comment and ignored.
 #
-#The return type is a dictionary.  The keys are the volumes to check; the
+# The return type is a dictionary.  The keys are the volumes to check; the
 # values are a list of location cookies.
 def parse_file(filename):
-    #paranoid check
-    if type(filename) != types.StringType:
+    # paranoid check
+    if type(filename) != bytes:
         return {}
-    #Handle file access problems gracefully.
+    # Handle file access problems gracefully.
     try:
         fp = open(filename, "r")
-    except OSError, msg:
+    except OSError as msg:
         try:
             sys.stderr.write(msg + "\n")
             sys.stderr.flush()
         except IOError:
             pass
         sys.exit(1)
-        
-    data=map(string.strip, fp.readlines())
+
+    data = list([x.strip() for x in fp.readlines()])
     tmp = {}
     for line in data:
-	try:
-            #The first element should be the volume.
-            words = string.split(line)
+        try:
+            # The first element should be the volume.
+            words = line.split()
             words[0].strip()
             if words[0] != "#":
-                if not hasattr(tmp, words[0]): #Skip duplicates.
-                    tmp[words[0]] = [] #First line for this volume.
+                if not hasattr(tmp, words[0]):  # Skip duplicates.
+                    tmp[words[0]] = []  # First line for this volume.
 
-                #The remaining elements should be location cookies.
+                # The remaining elements should be location cookies.
                 for lc in words[1:]:
                     if enstore_functions3.is_location_cookie(lc):
-                        if lc not in tmp[words[0]]: #Skip duplicates.
+                        if lc not in tmp[words[0]]:  # Skip duplicates.
                             tmp[words[0]].append(lc)
                     else:
                         sys.stderr.write("Not a location cookie: %s" % (lc,))
                         sys.stderr.flush()
-	except IndexError:
-	    continue #This happens for blank lines
+        except IndexError:
+            continue  # This happens for blank lines
 
     fp.close()
     return tmp
 
+
 def parse_comma_list(comma_seperated_string):
-    #paranoid check
-    if type(comma_seperated_string) != types.StringType:
+    # paranoid check
+    if not isinstance(comma_seperated_string, (bytes, str)):
         return []
 
     split_on_commas = comma_seperated_string.split(",")
 
-    #If the string began or ended with a comma remove the blank label name.
+    # If the string began or ended with a comma remove the blank label name.
     if split_on_commas[0] == "":
         del split_on_commas[0]
     if split_on_commas[-1] == "":
@@ -136,10 +144,11 @@ def parse_comma_list(comma_seperated_string):
 
     return split_on_commas
 
+
 def get_clerks_list():
-    #Determine the entire valid list of configuration servers.
+    # Determine the entire valid list of configuration servers.
     csc = configuration_client.ConfigurationClient()
-    #Add this hosts current enstore system to the beginning of the list.
+    # Add this hosts current enstore system to the beginning of the list.
     csc_list = []
     csc_list.append(csc)
     vcc_list = []
@@ -152,91 +161,93 @@ def get_clerks_list():
                                                  rcv_tries=2))
     return csc_list, vcc_list, fcc_list
 
-def create_assert_list(check_requests, media_validate=None, start_from=None, skip_deleted = None):
-    #The list of volume clerks to check.
+
+def create_assert_list(check_requests, media_validate=None,
+                       start_from=None, skip_deleted=None):
+    # The list of volume clerks to check.
     csc_list, vcc_list, fcc_list = get_clerks_list()
 
-    #Determine the calback address.
-    callback_addr, listen_socket = encp.get_callback_addr()  #intf)
+    # Determine the calback address.
+    callback_addr, listen_socket = encp.get_callback_addr()  # intf)
 
-    #For each volume in the list, determine which system it belongs in by
+    # For each volume in the list, determine which system it belongs in by
     # asking each volume clerk until one responds positively.  When one does
     # build the ticket and add it to the list to assert.
     assert_list = []
-    vol_list = check_requests.keys()
+    vol_list = list(check_requests.keys())
     for vol in vol_list:
-	e_msg = None #clear this error variable.
+        e_msg = None  # clear this error variable.
         for i in range(len(vcc_list)):
             vc = vcc_list[i].inquire_vol(vol)
 
-	    #If the volume has a bad state, skip it.
+            # If the volume has a bad state, skip it.
             if not e_errors.is_ok(vc['status']):
-		if e_msg: #If error is already set, skip it.
-		    continue
-		e_msg = "Volume %s has state %s and unassertable.\n" % \
-			(vol, vc['status'])
+                if e_msg:  # If error is already set, skip it.
+                    continue
+                e_msg = "Volume %s has state %s and unassertable.\n" % \
+                        (vol, vc['status'])
                 continue
-	    #If the volume is not a tape, skip it.
-	    if vc['media_type'] == "null" or vc['media_type'] == "disk":
-		if e_msg: #If error is already set, skip it.
-		    continue
-		e_msg = "Volume %s is a %s volume and unassertable.\n" % \
-			(vol, vc['media_type'])
-		continue
+            # If the volume is not a tape, skip it.
+            if vc['media_type'] == "null" or vc['media_type'] == "disk":
+                if e_msg:  # If error is already set, skip it.
+                    continue
+                e_msg = "Volume %s is a %s volume and unassertable.\n" % \
+                        (vol, vc['media_type'])
+                continue
 
-	    #Create the ticket to submit to the library manager.
+            # Create the ticket to submit to the library manager.
             ticket = {}
-            #Internally used values.
+            # Internally used values.
             ticket['_csc'] = csc_list[i].server_address
-            #Required items.
+            # Required items.
             ticket['unique_id'] = encp.generate_unique_id()
             ticket['callback_addr'] = callback_addr
             ticket['vc'] = vc
-            ticket['vc']['address'] = vcc_list[i].server_address  #vcc instance
+            ticket['vc']['address'] = vcc_list[i].server_address  # vcc instance
             ticket['vc']['storage_group'] = ''
-            #Optional values based on command line switches.
+            # Optional values based on command line switches.
             if check_requests[vol] == []:
                 ticket['action'] = "crc_check"
-                #ticket['parameters'] = [] #optional
+                # ticket['parameters'] = [] #optional
             elif isinstance(check_requests[vol], (tuple, list)):
                 ticket['action'] = "crc_check"
                 ticket['parameters'] = check_requests[vol]
             if (media_validate and
                 (vc['media_type'] in ("T10000T2", "T10000T2D"))):
                 ticket['action'] = media_validate
-            #The following are for the inquisitor.
+            # The following are for the inquisitor.
             ticket['vc']['file_family'] = ""
-            ticket['fc'] = {}  #Easier to do this than modify the mover.
+            ticket['fc'] = {}  # Easier to do this than modify the mover.
             ticket['fc']['external_label'] = vc['external_label']
             ticket['fc']['location_cookie'] = "0000_000000000_0000000"
             if start_from:
                 ticket['fc']['location_cookie'] = loc_to_cookie(start_from)
             ticket['skip_deleted'] = skip_deleted
-            ticket['fc']['address'] = fcc_list[i].server_address  #fcc instance
+            ticket['fc']['address'] = fcc_list[i].server_address  # fcc instance
             ticket['fc']['pnfsid'] = ''
             ticket['fc']['pnfs_name0'] = ''
             ticket['fc']['deleted'] = ''
             ticket['fc']['bfid'] = ''
-            ticket['fc']['sanity_cookie'] = (0,0)
-            ticket['fc']['complete_crc'] = 0L
-            ticket['fc']['size'] = 0L
-            
-	    ticket['times'] = {}
-	    ticket['times']['t0'] = time.time()
-	    ticket['encp'] = {}
-	    ticket['encp']['adminpri'] = -1
-	    ticket['encp']['basepri'] = 1
-            ticket['encp']['curpri'] = 0  #For transfers, this is set by LM.
+            ticket['fc']['sanity_cookie'] = (0, 0)
+            ticket['fc']['complete_crc'] = 0
+            ticket['fc']['size'] = 0
+
+            ticket['times'] = {}
+            ticket['times']['t0'] = time.time()
+            ticket['encp'] = {}
+            ticket['encp']['adminpri'] = -1
+            ticket['encp']['basepri'] = 1
+            ticket['encp']['curpri'] = 0  # For transfers, this is set by LM.
             ticket['encp']['delpri'] = 0
             ticket['encp']['agetime'] = 0
             ticket['encp']['delayed_dismount'] = 1
             ticket['infile'] = ""
             ticket['outfile'] = ""
             ticket['volume'] = vol
-            #ticket['version'] = #LM will ignore if version isn't encp's.
+            # ticket['version'] = #LM will ignore if version isn't encp's.
             ticket['wrapper'] = encp.get_uinfo()
             ticket['wrapper']['size_bytes'] = 0
-            ticket['wrapper']['machine'] = os.uname()
+            ticket['wrapper']['machine'] = tuple(s for s in os.uname())
             ticket["wrapper"]["pnfsFilename"] = ""
             ticket["wrapper"]["fullname"] = ""
             ticket["wrapper"]['inode'] = 0
@@ -246,14 +257,14 @@ def create_assert_list(check_requests, media_validate=None, start_from=None, ski
             ticket["wrapper"]['mode'] = 0
             ticket['override_ro_mount'] = 1
             ticket['override_notallowed'] = 1
-            
+
             ticket['file_size'] = 0
             ticket['version'] = ''
 
-            #Add the assert work ticket to the list of volume asserts.
+            # Add the assert work ticket to the list of volume asserts.
             assert_list.append(ticket)
 
-            break  #When the correct vcc is found skip the rest.
+            break  # When the correct vcc is found skip the rest.
 
         else:
             try:
@@ -265,16 +276,17 @@ def create_assert_list(check_requests, media_validate=None, start_from=None, ski
 
     return assert_list, listen_socket
 
+
 def submit_assert_requests(assert_list):
     unique_id_list = []
-    #Submit each request to the library manager.  The necessary information
+    # Submit each request to the library manager.  The necessary information
     # is in the ticket.  While submiting the assert work requests, create
     # a list of the unique_ids created.
     for ticket in assert_list:
-        Trace.trace(1, "Submitting assert request for %s volume %s." % \
+        Trace.trace(1, "Submitting assert request for %s volume %s." %
               (ticket['vc']['media_type'], ticket['vc']['external_label']))
 
-        #Instantiate the library_manager_client class and send it the
+        # Instantiate the library_manager_client class and send it the
         # volume assert.
         lmc = library_manager_client.LibraryManagerClient(
             ticket['_csc'], ticket['vc']['library'] + ".library_manager")
@@ -294,28 +306,29 @@ def submit_assert_requests(assert_list):
 
         unique_id_list.append(ticket['unique_id'])
 
-    return unique_id_list  #return the list of unique ids to wait for.
+    return unique_id_list  # return the list of unique ids to wait for.
+
 
 def report_assert_results(done_ticket):
     global err_msg
 
     err_msg_lock.acquire()
     try:
-        #For migration to report directly.
-        err_msg[thread.get_ident()].append(done_ticket)
+        # For migration to report directly.
+        err_msg[_thread.get_ident()].append(done_ticket)
     except (KeyboardInterrupt, SystemExit):
         err_msg_lock.release()
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
     except:
         try:
             Trace.handle_error()
         except (KeyboardInterrupt, SystemExit):
             err_msg_lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             pass
     err_msg_lock.release()
-            
+
     Trace.trace(10, "DONE TICKET")
     Trace.trace(10, pprint.pformat(done_ticket))
 
@@ -331,7 +344,7 @@ def report_assert_results(done_ticket):
     Trace.trace(1, message)
 
     #If CRC checks were requested, report the results.
-    lc_keys = done_ticket.get('return_file_list', {}).keys()
+    lc_keys = list(done_ticket.get('return_file_list', {}).keys())
     lc_keys.sort() #Sort them in order.
     for key in lc_keys:
         message = "file %s:%s status is %s" % (
@@ -347,18 +360,14 @@ def stall_volume_assert(control_socket):
             read_control_fd, unused, unused = select.select([control_socket],
                                                             [], [], None)
             status_ticket = {'status' : (e_errors.OK, None)}
-        except (socket.error, select.error), msg:
-            if msg.args[0] in [errno.EINTR, errno.EAGAIN]:
+        except (socket.error, select.error) as msg:
+            if msg.args[0] in (errno.EINTR, errno.EAGAIN):
                 #select() was interupted by a signal.
                 continue
-            
+
             status_ticket = {'status' : (e_errors.NET_ERROR,
                                          "%s: %s" % (str(msg),
                                                "No data read from mover."))}
-            break
-        except e_errors.TCP_EXCEPTION:
-            status_ticket = {'status' : (e_errors.NET_ERROR,
-                                         e_errors.TCP_EXCEPTION)}
             break
 
         if control_socket in read_control_fd \
@@ -445,7 +454,7 @@ def handle_assert_requests(unique_id_list, assert_list, listen_socket, intf):
 
         if intf.crc_check or intf.media_validate:
             stall_volume_assert(socket)
-            
+
 
         try:
             #Obtain the results of the volume assert by the mover.
@@ -482,7 +491,7 @@ def handle_assert_requests(unique_id_list, assert_list, listen_socket, intf):
             socket.close()
         except socket.error:
             pass
-        
+
     #This is still open.  Close it for good programming technique.
     try:
         listen_socket.close()
@@ -507,16 +516,16 @@ def log_volume_assert_start():
     # failed and what succeeded.
     err_msg_lock.acquire()
     try:
-        err_msg[thread.get_ident()] = []
+        err_msg[_thread.get_ident()] = []
     except (KeyboardInterrupt, SystemExit):
         err_msg_lock.release()
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
     except:
         try:
             Trace.handle_error()
         except (KeyboardInterrupt, SystemExit):
             err_msg_lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             pass
     err_msg_lock.release()
@@ -548,14 +557,14 @@ class VolumeAssertInterface(generic_client.GenericClientInterface):
 
     def valid_dictionaries(self):
         return (self.help_options, self.volume_assert_options)
-    
+
     # parse the options like normal but make sure we have other args
     def parse_options(self):
 
         generic_client.GenericClientInterface.parse_options(self)
 
     parameters = ["volume_list_file"]
-    
+
     volume_assert_options = {
         #option.CRC_CHECK:{option.HELP_STRING:"crc check specific file(s), " \
         #                  "seperate multiple location cookies with commas",
@@ -605,7 +614,7 @@ class VolumeAssertInterface(generic_client.GenericClientInterface):
 def main(intf):
 
     Trace.init(MY_NAME)
-    for x in xrange(0, intf.verbose+1):
+    for x in range(0, intf.verbose+1):
         Trace.do_print(x)
     #Some globals are expected to exists for normal operation (i.e. a logger
     # client).  Create them.  (Ignore errors returned from clients.)
@@ -622,7 +631,7 @@ def main(intf):
         #If the user did not specify --crc-check, then convert all empty
         # location cookie lists to None.
         if not intf.crc_check:
-            for vol in check_requests.keys():
+            for vol in list(check_requests.keys()):
                 if check_requests[vol] == []:
                     check_requests[vol] = None
     elif intf.volume and intf.crc_check: #read from command line arguments.
@@ -707,7 +716,7 @@ def main(intf):
                                          listen_socket, intf)
 
     return exit_status
-    
+
 ############################################################################
 ############################################################################
 
@@ -719,7 +728,7 @@ def do_work(intf):
         exc, msg = sys.exc_info()[:2]
         Trace.log(e_errors.ERROR,
                   "encp aborted from: %s: %s" % (str(exc),str(msg)))
-        
+
         exit_status = 1
     except:
         #Get the uncaught exception.

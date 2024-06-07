@@ -6,16 +6,19 @@
 ###############################################################################
 
 # system imports
-import string
+from builtins import map
+from builtins import range
+from builtins import object
 import os
 import getopt
 import sys
 
 # enstore imports
-#import setpath
+# import setpath
 import Trace
 import e_errors
 import hostaddr
+
 
 def getenv(var, default=None):
     val = os.environ.get(var)
@@ -26,11 +29,13 @@ def getenv(var, default=None):
         used_default = 0
     return val, used_default
 
+
 DEFAULT_HOST = 'localhost'
 DEFAULT_PORT = '7500'
 
 used_default_config_host = 0
 used_default_config_port = 0
+
 
 def default_host():
     val, used_default = getenv('ENSTORE_CONFIG_HOST', default=DEFAULT_HOST)
@@ -38,6 +43,7 @@ def default_host():
         global used_default_config_host
         used_default_config_host = 1
     return val
+
 
 def default_port():
     val, used_default = getenv('ENSTORE_CONFIG_PORT', default=DEFAULT_PORT)
@@ -47,13 +53,16 @@ def default_port():
         used_default_config_port = 1
     return val
 
+
 def default_file():
     return "/pnfs/enstore/.(config)(flags)/enstore.conf"
 
+
 def log_using_default(var, default):
     Trace.log(e_errors.INFO,
-              "%s not set in environment or command line - reverting to %s"\
-              %(var, default))
+              "%s not set in environment or command line - reverting to %s"
+              % (var, default))
+
 
 def check_for_config_defaults():
     # check if we are using the default host and port.  if this is true
@@ -64,6 +73,7 @@ def check_for_config_defaults():
     if used_default_config_port:
         log_using_default('CONFIG PORT', DEFAULT_PORT)
 
+
 def str_to_tuple(s):
     # convert the string of the form "(val1, val2)" to a tuple of the form
     # (val1, val2) by doing the following -
@@ -71,49 +81,52 @@ def str_to_tuple(s):
     #              remove the first char : the '(' char
     #              remove the last char  : the ')' char
     #              split into two based on ',' char
-    tmp = string.strip(s)
+    tmp = s.strip()
     tmp = tmp[1:-1]
-    return tuple(string.split(tmp, ",", 1))
+    return tuple(tmp.split(",", 1))
+
 
 def underscore_to_dash(s):
-    ##accept - rather than _ in arguments - but only in the keywords, not
-    ## the values!
+    # accept - rather than _ in arguments - but only in the keywords, not
+    # the values!
     if s[:2] != '--':
         return s
     t = '--'
-    eq=0
+    eq = 0
     for c in s[2:]:
-        if c=='=':
-            eq=1
-        if c=='_' and not eq:
-            c='-'
-        t=t+c
+        if c == '=':
+            eq = 1
+        if c == '_' and not eq:
+            c = '-'
+        t = t + c
     return t
+
 
 def parse_range(s):
     if ',' in s:
-        s = string.split(s,',')
+        s = s.split(',')
     else:
         s = [s]
     r = []
     for t in s:
         if '-' in t:
-            lo, hi = string.split(t,'-')
+            lo, hi = t.split('-')
             lo, hi = int(lo), int(hi)
-            r.extend(range(lo, hi+1))
+            r.extend(list(range(lo, hi + 1)))
         else:
             r.append(int(t))
     return r
 
-class Interface:
+
+class Interface(object):
     def __init__(self, host=default_host(), port=default_port()):
         # make pychecker happy
         self.csc = None
         self.test_mode = None
         if self.__dict__.get("do_parse", 1):
-            if host == 'localhost' :
+            if host == 'localhost':
                 self.check_host(hostaddr.gethostinfo()[0])
-            else:            
+            else:
                 self.check_host(host)
             self.check_port(port)
             self.parse_options()
@@ -123,7 +136,7 @@ class Interface:
 
     def check_port(self, port):
         # bomb out if port isn't numeric
-        if type(port) == type('string'):
+        if isinstance(port, str):
             self.config_port = int(port)
         else:
             self.config_port = port
@@ -138,27 +151,28 @@ class Interface:
         return ["config-host=", "config-port="]
 
     def alive_rcv_options(self):
-        return ["timeout=","retries="]
+        return ["timeout=", "retries="]
 
     def alive_options(self):
-        return ["alive"]+self.alive_rcv_options()
+        return ["alive"] + self.alive_rcv_options()
 
     def trace_options(self):
-        return ["do-print=", "dont-print=", "do-log=", "dont-log=", "do-alarm=", "dont-alarm="]
-    
+        return ["do-print=", "dont-print=", "do-log=",
+                "dont-log=", "do-alarm=", "dont-alarm="]
+
     def format_options(self, opts, prefix):
         # put the options in alphabetical order and add a "--" to the front of
         # each
         opts.sort()
         nopts = ""
         for opt in opts:
-            nopts = nopts+prefix+"--"+opt
+            nopts = nopts + prefix + "--" + opt
         return nopts
 
     def missing_parameter(self, param):
-        Trace.trace(13,"ERROR: missing parameter %s"%(param,))
+        Trace.trace(13, "ERROR: missing parameter %s" % (param,))
         try:
-            sys.stderr.write("ERROR: missing parameter %s\n"%(param,))
+            sys.stderr.write("ERROR: missing parameter %s\n" % (param,))
             sys.stderr.flush()
         except IOError:
             pass
@@ -167,24 +181,24 @@ class Interface:
         return " "
 
     def help_prefix(self):
-        return sys.argv[0]+" [opts] "
+        return sys.argv[0] + " [opts] "
 
     def help_suffix(self):
         return "\n\n\t where 'opts' are:\n"
 
     def help_line(self):
-        return self.help_prefix()+self.parameters()+self.help_suffix()+self.format_options(
+        return self.help_prefix() + self.parameters() + self.help_suffix() + self.format_options(
             self.options(), "\n\t\t")
 
     def print_help(self):
         try:
-            sys.stderr.write("USAGE: %s\n"%(self.help_line(),))
+            sys.stderr.write("USAGE: %s\n" % (self.help_line(),))
             sys.stderr.flush()
         except IOError:
             pass
 
     def print_usage_line(self, opts=None):
-        if opts == None:
+        if opts is None:
             opts = self.options()
         try:
             sys.stderr.write(self.get_usage_line(opts))
@@ -193,10 +207,10 @@ class Interface:
             pass
 
     def get_usage_line(self, opts=None):
-        if opts == None:
+        if opts is None:
             opts = self.options()
-        return "["+self.format_options(opts, " ")+"] "+self.parameters()
-    
+        return "[" + self.format_options(opts, " ") + "] " + self.parameters()
+
     def parse_config_host(self, value):
         try:
             self.csc.config_host = value
@@ -222,24 +236,24 @@ class Interface:
     def parse_options(self):
         self.options_list = []
         try:
-            argv=map(underscore_to_dash, sys.argv[1:])
-            optlist,self.args=getopt.getopt(argv,self.charopts(),
-                                            self.options())
-        except getopt.error, detail:
-            Trace.trace(9, "ERROR: getopt error %s"%(detail,))
+            argv = list(map(underscore_to_dash, sys.argv[1:]))
+            optlist, self.args = getopt.getopt(argv, self.charopts(),
+                                               self.options())
+        except getopt.error as detail:
+            Trace.trace(9, "ERROR: getopt error %s" % (detail,))
             try:
-                sys.stderr.write("error: %s\n"%(detail,))
+                sys.stderr.write("error: %s\n" % (detail,))
                 sys.stderr.flush()
             except IOError:
                 pass
             self.print_help()
             sys.exit(1)
-        for (opt,value) in optlist :
+        for (opt, value) in optlist:
             # keep a list of the options entered without the leading "--"
-            self.options_list.append(string.replace(opt, "-", ""))
+            self.options_list.append(opt.replace("-", ""))
 
-            value=self.strip(value)
-            Trace.trace(10, "opt = %s, value = %s"%(opt,value))
+            value = self.strip(value)
+            Trace.trace(10, "opt = %s, value = %s" % (opt, value))
             if opt == "--add":
                 self.add = value
             elif opt == "--age-time":
@@ -249,7 +263,7 @@ class Interface:
             elif opt == "--all":
                 self.all = 1
             elif opt == "--array-size":
-                self.array_size = int(value);
+                self.array_size = int(value)
             elif opt == "--backup":
                 self.backup = 1
             elif opt == "--bfid":
@@ -263,16 +277,17 @@ class Interface:
             elif opt == "--bytes":
                 if not self.test_mode:
                     try:
-                        sys.stderr.write("bytecount may only be specified in test mode\n")
+                        sys.stderr.write(
+                            "bytecount may only be specified in test mode\n")
                         sys.stderr.flush()
                     except IOError:
                         pass
                     sys.exit(-1)
-                if value[-1]=='L':
-                    value=value[:-1]
-                self.bytes = long(value)
+                if value[-1] == 'L':
+                    value = value[:-1]
+                self.bytes = int(value)
             elif opt == "--buffer-size":
-                self.buffer_size = int(value);
+                self.buffer_size = int(value)
             elif opt == "--caption-title":
                 self.caption_title = value
             elif opt == "--change-priority":
@@ -337,14 +352,14 @@ class Interface:
             elif opt == "--ecrc":
                 self.ecrc = 1
             elif opt == "--ephemeral":
-                self.output_file_family="ephemeral"
+                self.output_file_family = "ephemeral"
             elif opt == "--export":
                 if value:
                     self.export = value
                 else:
                     self._export = 1
             elif opt == "--file-family":
-                self.output_file_family=value
+                self.output_file_family = value
             elif opt == "--force":
                 self.force = 1
             elif opt == "--get-bfid":
@@ -352,7 +367,7 @@ class Interface:
             elif opt == "--get-cache":
                 self.get_cache = 1
             elif opt == "--get-crcs":
-                self.get_crcs=value
+                self.get_crcs = value
             elif opt == "--get-update-interval":
                 self.get_update_interval = 1
             elif opt == "--get-last-logfile-name":
@@ -366,9 +381,9 @@ class Interface:
             elif opt == "--get-patrol-file":
                 self.get_patrol_file = 1
             elif opt == "--get-queue":
-                self.get_queue=value
+                self.get_queue = value
             elif opt == "--print-queue":
-                self.print_queue=value
+                self.print_queue = value
             elif opt == "--get-refresh":
                 self.get_refresh = 1
             elif opt == "--get-suspect-vols":
@@ -391,7 +406,7 @@ class Interface:
             elif opt == "--html-gen-host":
                 self.html_gen_host = value
             elif opt == "--idle":
-                self.stop_draining=1
+                self.stop_draining = 1
             elif opt == "--import":
                 if value:
                     self._import = value
@@ -426,13 +441,13 @@ class Interface:
             elif opt == "--max-work":
                 self.max_work = int(value)
             elif opt == "--mc":
-                self.mcs = string.split(value, ",")
+                self.mcs = value.split(",")
             elif opt == "--message":
                 self.message = value
             elif opt == "--mmap-io":
                 self.mmap_io = 1
             elif opt == "--mmap-size":
-                self.mmap_size = long(value)
+                self.mmap_size = int(value)
             elif opt == "--modify":
                 self.modify = value
             elif opt == "--mount":
@@ -455,12 +470,12 @@ class Interface:
                 self.start_draining = 1
             elif opt == "--outage":
                 self.outage = value
-	    elif opt == "--override":
-		self.override = value
-	    elif opt == "--nooverride":
-		self.nooverride = value
-	    elif opt == "--saagStatus":
-		self.saagStatus = value
+            elif opt == "--override":
+                self.override = value
+            elif opt == "--nooverride":
+                self.nooverride = value
+            elif opt == "--saagStatus":
+                self.saagStatus = value
             elif opt == "--output":
                 self.output = value
             elif opt == "--output-dir":
@@ -498,7 +513,7 @@ class Interface:
             elif opt == "--root-error":
                 self.root_error = value
             elif opt == "--set-crcs":
-                self.set_crcs=value
+                self.set_crcs = value
             elif opt == "--severity":
                 self.severity = value
             elif opt == "--shortcut":
@@ -547,10 +562,10 @@ class Interface:
                 self.update_and_exit = 1
             elif opt == "--url":
                 self.url = value
-	    elif opt == "--encp":
-		self.encp = 1
-	    elif opt == "--sg":
-		self.sg = 1
+            elif opt == "--encp":
+                self.encp = 1
+            elif opt == "--sg":
+                self.sg = 1
             elif opt == "--usage-line":
                 self.print_usage_line()
                 sys.exit(0)
@@ -567,19 +582,19 @@ class Interface:
                 self.vol1ok = 1
             elif opt == "--web-host":
                 self.web_host = value
-	    elif opt == "--subscribe":
-		self.subscribe = 1
-	    elif opt == "--no-mail":
-		self.no_mail = 1
+            elif opt == "--subscribe":
+                self.subscribe = 1
+            elif opt == "--no-mail":
+                self.no_mail = 1
             elif opt == "--dbHome":
                 self.dbHome = value
             elif opt == "--jouHome":
                 self.jouHome = value
             elif opt == "--sendto":    # for mailing
-                self.sendto = string.split(value)
+                self.sendto = value.split()
             elif opt == "--notify":    # for mailing (notification)
-                self.notify = string.split(value)
-            elif opt == "--skip-pnfs": # for super_remove
+                self.notify = value.split()
+            elif opt == "--skip-pnfs":  # for super_remove
                 self.skip_pnfs = 1
             elif opt == "--dont-ask":  # for super_remove
                 self.dont_ask = 1

@@ -6,15 +6,21 @@
 #
 ###############################################################################
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import json
 import os
 import socket
 import sys
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 
-import ConfigParser
+import configparser
 
-CONFIG_FILE = os.path.join(os.environ["ENSTORE_DIR"], "etc/servicenow_create_entry.cf")
+CONFIG_FILE = os.path.join(
+    os.environ["ENSTORE_DIR"],
+    "etc/servicenow_create_entry.cf")
 HTTP_SUCCESS_CODES = (200, 201)
 
 CI_NAME = socket.gethostname().split('.')[0].upper()
@@ -29,13 +35,13 @@ class SnowInterface(object):
         :param config_file: string, path to config file
         """
         self.config_file = config_file if config_file is not None else CONFIG_FILE
-        self.config_parser = ConfigParser.ConfigParser()
+        self.config_parser = configparser.ConfigParser()
         self.config_parser.read(self.config_file)
 
-        self.password_manager = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        auth_handler = urllib2.HTTPBasicAuthHandler(self.password_manager)
-        opener = urllib2.build_opener(auth_handler)
-        urllib2.install_opener(opener)
+        self.password_manager = urllib.request.HTTPPasswordMgrWithDefaultRealm()
+        auth_handler = urllib.request.HTTPBasicAuthHandler(self.password_manager)
+        opener = urllib.request.build_opener(auth_handler)
+        urllib.request.install_opener(opener)
 
     def post(self, url, payload):
         """
@@ -47,12 +53,13 @@ class SnowInterface(object):
         """
         self.password_manager.add_password(None,
                                            url,
-                                           self.config_parser.get("HelpDesk", "acct"),
+                                           self.config_parser.get(
+                                               "HelpDesk", "acct"),
                                            self.config_parser.get("HelpDesk", "passwd"))
-        request = urllib2.Request(url, json.dumps(payload))
+        request = urllib.request.Request(url, json.dumps(payload))
         request.add_header("Content-Type", "application/json")
         request.add_header("Accept", "application/json")
-        response = urllib2.urlopen(request)
+        response = urllib.request.urlopen(request)
         if response.getcode() not in HTTP_SUCCESS_CODES:
             raise Exception("HTTP code %s" % (response.getcode()))
         return json.load(response)
@@ -69,23 +76,23 @@ class SnowInterface(object):
             raise Exception("service now URL is not defined")
 
         data = {
-            "impact":  kwargs.get("Impact_Type", "3-Moderate/Limited"),
+            "impact": kwargs.get("Impact_Type", "3-Moderate/Limited"),
             "u_monitored_ci_name": kwargs.get("CiName").upper(),
             "short_description": kwargs.get("Summary", None),
             "description": kwargs.get("Notes", None),
             "comments": kwargs.get("Comments", None),
             "u_reported_source": kwargs.get("Reported_Source_Type", "Event Monitoring"),
             "u_service": kwargs.get("Service_Type", "Storage"),
-            "urgency":  kwargs.get("Urgency_Type", "3-Medium"),
+            "urgency": kwargs.get("Urgency_Type", "3-Medium"),
             "u_monitored_categorization": kwargs.get("Monitored_Categorization",
                                                      self.config_parser.get("create_entry", "categorization")),
             "caller_id": self.config_parser.get("create_entry", "user_first") + " " +
-                         self.config_parser.get("create_entry", "user_last"),
+            self.config_parser.get("create_entry", "user_last"),
             "u_categorization": kwargs.get("Categorization",
                                            self.config_parser.get("create_entry", "u_categorization")),
             "u_virtual_organization": kwargs.get("Virtual_Organization",
                                                  self.config_parser.get("create_entry", "u_virtual_organization")),
-            }
+        }
         response = self.post(url, data)
         return response["result"]["number"]
 
@@ -104,20 +111,20 @@ class SnowInterface(object):
         First we create the request ticket
         """
         data = {
-                "catalog_item": {
-                    "sys_id": kwargs.get("Sys_Id",
-                                         self.config_parser.get("create_entry", "sys_id")),
-                    "vars": {
-                        "u_monitored_ci_name": kwargs.get("CiName", CI_NAME).upper(),
-                        "short_description": kwargs.get("Summary", SHORT_DESCRIPTION),
-                        "description": kwargs.get("Description", DESCRIPTION),
-                        "watch_list": kwargs.get("Watch_List",
-                                                 self.config_parser.get("create_entry", "watch_list")),
-                        "u_requestor_email": kwargs.get("E_Mail",
-                                                        self.config_parser.get("create_entry", "u_requestor_email")),
-                        }
-                    }
+            "catalog_item": {
+                "sys_id": kwargs.get("Sys_Id",
+                                     self.config_parser.get("create_entry", "sys_id")),
+                "vars": {
+                    "u_monitored_ci_name": kwargs.get("CiName", CI_NAME).upper(),
+                    "short_description": kwargs.get("Summary", SHORT_DESCRIPTION),
+                    "description": kwargs.get("Description", DESCRIPTION),
+                    "watch_list": kwargs.get("Watch_List",
+                                             self.config_parser.get("create_entry", "watch_list")),
+                    "u_requestor_email": kwargs.get("E_Mail",
+                                                    self.config_parser.get("create_entry", "u_requestor_email")),
                 }
+            }
+        }
         response = self.post(url, data)
         ticket_number = response["items"][0]["number"]
         url = response["items"][0]["link"]

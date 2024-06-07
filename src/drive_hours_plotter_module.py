@@ -13,6 +13,7 @@ each unique drive type.
 
 # Python imports
 from __future__ import division, print_function
+from builtins import zip
 import os
 import time
 
@@ -25,6 +26,7 @@ import histogram
 WEB_SUB_DIRECTORY = enstore_constants.DRIVE_HOURS_PLOTS_SUBDIR
 """Subdirectory in which to write plots. This constant is also referenced by
 the :mod:`enstore_make_plot_page` module."""
+
 
 class DriveHoursPlotterModule(enstore_plotter_module.EnstorePlotterModule):
     """Plot drive usage hours versus date, stacked by storage group,
@@ -154,13 +156,13 @@ class DriveHoursPlotterModule(enstore_plotter_module.EnstorePlotterModule):
         ylabel = 'Drive usage hours'
         ylabel_i = 'Accumulative {}'.format(ylabel.lower())
 
-        set_xrange_cmds =  ('set xdata time',
-                            'set timefmt "{}"'.format(str_time_format),
-                            'set xrange ["{}":"{}"]'.format(start_time_str,
-                                                            now_time_str))
+        set_xrange_cmds = ('set xdata time',
+                           'set timefmt "{}"'.format(str_time_format),
+                           'set xrange ["{}":"{}"]'.format(start_time_str,
+                                                           now_time_str))
 
         # Make plots
-        for t, v1 in self.mounts.iteritems():
+        for t, v1 in list(self.mounts.items()):
 
             plot_name = '%s' % (t,)
             plot_title = 'Drive usage by storage group for %s drives.' % (t,)
@@ -191,14 +193,14 @@ class DriveHoursPlotterModule(enstore_plotter_module.EnstorePlotterModule):
             hists_i = []
 
             plot_enabled = False
-            for sg, v2 in v1.iteritems():
+            for sg, v2 in v1.items():
 
-                h_name =  '{}_{}'.format(t, sg)
+                h_name = '{}_{}'.format(t, sg)
                 h = histogram.Histogram1D(h_name, h_name,
                                           self.num_bins,
                                           float(start_time), float(now_time))
 
-                for _volume, data in v2.iteritems():
+                for _volume, data in v2.items():
                     mounts = data['M']
                     dismounts = data['D']
                     durations = [y - x for x, y in zip(mounts, dismounts)]

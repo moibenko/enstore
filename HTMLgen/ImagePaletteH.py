@@ -5,15 +5,17 @@
 # image palette object
 #
 # History:
-#	96-03-11 fl	Rewritten.
-#	97-01-03 fl	Up and running.
-#	97-08-23 fl	Added load hack
+#       96-03-11 fl     Rewritten.
+#       97-01-03 fl     Up and running.
+#       97-08-23 fl     Added load hack
 #
 # Copyright (c) Secret Labs AB 1997.
 # Copyright (c) Fredrik Lundh 1996-97.
 #
 # See the README file for information on usage and redistribution.
 #
+from builtins import range
+from builtins import object
 try:
     import array
     jpython = 0
@@ -22,14 +24,15 @@ except ImportError:
     jpython = 1
 import ImageH
 
-class ImagePalette:
+
+class ImagePalette(object):
     "Colour palette for palette mapped images"
 
-    def __init__(self, mode = "RGB", palette = None):
+    def __init__(self, mode="RGB", palette=None):
         self.mode = mode
-        self.palette = palette or range(256)*len(self.mode)
-	if len(self.mode)*256 != len(self.palette):
-	    raise ValueError, "wrong palette size"
+        self.palette = palette or list(range(256)) * len(self.mode)
+        if len(self.mode) * 256 != len(self.palette):
+            raise ValueError("wrong palette size")
 
     def tostring(self):
         if jpython == 0:
@@ -37,45 +40,50 @@ class ImagePalette:
         else:
             return jarray.array(self.palette, "b").tostring()
 
-
     def save(self, fp):
-        if type(fp) == type(""):
-	    fp = open(fp, "w")
-	fp.write("# Palette\n")
-	fp.write("# Mode: %s\n" % self.mode)
-	for i in range(256):
-	    fp.write("%d" % i)
-	    for j in range(i, len(self.palette), 256):
-	        fp.write(" %d" % self.palette[j])
-	    fp.write("\n")
+        if isinstance(fp, type("")):
+            fp = open(fp, "w")
+        fp.write("# Palette\n")
+        fp.write("# Mode: %s\n" % self.mode)
+        for i in range(256):
+            fp.write("%d" % i)
+            for j in range(i, len(self.palette), 256):
+                fp.write(" %d" % self.palette[j])
+            fp.write("\n")
         fp.close()
 
 # --------------------------------------------------------------------
 # Internal
 
-class raw:
+
+class raw(object):
     def __init__(self, rawmode, data):
-	self.rawmode = rawmode
-	self.data = data
+        self.rawmode = rawmode
+        self.data = data
 
 # --------------------------------------------------------------------
 # Factories
 
+
 def new(mode, data):
     ImageH.core.new_palette(mode, data)
 
-def negative(mode = "RGB"):
-    palette = range(256)
+
+def negative(mode="RGB"):
+    palette = list(range(256))
     palette.reverse()
     return ImagePalette(mode, palette * len(mode))
 
-def random(mode = "RGB"):
+
+def random(mode="RGB"):
     from whrandom import randint
-    palette = map(lambda a: randint(0, 255), [0]*256*len(mode))
+    palette = [randint(0, 255) for a in [0] * 256 * len(mode)]
     return ImagePalette(mode, palette)
 
-def wedge(mode = "RGB"):
-    return ImagePalette(mode, range(256) * len(mode))
+
+def wedge(mode="RGB"):
+    return ImagePalette(mode, list(range(256)) * len(mode))
+
 
 def load(filename):
 
@@ -113,9 +121,9 @@ def load(filename):
             pass
 
     if not lut:
-        raise IOError, "cannot load palette"
+        raise IOError("cannot load palette")
 
-    return lut # data, rawmode
+    return lut  # data, rawmode
 
 
 # add some psuedocolour palettes as well

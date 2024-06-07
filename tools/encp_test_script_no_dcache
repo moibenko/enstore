@@ -164,6 +164,7 @@ fi
 
 #These variables are possibily overridden with command line arguments.
 encp_cmd=${encp_cmd:-`which encp`}
+enstore_cmd=${enstore_cmd:-`which enstore`}
 debug=${debug:-1}
 truncate_output=${truncate_output:-yes}
 number=${number:-1}
@@ -291,6 +292,7 @@ find_command put
 find_command enmv
 
 #Hack to catch enstore errors universally in the tests.
+
 try_enstore_cmd="try_enstore $enstore_cmd"
 enstore_cmd="run_enstore $enstore_cmd"
 

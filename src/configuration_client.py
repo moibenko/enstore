@@ -2,8 +2,12 @@
 """
 Configuration server client.
 """
+from __future__ import print_function
 
 # system imports
+from builtins import str
+from builtins import range
+from builtins import object
 import sys
 import errno
 import pprint
@@ -12,7 +16,6 @@ import socket
 import select
 import types
 import time
-import imp
 import getpass
 
 # enstore imports
@@ -29,7 +32,7 @@ MY_NAME = enstore_constants.CONFIGURATION_CLIENT  # "CONFIG_CLIENT"
 MY_SERVER = enstore_constants.CONFIGURATION_SERVER
 
 
-class ConfigFlag:
+class ConfigFlag(object):
     MSG_YES = 1
     MSG_NO = 0
     DISABLE = 1
@@ -129,7 +132,7 @@ class ConfigurationClient(generic_client.GenericClient):
             ##############################################################
             # This check added because a traceback was found 1-12-2009
             # on STKen where config_load_timestamp was not in result.
-            if 'config_load_timestamp' not in result.keys():
+            if 'config_load_timestamp' not in list(result.keys()):
                 Trace.log(e_errors.ERROR,
                           "ticket missing config_load_timestamp is: %s" %
                           (result,))
@@ -140,7 +143,7 @@ class ConfigurationClient(generic_client.GenericClient):
 
         return False
 
-    def get_enstore_system(self, timeout=0, retry=0):
+    def get_enstore_system(self, timeout=0, retry=0, update_domains=True):
         """Return which key in the 'known_config_servers' configuration dict
         entry refers to this client's server (if present).  If there is
         not an entry (like a developers test system) then a value is returned
@@ -151,8 +154,8 @@ class ConfigurationClient(generic_client.GenericClient):
             element of node name based on this server's initialization.
         """
 
-        while 1:
-            ret = self.get('known_config_servers', timeout, retry)
+        while True:
+            ret = self.get('known_config_servers', timeout, retry, update_domains=False)
 
             if e_errors.is_ok(ret):
                 break
@@ -161,7 +164,7 @@ class ConfigurationClient(generic_client.GenericClient):
                 # server was received.
                 return None
 
-        for item in ret.items():
+        for item in list(ret.items()):
             if socket.getfqdn(item[1][0]) == \
                     socket.getfqdn(self.server_address[0]):
                 return item[0]
@@ -171,7 +174,7 @@ class ConfigurationClient(generic_client.GenericClient):
         # is looking for in the list received.
         return socket.getfqdn(self.server_address[0]).split(".")[0]
 
-    def do_lookup(self, key, timeout, retry):
+    def do_lookup(self, key, timeout, retry, update_domains=False):
         """
         Lookup configuration item.
 
@@ -181,6 +184,7 @@ class ConfigurationClient(generic_client.GenericClient):
         :arg timeout: reply waiting time
         :type retry: :obj:`int`
         :arg retry: number of retries
+        :arg update_domains: to control domains updates
         :rtype: value or error
         """
 
@@ -201,11 +205,12 @@ class ConfigurationClient(generic_client.GenericClient):
             ret_val = ret
 
         # Keep the hostaddr allow() information up-to-date on all lookups.
-        hostaddr.update_domains(ret.get('domains', {}))
+        if update_domains:
+            hostaddr.update_domains(ret.get('domains', {}))
 
         return ret_val
 
-    def get(self, key, timeout=0, retry=0):
+    def get(self, key, timeout=0, retry=0, update_domains=True):
         """
         Return value for requested item.
 
@@ -243,12 +248,12 @@ class ConfigurationClient(generic_client.GenericClient):
             else:
                 # there was no new config loaded, just return what we have.
                 # if we do not have a stashed copy, go get it.
-                if key in self.saved_dict.keys():
+                if key in list(self.saved_dict.keys()):
                     # Trace.trace(23, "Returning %s config info from saved_dict"%(key,))
                     # Trace.trace(23, "saved_dict - %s"%(self.saved_dict,))
                     ret = self.saved_dict[key]
                 else:
-                    ret = self.do_lookup(key, timeout, retry)
+                    ret = self.do_lookup(key, timeout, retry, update_domains)
 
         # HACK:
         # Do a hack for the monitor server. Since it runs on all enstore
@@ -335,10 +340,8 @@ class ConfigurationClient(generic_client.GenericClient):
 
         try:
             d = callback.read_tcp_obj(control_socket)
-        except e_errors.EnstoreError, msg:
+        except e_errors.EnstoreError as msg:
             d = {'status': (msg.type, str(msg))}
-        except e_errors.TCP_EXCEPTION:
-            d = {'status': (e_errors.TCP_EXCEPTION, e_errors.TCP_EXCEPTION)}
         listen_socket.close()
         control_socket.close()
         return d
@@ -417,7 +420,10 @@ class ConfigurationClient(generic_client.GenericClient):
         :rtype: :obj:`dict` configuration server reply
         """
 
-        request = {'work': 'load', 'configfile': configfile, 'user': getpass.getuser()}
+        request = {
+            'work': 'load',
+            'configfile': configfile,
+            'user': getpass.getuser()}
         x = self.send(request, timeout, retry)
         return x
 
@@ -475,7 +481,8 @@ class ConfigurationClient(generic_client.GenericClient):
             result = ret
         return result
 
-    def get_movers2(self, library_manager=None, timeout=0, retry=0, conf_dict=None):
+    def get_movers2(self, library_manager=None,
+                    timeout=0, retry=0, conf_dict=None):
         """Get list of the movers for a specific library manager movers with
         full config info. If no library manager is provided, all movers are
         returned.
@@ -500,15 +507,15 @@ class ConfigurationClient(generic_client.GenericClient):
             conf_dict = self.dump_and_save(timeout=timeout, retry=retry)
         if not e_errors.is_ok(conf_dict):
             return mover_list
-        for item in conf_dict.items():
+        for item in list(conf_dict.items()):
             if item[0][-6:] == ".mover":
 
                 # If a library_manager was provided, make sure only
                 # movers that use it are returned.
                 if library_manager:
-                    if isinstance(item[1]['library'], types.StringType):
+                    if isinstance(item[1]['library'], bytes):
                         lib_list = [item[1]['library']]
-                    elif isinstance(item[1]['library'], types.ListType):
+                    elif isinstance(item[1]['library'], list):
                         lib_list = item[1]['library']
                     else:
                         # Not an expected type, so it will never match.
@@ -548,7 +555,7 @@ class ConfigurationClient(generic_client.GenericClient):
         if not e_errors.is_ok(conf_dict):
             return migrator_list
 
-        for key, value in conf_dict.items():
+        for key, value in list(conf_dict.items()):
             if key[-9:] == ".migrator":
                 value['name'] = key
                 migrator_list.append(value)
@@ -631,7 +638,7 @@ class ConfigurationClient(generic_client.GenericClient):
         if not e_errors.is_ok(conf_dict):
             return library_manager_list
 
-        for item in conf_dict.items():
+        for item in list(conf_dict.items()):
             if item[0][-16:] == ".library_manager":
                 item[1]['name'] = item[0]
                 item[1]['library_manager'] = item[0][:-16]
@@ -677,7 +684,7 @@ class ConfigurationClient(generic_client.GenericClient):
         if not e_errors.is_ok(conf_dict):
             return media_changer_list
 
-        for item in conf_dict.items():
+        for item in list(conf_dict.items()):
             if item[0][-14:] == ".media_changer":
                 item[1]['name'] = item[0]
                 item[1]['media_changer'] = item[0][:-14]
@@ -713,7 +720,7 @@ class ConfigurationClient(generic_client.GenericClient):
             if not e_errors.is_ok(conf_dict):
                 return proxy_server_list
 
-        for item in conf_dict.items():
+        for item in list(conf_dict.items()):
             if item[0][-17:] == ".udp_proxy_server":
                 item[1]['name'] = item[0]
                 item[1]['udp_proxy_server'] = item[0][:-17]
@@ -866,18 +873,20 @@ class ConfigurationClientInterface(generic_client.GenericClientInterface):
 
 # Used for --print.
 def flatten2(prefix, value, flat_dict):
-    if isinstance(value, types.DictType):
-        for i in value.keys():
+    if isinstance(value, dict):
+        for i in list(value.keys()):
             if prefix:
                 flatten2(prefix + '.' + str(i), value[i], flat_dict)
             else:
-                flatten2(str(i), value[i], flat_dict)  # Avoid . for first char.
-    elif isinstance(value, types.ListType) or isinstance(value, types.TupleType):
+                # Avoid . for first char.
+                flatten2(str(i), value[i], flat_dict)
+    elif isinstance(value, list) or isinstance(value, tuple):
         for i in range(len(value)):
             if prefix:
                 flatten2(prefix + '.' + str(i), value[i], flat_dict)
             else:
-                flatten2(str(i), value[i], flat_dict)  # Avoid . for first char.
+                # Avoid . for first char.
+                flatten2(str(i), value[i], flat_dict)
     else:
         flat_dict[prefix] = value
 
@@ -885,10 +894,10 @@ def flatten2(prefix, value, flat_dict):
 def print_configuration(config_dict, intf_arg, prefix=""):
     if intf_arg.show:
         # If there wasn't a problem finding the information, print it.
-        if isinstance(config_dict, types.StringType):
+        if isinstance(config_dict, (bytes, str)):
             # Suppress the '' that pprint.pprint() wants to surround
             # native strings.
-            print config_dict
+            print(config_dict)
         else:
             pprint.pprint(config_dict)
 
@@ -899,19 +908,18 @@ def print_configuration(config_dict, intf_arg, prefix=""):
         flatten2(prefix, config_dict, flat_dict)
 
         # Sort the list and print the values out.
-        sorted_list = flat_dict.keys()
-        sorted_list.sort()
+        sorted_list = sorted(flat_dict.keys())
         for key in sorted_list:
-            print "%s:%s" % (key, flat_dict[key])
+            print("%s:%s" % (key, flat_dict[key]))
 
 
-def do_work(intf_arg): # pragma: no cover
+def do_work(intf_arg):  # pragma: no cover
     csc = ConfigurationClient((intf_arg.config_host, intf_arg.config_port))
     csc.csc = csc
     result = csc.handle_generic_commands(MY_SERVER, intf_arg)
     if intf_arg.alive:
         if result['status'] == (e_errors.OK, None):
-            print "Server configuration found at %s." % (result['address'],)
+            print("Server configuration found at %s." % (result['address'],))
     if result:
         pass
     elif intf_arg.show or intf_arg.print_1:
@@ -934,7 +942,7 @@ def do_work(intf_arg): # pragma: no cover
             result = csc.dump(use_timeout, use_tries)
         except (KeyboardInterrupt, SystemExit):
             sys.exit(1)
-        except (socket.error, select.error), msg:
+        except (socket.error, select.error) as msg:
             if msg.args[0] == errno.ETIMEDOUT:
                 result = {'status': (e_errors.TIMEDOUT, str(msg))}
             else:
@@ -948,9 +956,9 @@ def do_work(intf_arg): # pragma: no cover
                 try:
                     result['dump'] = configdict_from_file()
                     result['status'] = (e_errors.OK, "")
-                except IOError, msg:
+                except IOError as msg:
                     result['status'] = (e_errors.IOERROR, str(msg))
-                except OSError, msg:
+                except OSError as msg:
                     result['status'] = (e_errors.OSERROR, str(msg))
 
         # If there is an error it is printed out at the end of the function
@@ -961,7 +969,7 @@ def do_work(intf_arg): # pragma: no cover
             use_config = result['dump']
             prefix = ""  # prefix is only used if --print was given.
             for item in intf_arg.args:
-                if isinstance(use_config, types.DictType):
+                if isinstance(use_config, dict):
                     try:
                         use_config = use_config[item]
                         # prefix is only used if --print was given.
@@ -986,29 +994,31 @@ def do_work(intf_arg): # pragma: no cover
                           intf_arg.alive_retries)
 
     elif intf_arg.summary:
-        result = csc.get_keys(intf_arg.alive_rcv_timeout, intf_arg.alive_retries)
+        result = csc.get_keys(
+            intf_arg.alive_rcv_timeout,
+            intf_arg.alive_retries)
         pprint.pprint(result['get_keys'])
 
     elif intf_arg.timestamp:
         result = csc.config_load_time(intf_arg.alive_rcv_timeout,
                                       intf_arg.alive_retries)
         if e_errors.is_ok(result):
-            print time.ctime(result['config_load_timestamp'])
+            print(time.ctime(result['config_load_timestamp']))
     elif intf_arg.threaded_impl is not None:
         result = csc.threaded(intf_arg.threaded_impl, intf_arg.alive_rcv_timeout,
                               intf_arg.alive_retries)
-        print result
+        print(result)
     elif intf_arg.copy is not None:
         result = csc.copy_level(intf_arg.copy, intf_arg.alive_rcv_timeout,
                                 intf_arg.alive_retries)
-        print result
+        print(result)
     elif intf_arg.list_library_managers:
         try:
             result = csc.get_library_managers(
                 timeout=intf_arg.alive_rcv_timeout, retry=intf_arg.alive_retries)
         except (KeyboardInterrupt, SystemExit):
             sys.exit(1)
-        except (socket.error, select.error), msg:
+        except (socket.error, select.error) as msg:
             if msg.args[0] == errno.ETIMEDOUT:
                 result = {'status': (e_errors.TIMEDOUT, str(msg))}
             else:
@@ -1016,10 +1026,10 @@ def do_work(intf_arg): # pragma: no cover
 
         if result.get("status", None) is None or e_errors.is_ok(result):
             msg_spec = "%25s %15s"
-            print msg_spec % ("library manager", "host")
-            for lm_name in result.values():
+            print(msg_spec % ("library manager", "host"))
+            for lm_name in list(result.values()):
                 lm_info = csc.get(lm_name['name'])
-                print msg_spec % (lm_name['name'], lm_info['host'])
+                print(msg_spec % (lm_name['name'], lm_info['host']))
 
     elif intf_arg.list_media_changers:
         try:
@@ -1027,7 +1037,7 @@ def do_work(intf_arg): # pragma: no cover
                 timeout=intf_arg.alive_rcv_timeout, retry=intf_arg.alive_retries)
         except (KeyboardInterrupt, SystemExit):
             sys.exit(1)
-        except (socket.error, select.error), msg:
+        except (socket.error, select.error) as msg:
             if msg.args[0] == errno.ETIMEDOUT:
                 result = {'status': (e_errors.TIMEDOUT, str(msg))}
             else:
@@ -1035,11 +1045,11 @@ def do_work(intf_arg): # pragma: no cover
 
         if result.get("status", None) is None or e_errors.is_ok(result):
             msg_spec = "%25s %15s %20s"
-            print msg_spec % ("media changer", "host", "type")
-            for mc_name in result.values():
+            print(msg_spec % ("media changer", "host", "type"))
+            for mc_name in list(result.values()):
                 mc_info = csc.get(mc_name['name'])
-                print msg_spec % (mc_name['name'], mc_info['host'],
-                                  mc_info['type'])
+                print(msg_spec % (mc_name['name'], mc_info['host'],
+                                  mc_info['type']))
 
     elif intf_arg.list_movers:
         movers_list = []
@@ -1049,20 +1059,27 @@ def do_work(intf_arg): # pragma: no cover
             result = {'status': (e_errors.OK, None)}
         except (KeyboardInterrupt, SystemExit):
             sys.exit(1)
-        except (socket.error, select.error), msg:
+        except (socket.error, select.error) as msg:
             if msg.args[0] == errno.ETIMEDOUT:
                 result = {'status': (e_errors.TIMEDOUT, str(msg))}
             else:
                 result = {'status': (e_errors.NET_ERROR, str(msg))}
 
-        if isinstance(movers_list, types.ListType):
+        if isinstance(movers_list, list):
             msg_spec = "%15s %15s %9s %10s %15s"
-            print msg_spec % ("mover", "host", "mc_device", "driver", "library")
+            print(
+                msg_spec %
+                ("mover",
+                 "host",
+                 "mc_device",
+                 "driver",
+                 "library"))
             for mover_name in movers_list:
                 mover_info = csc.get(mover_name['mover'])
-                print msg_spec % (mover_name['mover'], mover_info['host'],
-                                  mover_info.get('mc_device', 'N/A'), mover_info['driver'],
-                                  mover_info['library'])
+                print(msg_spec % (mover_name['mover'], mover_info['host'],
+                                  mover_info.get(
+                    'mc_device', 'N/A'), mover_info['driver'],
+                    mover_info['library']))
 
     elif intf_arg.list_migrators:
         try:
@@ -1070,7 +1087,7 @@ def do_work(intf_arg): # pragma: no cover
                 timeout=intf_arg.alive_rcv_timeout, retry=intf_arg.alive_retries)
         except (KeyboardInterrupt, SystemExit):
             sys.exit(1)
-        except (socket.error, select.error), msg:
+        except (socket.error, select.error) as msg:
             if msg.args[0] == errno.ETIMEDOUT:
                 result = {'status': (e_errors.TIMEDOUT, str(msg))}
             else:
@@ -1078,10 +1095,10 @@ def do_work(intf_arg): # pragma: no cover
 
         if result.get("status", None) is None or e_errors.is_ok(result):
             msg_spec = "%25s %15s"
-            print msg_spec % ("migrator", "host")
-            for migrator in result.values():
+            print(msg_spec % ("migrator", "host"))
+            for migrator in list(result.values()):
                 mig_info = csc.get(migrator['name'])
-                print msg_spec % (migrator['name'], mig_info['host'])
+                print(msg_spec % (migrator['name'], mig_info['host']))
     else:
         intf_arg.print_help()
         sys.exit(0)
@@ -1094,9 +1111,17 @@ def configdict_from_file(config_file=None):
     # if no config_file, get it from ENSTORE_CONFIG_FILE
     if not config_file:
         config_file = os.environ['ENSTORE_CONFIG_FILE']
-    f = open(config_file)
-    res = imp.load_module("fake config", f, 'config-file', ('.py', 'r', imp.PY_SOURCE))
-    f.close()
+    print('opening', config_file)
+    if sys.version_info[0] == 2:
+        import imp
+        f = open(config_file)
+        res = imp.load_module("fake config", f, 'config-file',
+                              ('.py', 'r', imp.PY_SOURCE))
+        f.close()
+    else:
+        from importlib.machinery import SourceFileLoader
+        res = SourceFileLoader("config-file", config_file).load_module()
+
     return res.configdict
 
 
@@ -1108,9 +1133,9 @@ def get_config_dict(timeout=5, retry=2):
     if not e_errors.is_ok(config_dict):
         try:
             config_dict = configdict_from_file()
-            print "configuration_server is not responding ..." \
-                  "Get configuration from local file: %s" % \
-                  (os.environ['ENSTORE_CONFIG_FILE'],)
+            print("configuration_server is not responding ..."
+                  "Get configuration from local file: %s" %
+                  (os.environ['ENSTORE_CONFIG_FILE'],))
         except KeyError:
             config_dict = {}
     return config_dict

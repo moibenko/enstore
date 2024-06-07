@@ -7,9 +7,9 @@
 ###############################################################################
 
 # system imports
+from future.utils import raise_
 import socket
 import sys
-import exceptions
 import errno
 
 # enstore imports
@@ -25,7 +25,7 @@ def __get_callback(host, port):
         # discover primary address family
         hostname = socket.gethostname()
         # TODO: IPv6 (AF_INET6)?
-        hostinfo = socket.getaddrinfo(hostname, socket.AF_INET)
+        hostinfo = socket.getaddrinfo(hostname, None, socket.AF_INET)
         # hostinfo is the list of tuples
         # [(Address_Family, Socket_Type, Protocol, Cacnonical_Name, Addres), ....]
         # For details see https://docs.python.org/2/library/socket.html#module-socket
@@ -49,7 +49,7 @@ def __get_callback(host, port):
     sock = cleanUDP.cleanUDP(address_family, socket.SOCK_DGRAM)
     try:
         sock.socket.bind((host, port))
-    except socket.error, msg:
+    except socket.error as msg:
         if msg.args[0] == errno.EADDRNOTAVAIL:
             error_message = "%s: %s" % (msg.args[1], host)
 
@@ -58,7 +58,7 @@ def __get_callback(host, port):
             # default IP is not currently configured then there is an
             # inconsistency between /etc/hosts and ifconfig.
             interfaces_dict = Interfaces.interfacesGet()
-            for intf_dict in interfaces_dict.values():
+            for intf_dict in list(interfaces_dict.values()):
                 if intf_dict['ip'] == host:
                     break
             else:
@@ -76,8 +76,7 @@ def __get_callback(host, port):
 
         sys.stdout.write("MY %s %s %s %s %s \n" %
                          (error_message, host, port, hostinfo, address_family))
-        # reraise exception
-        raise socket.error, error_message
+        raise_(socket.error, error_message)
     if address_family == socket.AF_INET6:
         host, port, junk, junk = sock.socket.getsockname()
     else:
@@ -110,10 +109,14 @@ def r_eval(message_to_decode):
     try:
         # This uses the restricted eval.  The unstricted eval could have
         #  been used by doing: return eval(message_to_decode)
-        rc = en_eval.en_eval(message_to_decode)
+        rc = en_eval.en_eval(message_to_decode, debug=True)
         return rc
-    except:
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+    except TypeError as e:
+        print('TypeError', e)
+        raise_(e)
+    except Exception:
+        print("EXC", sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
 
 def r_repr(message_to_encode):

@@ -3,8 +3,13 @@
 Enstore UDP client is used to communicate with Enstore UDP server.
 It is thread safe.
 """
+from __future__ import print_function
 
 # system imports
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import object
 import socket
 import time
 import os
@@ -12,7 +17,7 @@ import errno
 import sys
 try:
     import threading
-    import thread
+    import _thread
     thread_support = 1
 except ImportError:
     thread_support = 0
@@ -28,8 +33,9 @@ import udp_common
 import host_config
 import enstore_constants
 
-MAX_EXPONENT = 6 # do not increase receive TO in send beyond this
-TRANSFER_MAX = enstore_constants.MAX_UDP_PACKET_SIZE #Max size of UDP datagram.
+MAX_EXPONENT = 6  # do not increase receive TO in send beyond this
+# Max size of UDP datagram.
+TRANSFER_MAX = enstore_constants.MAX_UDP_PACKET_SIZE
 
 
 def wait_rsp(sock, address, rcv_timeout):
@@ -42,7 +48,7 @@ def wait_rsp(sock, address, rcv_timeout):
     elif x or w:
         exc, msg = sys.exc_info()[:2]
         Trace.log(e_errors.INFO,
-                  "UDPClient.send: exception on select after send to %s %s: %s %s"%
+                  "UDPClient.send: exception on select after send to %s %s: %s %s" %
                   (address, x, exc, msg), force_print=True)
         raise e_errors.EnstoreError(None,
                                     "impossible to get these set w/out [r]",
@@ -51,13 +57,14 @@ def wait_rsp(sock, address, rcv_timeout):
     return reply, server, rcv_timeout
 
 
-class UDPClient:
+class UDPClient(object):
     """
     UDP client
     """
+
     def __init__(self):
 
-        self.thread_specific_data = threading.local() #Thread-specific data
+        self.thread_specific_data = threading.local()  # Thread-specific data
 
         self.reinit()
 
@@ -65,21 +72,22 @@ class UDPClient:
         """
         Create new set of TSD parameters
         """
-        #Obtain necessary values.
+        # Obtain necessary values.
         pid = os.getpid()
-        host, port, socket = udp_common.get_default_callback(receiver_ip=receiver_ip)
+        host, port, socket = udp_common.get_default_callback(
+            receiver_ip=receiver_ip)
         if thread_support:
-            tid = thread.get_ident() #Obtain unique identifier.
+            tid = _thread.get_ident()  # Obtain unique identifier.
         else:
             tid = 1
 
-        #Build thread specific data.
-        tsd = self.thread_specific_data  #local shortcut
+        # Build thread specific data.
+        tsd = self.thread_specific_data  # local shortcut
         tsd.host = host
         tsd.port = port
         tsd.socket = socket
-        tsd.txn_counter = 0L
-        tsd.send_queue = {}  #For deferred messages.
+        tsd.txn_counter = 0
+        tsd.send_queue = {}  # For deferred messages.
         tsd.reply_queue = {}
         tsd.tid = tid
         tsd.pid = pid
@@ -99,10 +107,11 @@ class UDPClient:
         if not hasattr(self.thread_specific_data, 'pid'):
             self.reinit(receiver_ip=receiver_ip)
         elif receiver_ip:
-            ## Reinitialise if sending to new destination IP
-            ## When reinitialising the new port gets picked up and may affect retrires.
-            ## This was noticed for dual IP client configurations.
-            receiver_address_family = socket.getaddrinfo(receiver_ip, None)[0][0]
+            # Reinitialise if sending to new destination IP
+            # When reinitialising the new port gets picked up and may affect retrires.
+            # This was noticed for dual IP client configurations.
+            receiver_address_family = socket.getaddrinfo(receiver_ip, None)[
+                0][0]
             if self.thread_specific_data.socket.family != receiver_address_family:
                 self.reinit(receiver_ip=receiver_ip)
         return self.thread_specific_data
@@ -149,26 +158,26 @@ class UDPClient:
         tsd = self.get_tsd()
         tsd.txn_counter = tsd.txn_counter + 1
 
-        #add message creation timestamp
-        if type(data) == types.DictType:
+        # add message creation timestamp
+        if isinstance(data, dict):
             data["send_ts"] = time.time()
-        body = udp_common.r_repr((tsd.ident, tsd.txn_counter, data))
-        crc = checksum.adler32(0L, body, len(body))
-
-        #stringify message and check if it is too long
+        body = udp_common.r_repr((tsd.ident, tsd.txn_counter, data)).encode()
+        crc = checksum.adler32(0, body, len(body))
+        # stringify message and check if it is too long
         message = udp_common.r_repr((body, crc))
 
         if len(message) > TRANSFER_MAX:
-            errmsg = "send:message too big, size=%d, max=%d. Check the output" %(len(message), TRANSFER_MAX)
+            errmsg = "send:message too big, size=%d, max=%d. Check the output" % (
+                len(message), TRANSFER_MAX)
             Trace.log(e_errors.ERROR, errmsg, force_print=True)
-            print('Message too big: %s'%(message,))
+            print('Message too big: %s' % (message,))
             raise e_errors.EnstoreError(errno.EMSGSIZE, errmsg,
                                         e_errors.NET_ERROR)
 
         return message, tsd.txn_counter
 
-
-    def send(self, data, dst, rcv_timeout=0, max_send=0, send_done=1, exponential_to=False):
+    def send(self, data, dst, rcv_timeout=0, max_send=0,
+             send_done=1, exponential_to=False):
         """
         Send message to dst address, up to `max_send` times, each time
         waiting rcv_timeout seconds for reply.
@@ -193,7 +202,7 @@ class UDPClient:
 
         if rcv_timeout:
             if max_send == 0:
-                max_send = 1 # protect from nonsense inputs XXX should we do this?
+                max_send = 1  # protect from nonsense inputs XXX should we do this?
             # if rcv_timeout is specified
             # do not grow tiemout exponentially
             max_exponent = 0
@@ -206,17 +215,16 @@ class UDPClient:
             else:
                 max_exponent = 0
 
-
         msg, txn_id = self.protocolize(data)
         # keep track of whom we need to send a "done_cleanup" to
         tsd.send_done[dst] = 1
 
-        #If the ip to send from is localhost there is something wrong.
+        # If the ip to send from is localhost there is something wrong.
         if tsd.host == "127.0.0.1":
-            return {'status':(e_errors.NET_ERROR,
-                              "Default ip address is localhost.")}
-        #set up the static route before sending.
-	# outgoing interface_ip is tsg.host and destination is dst[0].
+            return {'status': (e_errors.NET_ERROR,
+                               "Default ip address is localhost.")}
+        # set up the static route before sending.
+        # outgoing interface_ip is tsg.host and destination is dst[0].
         if not host_config.is_route_in_table(dst[0]):
             host_config.setup_interface(dst[0], tsd.host)
 
@@ -224,52 +232,59 @@ class UDPClient:
         exp = 0
         timeout = rcv_timeout
         while max_send == 0 or n_sent < max_send:
-            #print "SENDING", time.time(), msg, dst
-            Trace.trace(5, "sending %s %s"%(msg, dst), force_print=True)
+            # print "SENDING", time.time(), msg, dst
+            Trace.trace(5, "sending %s %s" % (msg, dst), force_print=True)
             tsd.socket.sendto(msg, dst)
-            timeout = timeout*(pow(2, exp))
+            timeout = timeout * (pow(2, exp))
             if exp < max_exponent:
                 exp = exp + 1
-            n_sent = n_sent+1
+            n_sent = n_sent + 1
             rcvd_txn_id = None
 
-            while rcvd_txn_id != txn_id: #look for reply while rejecting "stale" responses
+            while rcvd_txn_id != txn_id:  # look for reply while rejecting "stale" responses
                 reply, server_addr, timeout_1 = \
-                       wait_rsp(tsd.socket, dst, timeout)
+                    wait_rsp(tsd.socket, dst, timeout)
 
-                if not reply: # receive timed out
-                    #print "TIMEOUT", time.time(), msg
-                    Trace.trace(5, "TIMEOUT sending %s"%(msg,), force_print=True)
-                    break #resend
-                Trace.trace(5, "GOT REPLY %s"%(reply,), force_print=True)
+                if not reply:  # receive timed out
+                    # print "TIMEOUT", time.time(), msg
+                    Trace.trace(
+                        5, "TIMEOUT sending %s" %
+                        (msg,), force_print=True)
+                    break  # resend
+                Trace.trace(5, "GOT REPLY %s" % (reply,), force_print=True)
+                reply = reply.decode()
                 try:
                     rcvd_txn_id, out, t = udp_common.r_eval(reply)
-                    Trace.trace(5, "txn_id %s out %s t %s"%(rcvd_txn_id, out, t), force_print=True)
-                    #tsd.ident
-                    if type(out) == type({}) and out.has_key('status') \
+                    Trace.trace(
+                        5, "txn_id %s out %s t %s" %
+                        (rcvd_txn_id, out, t), force_print=True)
+                    # tsd.ident
+                    if isinstance(out, type({})) and 'status' in out \
                        and out['status'][0] == e_errors.MALFORMED:
                         return out
                     if 'r_a' in out:
                         client_id = out['r_a'][2]
                         del out['r_a']
-                        Trace.trace(5, "client_id %s"%(client_id,), force_print=True)
+                        Trace.trace(
+                            5, "client_id %s" %
+                            (client_id,), force_print=True)
 
                         if client_id != tsd.ident:
-                            errmsg = "Wrong client id in reply. Expected %s %s. received %s %s"% \
+                            errmsg = "Wrong client id in reply. Expected %s %s. received %s %s" % \
                                 (tsd.ident, tsd.txn_counter, client_id, rcvd_txn_id)
                             out['status'] = (e_errors.MALFORMED, errmsg)
                             return out
                     else:
-                        Trace.log(e_errors.WARNING, "reply from %s has no reply address ('r_a'):%s"%
+                        Trace.log(e_errors.WARNING, "reply from %s has no reply address ('r_a'):%s" %
                                   (server_addr, out), force_print=True)
-                        #Trace.log(e_errors.WARNING, "CALL 1: %s"%(inspect.stack(),))
+                        # Trace.log(e_errors.WARNING, "CALL 1: %s"%(inspect.stack(),))
 
                 except (SyntaxError, TypeError, ValueError):
-                    #If TypeError occurs, keep retrying.  Most likely it is
+                    # If TypeError occurs, keep retrying.  Most likely it is
                     # an "expected string without null bytes".
-                    #If SyntaxError occurs, also keep trying, most likely
+                    # If SyntaxError occurs, also keep trying, most likely
                     # it is from and empty UDP datagram.
-                    #A ValueError can happen if the eval-ed reply does
+                    # A ValueError can happen if the eval-ed reply does
                     # not contain a triple, but some other number of elements.
                     exc, msg, tb = sys.exc_info()
                     try:
@@ -279,32 +294,32 @@ class UDPClient:
                         message = "%s: %s: From server %s: %s" % \
                                   (exc, msg, server_addr, reply)
                     Trace.log(10, message, force_print=True)
-                    #Trace.handle_error(exc, msg, tb, severity=10)
-                    del tb  #Avoid resource leak.
+                    # Trace.handle_error(exc, msg, tb, severity=10)
+                    del tb  # Avoid resource leak.
 
-                    #Set this to something.
+                    # Set this to something.
                     rcvd_txn_id = None
-            else: # we got a good reply
-                ##Trace.log(e_errors.INFO,"done cleanup %s"%(dst,))
+            else:  # we got a good reply
+                # Trace.log(e_errors.INFO,"done cleanup %s"%(dst,))
                 try:
                     del tsd.send_done[dst]
                 except KeyError:
-                    #If the send_done entry for this key is already gone,
+                    # If the send_done entry for this key is already gone,
                     # is this an error?  How does it get empty in the
                     # first place?
                     pass
                 return out
-        #If we got here, it's because we didn't receive a response to the
-	# message we sent.
+        # If we got here, it's because we didn't receive a response to the
+        # message we sent.
         try:
             del tsd.send_done[dst]
         except KeyError:
-            #If the send_done entry for this key is already gone,
+            # If the send_done entry for this key is already gone,
             # is this an error?  How does it get empty in the
             # first place?
             pass
 
-        #raise errno.errorcode[errno.ETIMEDOUT]
+        # raise errno.errorcode[errno.ETIMEDOUT]
         raise e_errors.EnstoreError(errno.ETIMEDOUT, "", e_errors.TIMEDOUT)
 
     def send_no_wait(self, data, address, unique_id=False):
@@ -327,17 +342,16 @@ class UDPClient:
 
             message, txn_id = self.protocolize(data)
 
-            #set up the static route before sending.
+            # set up the static route before sending.
             # outgoing interface_ip is tsg.host and destination is address[0].
             if not host_config.is_route_in_table(address[0]):
                 host_config.setup_interface(address[0], tsd.host)
 
             reply = tsd.socket.sendto(message, address)
-        except:
+        except BaseException:
             Trace.handle_error(force_print=True)
             reply = None
         return reply
-
 
     def send_deferred(self, data, address):
         """
@@ -372,8 +386,8 @@ class UDPClient:
         tsd.send_done[address] = 1
         message, txn_id = self.protocolize(data)
 
-        #set up the static route before sending.
-	# outgoing interface_ip is tsg.host and destination is address[0].
+        # set up the static route before sending.
+        # outgoing interface_ip is tsg.host and destination is address[0].
         if not host_config.is_route_in_table(address[0]):
             host_config.setup_interface(address[0], tsd.host)
 
@@ -382,7 +396,7 @@ class UDPClient:
         if bytes_sent < 0:
             return -1
 
-        #Remember the message in case we need to repeat it.
+        # Remember the message in case we need to repeat it.
         tsd.send_queue[txn_id] = (message, address, time.time())
 
         return txn_id
@@ -395,13 +409,13 @@ class UDPClient:
         :arg txn_ids: transaction ids to resend data for
         """
 
-        #Make the target a list of txn_id to consider.
-        if type(txn_ids) != types.ListType:
+        # Make the target a list of txn_id to consider.
+        if not isinstance(txn_ids, list):
             txn_ids = [txn_ids]
 
         tsd = self.get_tsd()
 
-        TEN_MINUTES = 10 * 60  #Time limit.
+        TEN_MINUTES = 10 * 60  # Time limit.
 
         for txn_id in txn_ids:
             try:
@@ -409,7 +423,7 @@ class UDPClient:
             except KeyError:
                 continue
 
-            #After 10 minutes, assume we are not going to get a response.
+            # After 10 minutes, assume we are not going to get a response.
             # Remove the item from the queue to prevent it from growing
             # without bound.
             if timestamp < time.time() - TEN_MINUTES:
@@ -421,57 +435,63 @@ class UDPClient:
     # Receive a reply, timeout has the same meaning as in select
     def __recv_deferred(self, txn_ids, timeout):
 
-        #Make the target a list of txn_id to consider.
-        if type(txn_ids) != types.ListType:
+        # Make the target a list of txn_id to consider.
+        if not isinstance(txn_ids, list):
             txn_ids = [txn_ids]
 
         tsd = self.get_tsd()
         for txn_id in txn_ids:
-            if tsd.reply_queue.has_key(txn_id):
+            if txn_id in tsd.reply_queue:
                 reply = tsd.reply_queue[txn_id]
                 del tsd.reply_queue[txn_id]
                 try:
                     del tsd.send_queue[txn_id]
                 except KeyError:
-                    #Apparently it is possible to get here when Enstore has
+                    # Apparently it is possible to get here when Enstore has
                     # very high load.  How exactly does this happen?
                     pass
                 return reply, txn_id
         else:
             rcvd_txn_id = None
-            while rcvd_txn_id not in txn_ids: #look for reply
+            while rcvd_txn_id not in txn_ids:  # look for reply
                 reply = None
-                r, w, x, timeout = cleanUDP.Select([tsd.socket], [], [], timeout)
+                r, w, x, timeout = cleanUDP.Select(
+                    [tsd.socket], [], [], timeout)
                 if r:
                     reply, server_addr = \
-                           tsd.socket.recvfrom(TRANSFER_MAX, timeout)
-                if not reply: # receive or select timed out
+                        tsd.socket.recvfrom(TRANSFER_MAX, timeout)
+                if not reply:  # receive or select timed out
                     break
                 try:
+                    if isinstance(reply, bytes):
+                        # python 3
+                        reply = reply.decode()
                     rcvd_txn_id, out, t = udp_common.r_eval(reply)
-                    if type(out) == type({}) and out.has_key('status') \
+                    if isinstance(out, type({})) and 'status' in out \
                        and out['status'][0] == e_errors.MALFORMED:
                         del tsd.send_queue[rcvd_txn_id]
                         return out, rcvd_txn_id
                     if 'r_a' in out:
                         client_id = out['r_a'][2]
                         del out['r_a']
-                        Trace.trace(5, "client_id %s"%(client_id,), force_print=True)
+                        Trace.trace(
+                            5, "client_id %s" %
+                            (client_id,), force_print=True)
 
                         if client_id != tsd.ident:
-                            errmsg = "Wrong client id in reply. Expected %s %s. received %s %s"% \
+                            errmsg = "Wrong client id in reply. Expected %s %s. received %s %s" % \
                                 (tsd.ident, tsd.txn_counter, client_id, rcvd_txn_id)
                             out['status'] = (e_errors.MALFORMED, errmsg)
                             return out, rcvd_txn_id
                     else:
-                        Trace.log(e_errors.WARNING, "reply from %s has no reply address ('r_a'):%s"%
+                        Trace.log(e_errors.WARNING, "reply from %s has no reply address ('r_a'):%s" %
                                   (server_addr, out), force_print=True)
-                        #Trace.log(e_errors.WARNING, "CALL 2: %s"%(sys._getframe(1).f_code.co_name,))
+                        # Trace.log(e_errors.WARNING, "CALL 2: %s"%(sys._getframe(1).f_code.co_name,))
 
                 except (SyntaxError, TypeError):
-                    #If a this error occurs, keep retrying.  Most likely it is
+                    # If a this error occurs, keep retrying.  Most likely it is
                     # an "expected string without null bytes".
-                    #If SyntaxError occurs, also keep trying, most likely
+                    # If SyntaxError occurs, also keep trying, most likely
                     # it is from and empty UDP datagram.
                     exc, msg, tb = sys.exc_info()
                     try:
@@ -481,24 +501,24 @@ class UDPClient:
                         message = "%s: %s: From server %s: %s" % \
                                   (exc, msg, server_addr, reply)
                     Trace.log(10, message, force_print=True)
-                    #Trace.handle_error(exc, msg, tb, severity=10)
-                    del tb  #Avoid resource leak.
+                    # Trace.handle_error(exc, msg, tb, severity=10)
+                    del tb  # Avoid resource leak.
 
-                    #Set this to none.  Since it is invalid, don't add it
+                    # Set this to none.  Since it is invalid, don't add it
                     # to the queue and instead skip the following if and
                     # go right back to the top of the loop.
                     rcvd_txn_id = None
                     continue
 
                 if rcvd_txn_id not in txn_ids:
-                    #Queue it up, somebody else wants it
+                    # Queue it up, somebody else wants it
                     tsd.reply_queue[rcvd_txn_id] = out
-            else: # we got a good reply
+            else:  # we got a good reply
                 del tsd.send_queue[rcvd_txn_id]
                 return out, rcvd_txn_id
 
-        ##If we got here, it's because we didn't receive a response to the
-        ## message we sent.
+        # If we got here, it's because we didn't receive a response to the
+        # message we sent.
         raise e_errors.EnstoreError(errno.ETIMEDOUT, "", e_errors.TIMEDOUT)
 
     def recv_deferred(self, txn_ids, timeout):
@@ -545,13 +565,13 @@ class UDPClient:
 
         """
 
-        #Make the target a list of txn_id to consider.
-        if type(txn_ids) != types.ListType:
+        # Make the target a list of txn_id to consider.
+        if not isinstance(txn_ids, list):
             txn_ids = [txn_ids]
 
         tsd = self.get_tsd()
         for txn_id in txn_ids:
-            if tsd.reply_queue.has_key(txn_id):
+            if txn_id in tsd.reply_queue:
                 reply = tsd.reply_queue[txn_id]
                 del tsd.reply_queue[txn_id]
                 del tsd.send_queue[txn_id]
@@ -559,13 +579,13 @@ class UDPClient:
         else:
             loop_start_time = time.time()
             exp = 0
-            base_timeout = 5 #seconds
+            base_timeout = 5  # seconds
             while loop_start_time + entire_timeout > time.time():
-                #We need to do this geometric timeout ourselves.
+                # We need to do this geometric timeout ourselves.
                 timeout = base_timeout * (pow(2, exp))
                 if exp < MAX_EXPONENT:
                     exp = exp + 1
-                #Limit the timeout to what is left of the entire resubmit
+                # Limit the timeout to what is left of the entire resubmit
                 # timeout.
                 upper_limit = max(0,
                                   loop_start_time + entire_timeout - time.time())
@@ -573,9 +593,9 @@ class UDPClient:
 
                 try:
                     return self.recv_deferred(txn_ids, timeout)
-                except (socket.error, e_errors.EnstoreError), msg:
+                except (socket.error, e_errors.EnstoreError) as msg:
                     if msg.errno == errno.ETIMEDOUT:
-                        #Since we are still waiting for a response, resend
+                        # Since we are still waiting for a response, resend
                         # the original message.
                         self.repeat_deferred(txn_ids)
                         continue
@@ -591,8 +611,8 @@ class UDPClient:
         :arg txn_ids: transaction ids to resend data for
         """
 
-        #Make the target a list of txn_id to consider.
-        if type(txn_ids) != types.ListType:
+        # Make the target a list of txn_id to consider.
+        if not isinstance(txn_ids, list):
             txn_ids = [txn_ids]
 
         tsd = self.get_tsd()
@@ -610,47 +630,48 @@ class UDPClient:
 if __name__ == "__main__":   # pragma: no cover
 
     status = 0
+
     def send_test(msg, address, udp_c):
         global status
 
         tsd = udp_c.get_tsd()
 
-        print "Sending message %s to %s in %s thread using callback %s." \
-              % (msg, address, threading.current_thread().getName(), (tsd.host, tsd.port))
+        print("Sending message %s to %s in %s thread using callback %s."
+              % (msg, address, threading.current_thread().getName(), (tsd.host, tsd.port)))
 
         try:
-            if "deferred" in  sys.argv:
+            if "deferred" in sys.argv:
                 txn_id = u.send_deferred(msg, address)
-                print "Sleeping for 5 sec."
+                print("Sleeping for 5 sec.")
                 time.sleep(5)
                 back = u.recv_deferred(txn_id, 5)
-                print "Received message %s." % (back)
+                print("Received message %s." % (back))
 
             elif "nowait" in sys.argv:
                 back = u.send_no_wait(msg, address)
-                print "Sent message."
+                print("Sent message.")
 
             else:
                 back = u.send(msg, address, rcv_timeout=10, max_send=3)
-                print "Received message %s." % (back)
+                print("Received message %s." % (back))
 
-        except:
+        except BaseException:
             exc, msg = sys.exc_info()[:2]
-            print "Unable to complete test: %s: %s" % (str(exc), str(msg))
+            print("Unable to complete test: %s: %s" % (str(exc), str(msg)))
             status = 1
 
         return status
 
-    #This test can be run in a number of ways.  The usage of this test
+    # This test can be run in a number of ways.  The usage of this test
     # will look like:
     #   python $ENSTORE_DIR/SRC/udp_client.py
     #   python $ENSTORE_DIR/SRC/udp_client.py deferred
     #   python $ENSTORE_DIR/SRC/udp_client.py nowait
     #
-    #Before running this test, start a udp_server:
+    # Before running this test, start a udp_server:
     #   python $ENSTORE_DIR/SRC/udp_server.py
     #
-    #A sample session should look like this:
+    # A sample session should look like this:
     # UDPServer:
     #   $ python udp_server.py
     # <Note: Nothing happens until the message arives.>
@@ -665,11 +686,13 @@ if __name__ == "__main__":   # pragma: no cover
 
     # get a UDP client
     u = UDPClient()
-    print "Default client callback for %s thread: %s" % (threading.current_thread().getName(), (u.get_tsd().host, u.get_tsd().port))
-    message = {'message' : "TEST MESSAGE"}
+    print(
+        "Default client callback for %s thread: %s" %
+        (threading.current_thread().getName(), (u.get_tsd().host, u.get_tsd().port)))
+    message = {'message': "TEST MESSAGE"}
     # To test big data transfers consider the following:
     # data = open("big_text_file", "r").readlines() where big_text_file size is < enstore_constants.MAX_UDP_PACKET_SIZE,
-    ## and > 16KB
+    # and > 16KB
     # message = {'message':data}
     address = ("localhost", 7700)
     Trace.do_print([5, 6, 10])
@@ -682,4 +705,4 @@ if __name__ == "__main__":   # pragma: no cover
 
     del u
 
-    sys.exit(status)  #Note: status is global.
+    sys.exit(status)  # Note: status is global.

@@ -8,8 +8,14 @@ Python requirements: Python 2.7, :mod:`psycopg2`, Enstore modules.
 
 # Python imports
 from __future__ import division, print_function, unicode_literals
+from future import standard_library
+standard_library.install_aliases()
+from builtins import next
+from builtins import str
+from builtins import range
+from builtins import object
 import atexit
-import ConfigParser
+import configparser
 import copy
 import ctypes
 import datetime
@@ -27,7 +33,7 @@ import multiprocessing
 import optparse
 import os
 import pwd
-import Queue
+import queue
 import random
 import stat
 import sys
@@ -55,19 +61,19 @@ psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
 # Specify settings
 settings = {
-'cache_volume_info': False, # There is no speedup if this is True, and there is
-                            # potentially a gradual slow-down.
-                            # If True, ensure sys.version_info >= (2, 7).
-                            # See MPSubDictCache.__init__
-'checkpoint_max_age': 60,  # (days)
-'checkpoint_write_interval': 5,  # (seconds)
-'fs_root': '/pnfs/fs/usr',
-#'fs_root': '/pnfs/fs/usr/astro/fulla',  # for quick test
-#'fs_root': '/pnfs/fs/usr/astro/fulla/BACKUP',  # for quicker test
-'num_scan_processes_per_cpu': 3,
-'scriptname_root': os.path.splitext(os.path.basename(__file__))[0],
-'sleep_time_at_exit': 0.01,  # (seconds)
-'status_interval': 600,  # (seconds)
+    'cache_volume_info': False,  # There is no speedup if this is True, and there is
+    # potentially a gradual slow-down.
+    # If True, ensure sys.version_info >= (2, 7).
+    # See MPSubDictCache.__init__
+    'checkpoint_max_age': 60,  # (days)
+    'checkpoint_write_interval': 5,  # (seconds)
+    'fs_root': '/pnfs/fs/usr',
+    # 'fs_root': '/pnfs/fs/usr/astro/fulla',  # for quick test
+    # 'fs_root': '/pnfs/fs/usr/astro/fulla/BACKUP',  # for quicker test
+    'num_scan_processes_per_cpu': 3,
+    'scriptname_root': os.path.splitext(os.path.basename(__file__))[0],
+    'sleep_time_at_exit': 0.01,  # (seconds)
+    'status_interval': 600,  # (seconds)
 }
 
 
@@ -101,8 +107,8 @@ class Memoize(object):
 
     def __init__(self, func):
         self.func = func
-        #self.__name__ = self.func.__name__  # For Sphinx.
-        #self.__doc__ = self.func.__doc__  # For Sphinx.
+        # self.__name__ = self.func.__name__  # For Sphinx.
+        # self.__doc__ = self.func.__doc__  # For Sphinx.
 
     def __get__(self, obj, objtype=None):
         if obj is None:
@@ -115,7 +121,7 @@ class Memoize(object):
             cache = obj.__cache
         except AttributeError:
             cache = obj.__cache = {}
-        key = (self.func, args[1:], frozenset(kw.items()))
+        key = (self.func, args[1:], frozenset(list(kw.items())))
         try:
             res = cache[key]
         except KeyError:
@@ -142,6 +148,7 @@ def memoize(f):
 
     return helper
 
+
 def memoize_property(f):
     """
     Return a memoization decorator for methods of classes, with it being usable
@@ -150,6 +157,7 @@ def memoize_property(f):
     This uses the :func:`memoize` function.
     """
     return property(memoize(f))
+
 
 def do_random_test(negexp=3):
     """
@@ -164,13 +172,14 @@ def do_random_test(negexp=3):
     :rtype: :obj:`bool`
     """
     # Compare random probability with threshold 1e-negexp
-    return random.random() <= 10**(-1*negexp)
+    return random.random() <= 10**(-1 * negexp)
 
-class PeriodicRunner:
+
+class PeriodicRunner(object):
     "Run a callable periodically."
 
     _concurrency_classes = {'thread': threading.Thread,
-                            'process': multiprocessing.Process,}
+                            'process': multiprocessing.Process, }
 
     def __init__(self, is_active_indicator, target, interval, concurrency,
                  name=None):
@@ -249,15 +258,15 @@ class PeriodicRunner:
             target()
 
 
-class FileParser(ConfigParser.SafeConfigParser):
+class FileParser(configparser.SafeConfigParser):
     """
     Provide a file parser based on :class:`ConfigParser.SafeConfigParser`.
 
     Stored options are case-sensitive.
     """
 
-    #_filepath_suffixes_lock = multiprocessing.Lock()  # Must be a class attr.
-    #_filepath_suffixes_in_use = multiprocessing.Manager().list()  # For Py2.7+
+    # _filepath_suffixes_lock = multiprocessing.Lock()  # Must be a class attr.
+    # _filepath_suffixes_in_use = multiprocessing.Manager().list()  # For Py2.7+
     # Note: multiprocessing.Manager().list() hangs on import in Python 2.6.3.
     # This Python bug is not expected to be present in Python 2.7+.
 
@@ -279,14 +288,15 @@ class FileParser(ConfigParser.SafeConfigParser):
         file path suffix.
         """
 
-        ConfigParser.SafeConfigParser.__init__(self)
+        configparser.SafeConfigParser.__init__(self)
 
         # Setup variables
         self._is_active = is_active_indicator
         self._filepath_suffix = filepath_suffix
         self._setup_vars()
 
-        #self._add_filepath_suffix() #For Py2.7+. See _filepath_suffixes_in_use.
+        # self._add_filepath_suffix() #For Py2.7+. See
+        # _filepath_suffixes_in_use.
         self._makedirs()
         self.read()
 
@@ -335,7 +345,7 @@ class FileParser(ConfigParser.SafeConfigParser):
         filepath = self._filepath
         with self._parser_lock:
             if os.path.isfile(filepath):
-                ConfigParser.SafeConfigParser.read(self, filepath)
+                configparser.SafeConfigParser.read(self, filepath)
 
     def _makedirs(self):
         """As necessary, make the directories into which the file will be
@@ -363,11 +373,12 @@ class FileParser(ConfigParser.SafeConfigParser):
         try:
             with self._parser_lock:
                 with open(self._filepath, 'wb') as file_:
-                    ConfigParser.SafeConfigParser.write(self, file_)
+                    configparser.SafeConfigParser.write(self, file_)
                     file_.flush()
                     file_.close()
-        except:
-            if self._is_active.value: raise
+        except BaseException:
+            if self._is_active.value:
+                raise
 
     def optionxform(self, option):
         return option  # prevents conversion to lower case
@@ -426,7 +437,7 @@ class Checkpoint(object):
 
         self._section = 'Version {0}'.format(self.version)
         self._option = settings['output_file']
-        self._value = multiprocessing.Manager().Value(unicode, u'')
+        self._value = multiprocessing.Manager().Value(str, u'')
 
     def _setup_writer(self):
         """Setup and start the writer thread."""
@@ -455,10 +466,10 @@ class Checkpoint(object):
 
         return (self._is_active.value and
                 (time.sleep(0.1) or self._is_active.value))
-                # Note: "bool(time.sleep(0.1))" is False. Because it is
-                # succeeded by "or", it is essentially ignored for boolean
-                # considerations. Its only purpose is to introduce a time
-                # delay.
+        # Note: "bool(time.sleep(0.1))" is False. Because it is
+        # succeeded by "or", it is essentially ignored for boolean
+        # considerations. Its only purpose is to introduce a time
+        # delay.
 
     @property
     def value(self):
@@ -478,10 +489,13 @@ class Checkpoint(object):
         thread and process safe.
         """
 
-        try: return self._value.value
-        except:
-            if self._is_reliably_active(): raise
-            else: return ''
+        try:
+            return self._value.value
+        except BaseException:
+            if self._is_reliably_active():
+                raise
+            else:
+                return ''
 
     @value.setter
     def value(self, value):
@@ -492,10 +506,12 @@ class Checkpoint(object):
         Sphinx.
         """
 
-        value = unicode(value)
-        try: self._value.value = value
-        except:
-            if self._is_reliably_active(): raise
+        value = str(value)
+        try:
+            self._value.value = value
+        except BaseException:
+            if self._is_reliably_active():
+                raise
 
     def _add_section(self):
         """Add the pertinent checkpoint section to the parser."""
@@ -512,8 +528,8 @@ class Checkpoint(object):
         with self._parser_lock:
             for filepath in self._parser.options(self._section):
                 if (((not os.path.isfile(filepath))
-                      or (os.stat(filepath).st_mtime < max_age))
-                     and (filepath != self._option)):
+                     or (os.stat(filepath).st_mtime < max_age))
+                        and (filepath != self._option)):
                     self._parser.remove_option(self._section, filepath)
 
     def read(self):
@@ -528,7 +544,7 @@ class Checkpoint(object):
             checkpoint = self._parser.get(self._section, self._option)
             # Note: A parser lock is not required or useful for a get
             # operation.
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             checkpoint = ''
         self.value = checkpoint
         return checkpoint
@@ -547,7 +563,7 @@ class Checkpoint(object):
         with self._parser_lock:
             if self._is_parser_set_enabled.value:
                 checkpoint = self.value
-                if checkpoint: # Note: checkpoint is initially an empty string.
+                if checkpoint:  # Note: checkpoint is initially an empty string.
                     self._parser.set(self._section, self._option, checkpoint)
                     self._parser.write()
 
@@ -590,7 +606,8 @@ class PrintableList(list):
         self.separator = separator
         self.separate_last = separate_last
 
-        if plist is None: plist = []
+        if plist is None:
+            plist = []
         list.__init__(self, plist)
 
     def __str__(self):
@@ -647,10 +664,10 @@ class ReversibleDict(dict):
         """
 
         revdict = {}
-        for k, v in self.iteritems():
+        for k, v in self.items():
             revdict.setdefault(v, []).append(k)
         if sort_values:
-            revdict = dict((k, sorted(v)) for k, v in revdict.items())
+            revdict = dict((k, sorted(v)) for k, v in list(revdict.items()))
         return revdict
 
     def _reversed_tuple_revlensorted(self):
@@ -669,8 +686,8 @@ class ReversibleDict(dict):
             ((2, ['b', 'c', 'f']), (3, ['a', 'e']), (1, ['d']))
         """
 
-        revitems = self.reversed().items()
-        sortkey = lambda i: (len(i[1]), i[0])
+        revitems = list(self.reversed().items())
+        def sortkey(i): return (len(i[1]), i[0])
         revtuple = tuple(sorted(revitems, key=sortkey, reverse=True))
         return revtuple
 
@@ -695,13 +712,14 @@ class ReversibleDict(dict):
 
         revstrs = ('{0} ({1})'.format(PrintableList(values), key)
                    for key, values in revtuple)
-        pl_args = ('; ', True) if (max(len(i[1]) for i in revtuple) > 1) else ()
+        pl_args = ('; ', True) if (max(len(i[1])
+                                       for i in revtuple) > 1) else ()
         revstrs = PrintableList(revstrs, *pl_args)
         revstr = str(revstrs)
         return revstr
 
 
-class MPSubDictCache:
+class MPSubDictCache(object):
     """
     Provide a memory-efficient and :mod:`multiprocessing`-safe subset of a
     :obj:`dict` for use when the values in the :obj:`dict` are themselves
@@ -723,8 +741,8 @@ class MPSubDictCache:
         # variable.
 
         self._cache = self._manager.dict()
-        self._subkeys = self._manager.dict() # e.g. {'kA': 1, 'kB': 2}
-        self._subkeys_reverse = self._manager.dict() # e.g. {1: 'kA', 2: 'kB'}
+        self._subkeys = self._manager.dict()  # e.g. {'kA': 1, 'kB': 2}
+        self._subkeys_reverse = self._manager.dict()  # e.g. {1: 'kA', 2: 'kB'}
 
         self._index = multiprocessing.Value(ctypes.c_ushort)
         self._setitem_lock = multiprocessing.Lock()
@@ -736,8 +754,9 @@ class MPSubDictCache:
 
     def __getitem__(self, k):
         """``x.__getitem__(y) <==> x[y]``"""
-        subdict = self._cache[k] # can raise KeyError
-        subdict = self._decompress_subkeys(subdict) # should not raise KeyError
+        subdict = self._cache[k]  # can raise KeyError
+        subdict = self._decompress_subkeys(
+            subdict)  # should not raise KeyError
         return subdict
 
     def __setitem__(self, k, subdict):
@@ -762,8 +781,9 @@ class MPSubDictCache:
         """
 
         subdict_compressed = {}
-        for k,v in subdict.items():
-            try: k_compressed = self._subkeys[k]
+        for k, v in list(subdict.items()):
+            try:
+                k_compressed = self._subkeys[k]
             except KeyError:
                 k_compressed = self._next_index
                 self._subkeys[k] = k_compressed
@@ -780,7 +800,7 @@ class MPSubDictCache:
         :rtype: :obj:`dict`
         """
 
-        return dict((self._subkeys_reverse[k],v) for k,v in subdict.items())
+        return dict((self._subkeys_reverse[k], v) for k, v in list(subdict.items()))
 
 
 class CommandLineOptionsParser(optparse.OptionParser):
@@ -822,7 +842,8 @@ class CommandLineOptionsParser(optparse.OptionParser):
         # Refer to the docstring of the overridden method.
 
         optparse.OptionParser.add_option(self, *args, **kwargs)
-        if kwargs.get('dest'): self._options_seq.append(kwargs['dest'])
+        if kwargs.get('dest'):
+            self._options_seq.append(kwargs['dest'])
 
     @staticmethod
     def output_filename():
@@ -906,7 +927,7 @@ class CommandLineOptionsParser(optparse.OptionParser):
                             self._options_seq)
 
 
-class Enstore:
+class Enstore(object):
     """
     Provide an interface to various Enstore modules.
 
@@ -929,9 +950,10 @@ class Enstore:
             enstore_info_client.infoClient(self.config_client,
                                            flags=info_client_flags)
 
-        #self.storagefs = enstore_namespace.StorageFS()
+        # self.storagefs = enstore_namespace.StorageFS()
 
-class Chimera:
+
+class Chimera(object):
     """
     Provide an interface to the Chimera database.
 
@@ -965,9 +987,10 @@ class Chimera:
 
         # Note: This method helps confirm that PNFS is not being used.
 
-        fs_root = str(settings['fs_root']) # StorageFS requires str, not unicode
+        # StorageFS requires str, not unicode
+        fs_root = str(settings['fs_root'])
         fs_type_reqd = chimera.ChimeraFS
-        #import pnfs; fs_type_reqd = pnfs.Pnfs
+        # import pnfs; fs_type_reqd = pnfs.Pnfs
         fs_type_seen = enstore_namespace.StorageFS(fs_root).__class__
 
         if fs_type_reqd != fs_type_seen:
@@ -989,7 +1012,7 @@ class Chimera:
         else:
             # Create connection
             conn = psycopg2.connect(database='chimera', user='enstore')
-            #conn.set_session(readonly=True, autocommit=True)
+            # conn.set_session(readonly=True, autocommit=True)
             self._connections[key] = conn
             # Create cursor
             cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -1003,7 +1026,7 @@ class Chimera:
         return self._cursor.fetchone()
 
 
-class Scanner:
+class Scanner(object):
     """
     This is the base class for derived scanner classes.
 
@@ -1054,20 +1077,20 @@ class Scanner:
         self._check_ugid()
         self._check_exclusive()
 
-        #Chimera.confirm_psycopg2_version()
+        # Chimera.confirm_psycopg2_version()
         Chimera.confirm_fs()
 
     def _setup_vars(self):
         """Setup miscellaneous variables."""
 
         settings['output_file_dict'] = '{0}.dict'.format(
-                                                  settings['output_file'])
+            settings['output_file'])
         Notice.update_notices(self.notices)
         self.is_active = multiprocessing.RawValue(ctypes.c_bool, True)
         self.checkpoint = Checkpoint(self.is_active, self.__class__.__name__)
         self.num_items_total = multiprocessing.RawValue(ctypes.c_ulonglong,
                                                         self.get_num_items())
-        self._start_time = time.time() # Intentionally defined now.
+        self._start_time = time.time()  # Intentionally defined now.
 
     def _check_prereqs_postvars(self):
         """Check various prerequisites after setting up instance variables."""
@@ -1098,7 +1121,7 @@ class Scanner:
                 print()  # Prints a line break after "^C"
             if str(e):
                 print(e, file=sys.stderr)
-        except:
+        except BaseException:
             self.is_active.value = False
             raise
         finally:
@@ -1125,8 +1148,10 @@ class Scanner:
             self.checkpoint.write()
 
         # Log status
-        try: self._log_status()  # Warning: Not executed if using `tee`.
-        except IOError: pass
+        try:
+            self._log_status()  # Warning: Not executed if using `tee`.
+        except IOError:
+            pass
 
     def _check_ugid(self):
         """Check whether process UID and GID are 0, exiting the process with an
@@ -1167,7 +1192,7 @@ class Scanner:
         """
 
         # Establish lock dir settings
-        ld_name =  '/var/run/enstore'  # Parent dir is later assumed to exist.
+        ld_name = '/var/run/enstore'  # Parent dir is later assumed to exist.
         # Note: Writing in "/var/run" requires root permissions.
         ld_mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP
         #       = 0o660 = 432
@@ -1185,7 +1210,8 @@ class Scanner:
         try:
             os.mkdir(ld_name, ld_mode)  # This assumes parent dir exists.
         except OSError:
-            if not os.path.isdir(ld_name): raise
+            if not os.path.isdir(ld_name):
+                raise
         else:
             os.chown(ld_name, ld_uid, ld_gid)
         finally:
@@ -1224,7 +1250,7 @@ class Scanner:
         # Determine file properties
         of_map = {'main': 'output_file', 'dict': 'output_file_dict'}
         of_all = {}
-        for of_name, of_key in of_map.items():
+        for of_name, of_key in list(of_map.items()):
             of = {}
             of['path'] = settings[of_key]
             of['path_basename'] = os.path.basename(of['path'])
@@ -1232,7 +1258,7 @@ class Scanner:
             of_all[of_name] = of
 
         # Add file paths to message
-        ofall_paths = ['"{0}"'.format(of['path']) for of in of_all.values()]
+        ofall_paths = ['"{0}"'.format(of['path']) for of in list(of_all.values())]
         ofall_paths = sorted(ofall_paths)
         ofall_paths_str = str(PrintableList(ofall_paths))
         msg = 'The scan notices output files are {0}.'.format(ofall_paths_str)
@@ -1264,7 +1290,8 @@ class Scanner:
         # Note: It is possible that this method belongs in the derived class
         # instead.
 
-        if not settings['resume_scan']: return
+        if not settings['resume_scan']:
+            return
 
         output_file = settings['output_file']
         output_file_dict = settings['output_file_dict']
@@ -1273,7 +1300,7 @@ class Scanner:
         # Caution: Checks specific to the current scanner musn't be done here.
 
         if ((not os.path.isfile(output_file)) or
-            (not os.path.isfile(output_file_dict))):
+                (not os.path.isfile(output_file_dict))):
             msg = ('Error: A request to resume the scan for the current set of '
                    'output files ("{0}" and "{1}") was received, but one or '
                    'more of these output files do not already exist. A scan '
@@ -1318,12 +1345,12 @@ class Scanner:
         self._processes = ({'name': 'ScannerWorker',
                             'num': self.num_scan_processes,
                             'target': self._item_handler,
-                            'queue': self.items_q,},
+                            'queue': self.items_q, },
                            {'name': 'NotificationLogger',
                             'target': self._noticegrp_handler,
-                            'queue': self.noticegrps_q,},
+                            'queue': self.noticegrps_q, },
                            {'name': 'StatusLogger',
-                            'target': self._status_logger, 'join': False,},
+                            'target': self._status_logger, 'join': False, },
                            )
         # Note that processes will be started in the order specified in the
         # above sequence. They will also later be terminated in the same order.
@@ -1351,7 +1378,8 @@ class Scanner:
             num_processes = pgrp.get('num', 1)
             for i in range(num_processes):
                 name = pgrp['name']
-                if num_processes > 1: name += str(i)
+                if num_processes > 1:
+                    name += str(i)
                 process = multiprocessing.Process(target=pgrp['target'],
                                                   name=name)
                 process.daemon = True
@@ -1362,9 +1390,9 @@ class Scanner:
         """Start a monitor to track the number of running worker processes."""
 
         def monitor():
-            interval = settings['status_interval']/4
+            interval = settings['status_interval'] / 4
             processes = [pgrp for pgrp in self._processes if
-                       pgrp['name']=='ScannerWorker']
+                         pgrp['name'] == 'ScannerWorker']
             processes = processes[0]['processes']
             try:
                 while self.is_active.value:
@@ -1375,7 +1403,8 @@ class Scanner:
                         # function must be run in the main process and not in a
                         # child process.
                     except OSError:
-                        if self.is_active.value: raise
+                        if self.is_active.value:
+                            raise
                     else:
                         self.num_ScannerWorker_alive.value = num_alive
                         time.sleep(interval)
@@ -1398,8 +1427,10 @@ class Scanner:
                     if self.is_active.value:
                         pgrp_queue.put(None)  # is blocking
                     else:
-                        try: pgrp_queue.put_nowait(None)
-                        except Queue.Full: pass
+                        try:
+                            pgrp_queue.put_nowait(None)
+                        except queue.Full:
+                            pass
             if pgrp.get('join', True):
                 for p in pgrp['processes']:
                     p.join()
@@ -1425,7 +1456,7 @@ class Scanner:
         # incremented in the global count.
         update_time = time.time()  # Most recent global state update time.
         update_thresholds = {'count': self.num_scan_processes * 2,
-                             'time': settings['status_interval'] / 2,}
+                             'time': settings['status_interval'] / 2, }
         # Note: The thresholds are used to reduce possible contention from
         # multiple scan processes for updating the shared global values. A
         # global update is executed when any of the thresholds are reached.
@@ -1453,7 +1484,7 @@ class Scanner:
             update_age = time.time() - update_time
             update_thresholds_met = {
                 'count': local_count == update_thresholds['count'],
-                'time': update_age > update_thresholds['time'],}
+                'time': update_age > update_thresholds['time'], }
             update_threshold_met = any(update_thresholds_met.values())
 
             if (local_count > 0) and (update_threshold_met or force_update):
@@ -1525,7 +1556,8 @@ class Scanner:
 
                         str_out = '{0}\n\n'.format(noticegrp)
                         output_file.write(str_out)
-                        str_out = '{0}\n'.format(noticegrp.to_exportable_dict())
+                        str_out = '{0}\n'.format(
+                            noticegrp.to_exportable_dict())
                         output_file_dict.write(str_out)
 
                         output_file.flush()
@@ -1560,7 +1592,7 @@ class Scanner:
                                      secs_elapsed_previously,
                                      interval_cur)
                 time.sleep(interval_cur)
-                interval_cur = min(interval, interval_cur*math.e)
+                interval_cur = min(interval, interval_cur * math.e)
                 # Note: `interval_cur` converges to `interval`.
                 # `interval_cur*math.e` is equivalent to `math.e**x` with
                 # incrementing x.
@@ -1570,8 +1602,8 @@ class Scanner:
         # does not happen. It is done in the main process instead.
 
     def _log_status(self, num_items_processed_previously=None,
-                          secs_elapsed_previously=None,
-                          interval_next=None):
+                    secs_elapsed_previously=None,
+                    interval_next=None):
         """
         Log the current status once.
 
@@ -1590,8 +1622,8 @@ class Scanner:
             using class instance variables.
         """
 
-        dttd = lambda s: datetime.timedelta(seconds=round(s))
-        intstr = lambda i: locale.format('%i', i, grouping=True)
+        def dttd(s): return datetime.timedelta(seconds=round(s))
+        def intstr(i): return locale.format('%i', i, grouping=True)
 #       fmtstrint = lambda s, i: '{0} {1}'.format(s, intstr(i))
         items = []
 
@@ -1600,22 +1632,22 @@ class Scanner:
         num_items_total = int(self.num_items_total.value)
         num_items_processed_cum = int(self.num_items_processed.value)
         secs_elapsed_cum = time.time() - self._start_time
-        speed_cum = num_items_processed_cum / secs_elapsed_cum  #  items/second
+        speed_cum = num_items_processed_cum / secs_elapsed_cum  # items/second
 
         # Add basic stats
         items += [('Active workers',
-                   intstr(self.num_ScannerWorker_alive.value)),  #approx
+                   intstr(self.num_ScannerWorker_alive.value)),  # approx
                   ('Time elapsed',
                    dttd(secs_elapsed_cum)),
                   ('Items scanned (cumulative)',
-                   intstr(num_items_processed_cum)),  #approx
+                   intstr(num_items_processed_cum)),  # approx
                   ('Speed (cumulative) (items/s)',
-                   intstr(speed_cum)),  #approx
+                   intstr(speed_cum)),  # approx
                   ]
 
         # Conditionally add current iteration status
         if ((num_items_processed_previously is not None) and
-            (secs_elapsed_previously is not None)):
+                (secs_elapsed_previously is not None)):
             # Above is explicit check to disambiguate from 0
 
             num_items_processed_cur = (num_items_processed_cum -
@@ -1624,29 +1656,29 @@ class Scanner:
             speed_cur = num_items_processed_cur / secs_elapsed_cur
 
             items += [
-#                      ('Items processed (current)',
-#                       intstr(num_items_processed_cur)),  #approx
-                      ('Speed (current) (items/s)',
-                       intstr(speed_cur)),  #approx
-                      ]
+                #                      ('Items processed (current)',
+                # intstr(num_items_processed_cur)),  #approx
+                ('Speed (current) (items/s)',
+                 intstr(speed_cur)),  # approx
+            ]
 
         # Conditionally add remaining time
         remaining_secs = float('inf')
         if num_items_total is not None:
             num_items_remaining = num_items_total - num_items_processed_cum
             items.append(('Items remaining',
-                          intstr(num_items_remaining)))  #approx
+                          intstr(num_items_remaining)))  # approx
             if speed_cum != 0:
                 remaining_secs = num_items_remaining / speed_cum
                 total_secs = secs_elapsed_cum + remaining_secs
-                items += [('Time remaining', dttd(remaining_secs)),  #approx
-                          ('Time total', dttd(total_secs)),  #approx
+                items += [('Time remaining', dttd(remaining_secs)),  # approx
+                          ('Time total', dttd(total_secs)),  # approx
                           ]
 
         # Conditionally add time to next update
         if interval_next is not None:
             interval_next = min(interval_next, remaining_secs)
-            items += [('Time to next update', dttd(interval_next))]  #approx
+            items += [('Time to next update', dttd(interval_next))]  # approx
 
         # Prepare status string
         max_item_key_len = max(len(i[0]) for i in items)
@@ -1675,7 +1707,7 @@ class Scanner:
         # both Python 2.x and 3.x. A copy is created here because the list is
         # mutated later in the method.
 
-        #random.shuffle(checks_pending)
+        # random.shuffle(checks_pending)
         # Note: The list of pending checks can be randomized to reduce the
         # possibility of multiple worker processes trying to read the same type
         # of file metadata at the same time. By explicitly randomizing the
@@ -1691,19 +1723,22 @@ class Scanner:
                 # inside the loop. Not using a copy may cause a problem with
                 # iteration.
                 prereqs = self.checks[check]
-                is_prereqs_passed = all(ccs.get(pr)==True  for pr in prereqs)
-                is_prereqs_failed = any(ccs.get(pr)==False for pr in prereqs)
+                is_prereqs_passed = all(ccs.get(pr) == True for pr in prereqs)
+                is_prereqs_failed = any(ccs.get(pr) == False for pr in prereqs)
                 if is_prereqs_passed or is_prereqs_failed:
                     checks_pending.remove(check)
-                    if is_prereqs_passed: return check
+                    if is_prereqs_passed:
+                        return check
             raise IndexError('no pending check')
 
         # Run checks
         while True:
 
             # Get check
-            try: check_name = pop_pending_check_name()
-            except IndexError: break
+            try:
+                check_name = pop_pending_check_name()
+            except IndexError:
+                break
             check = getattr(self, check_name)
 
             # Run check
@@ -1714,7 +1749,8 @@ class Scanner:
                 item.add_notice(notice)
                 run_status = not (isinstance(notice, CriticalNotice)
                                   or isinstance(notice, ErrorNotice))
-                if isinstance(notice, CriticalNotice): break
+                if isinstance(notice, CriticalNotice):
+                    break
             else:
                 run_status = True
             finally:
@@ -1748,221 +1784,223 @@ class Scanner:
             return desc
 
         checks = (describe(c) for c in sorted(cls.checks) if is_runnable(c))
-        for c in checks: print(c)
+        for c in checks:
+            print(c)
 
 
 class ScannerForward(Scanner):
     """Perform forward scan."""
 
     checks = {
-    # Each dict key is the name of a check method which accepts an Item object.
-    # The method can optionally raise a Notice (or an inherited) exception. If
-    # the ErrorNotice or CriticalNotice exception is raised, the check is
-    # considered failed, otherwise succeeded. If a CriticalNotice exception is
-    # raised, all remaining checks for the Item are skipped.
-    #
-    # Each dict value is a sequence of names of dependencies of check methods.
-    #
-    # The noted check methods can be run in a pseudo-random order as long as
-    # the respective dependencies have succeeded.
-    'check_path_attr':           (),  # Test check; never fails.
-    'check_is_storage_path':     (),
-    'check_lstat':               ('check_is_storage_path',),
-    'check_link_target':         ('check_is_storage_path',),
-    'check_file_nlink':          ('check_lstat',),
-    'check_file_temp':           ('check_is_storage_path',),
-    'check_file_bad':            ('check_is_storage_path',),
-    'check_fsid':                ('check_is_storage_path',),
-#    'check_parentfsid':          # Never fails
-#                                 ('check_fsid',
-#                                  'check_lstat',),
+        # Each dict key is the name of a check method which accepts an Item object.
+        # The method can optionally raise a Notice (or an inherited) exception. If
+        # the ErrorNotice or CriticalNotice exception is raised, the check is
+        # considered failed, otherwise succeeded. If a CriticalNotice exception is
+        # raised, all remaining checks for the Item are skipped.
+        #
+        # Each dict value is a sequence of names of dependencies of check methods.
+        #
+        # The noted check methods can be run in a pseudo-random order as long as
+        # the respective dependencies have succeeded.
+        'check_path_attr': (),  # Test check; never fails.
+        'check_is_storage_path': (),
+        'check_lstat': ('check_is_storage_path',),
+        'check_link_target': ('check_is_storage_path',),
+        'check_file_nlink': ('check_lstat',),
+        'check_file_temp': ('check_is_storage_path',),
+        'check_file_bad': ('check_is_storage_path',),
+        'check_fsid': ('check_is_storage_path',),
+        #    'check_parentfsid':          # Never fails
+        #                                 ('check_fsid',
+        #                                  'check_lstat',),
 
-    'check_fslayer2lines':       ('check_fsid',
-                                  'check_lstat',),
-    'check_fslayer2':            ('check_fslayer2lines',),
-    'check_fslayer2_crc':        ('check_fslayer2',),
-    'check_fslayer2_size':       ('check_fslayer2',),
-    'check_fslayer2_size_match': ('check_fslayer2',
-                                  'check_fslayer2_size',),
-    'check_fslayer1lines':       ('check_fsid',
-                                  'check_lstat',
-                                  'check_fslayer2lines',
-                                  'check_fslayer2',),
-    'check_fslayer1':            ('check_fslayer1lines',
-                                  'check_lstat',),
-    'check_fslayer4lines':       ('check_fsid',
-                                  'check_lstat',
-                                  'check_fslayer2lines',
-                                  'check_fslayer2',),
-    'check_fslayer4':            ('check_fslayer4lines',
-                                  'check_lstat',),
+        'check_fslayer2lines': ('check_fsid',
+                                'check_lstat',),
+        'check_fslayer2': ('check_fslayer2lines',),
+        'check_fslayer2_crc': ('check_fslayer2',),
+        'check_fslayer2_size': ('check_fslayer2',),
+        'check_fslayer2_size_match': ('check_fslayer2',
+                                      'check_fslayer2_size',),
+        'check_fslayer1lines': ('check_fsid',
+                                'check_lstat',
+                                'check_fslayer2lines',
+                                'check_fslayer2',),
+        'check_fslayer1': ('check_fslayer1lines',
+                           'check_lstat',),
+        'check_fslayer4lines': ('check_fsid',
+                                'check_lstat',
+                                'check_fslayer2lines',
+                                'check_fslayer2',),
+        'check_fslayer4': ('check_fslayer4lines',
+                           'check_lstat',),
 
-    'check_enstore_file_info':   ('check_lstat',
-                                  'check_fslayer1lines',), # L1 BFID is used.
-    'check_enstore_volume_info': ('check_lstat',
-                                  'check_enstore_file_info',),
+        'check_enstore_file_info': ('check_lstat',
+                                    # L1 BFID is used.
+                                    'check_fslayer1lines',),
+        'check_enstore_volume_info': ('check_lstat',
+                                      'check_enstore_file_info',),
 
-    'check_bfid_match':          ('check_fslayer1',
-                                  'check_fslayer4',
-                                  'check_enstore_file_info',),
+        'check_bfid_match': ('check_fslayer1',
+                             'check_fslayer4',
+                             'check_enstore_file_info',),
 
-    'check_file_deleted':        ('check_enstore_file_info',),
-    'check_recent':              ('check_lstat',),
-    'check_empty':               ('check_lstat',
-                                  'check_fslayer2_size_match',
-                                  'check_enstore_file_info',),
+        'check_file_deleted': ('check_enstore_file_info',),
+        'check_recent': ('check_lstat',),
+        'check_empty': ('check_lstat',
+                        'check_fslayer2_size_match',
+                        'check_enstore_file_info',),
 
-    'check_sfs_path':            ('check_is_storage_path',),
+        'check_sfs_path': ('check_is_storage_path',),
 
-    'check_volume_label':        ('check_fslayer4',
+        'check_volume_label': ('check_fslayer4',
+                               'check_enstore_file_info',),
+        'check_location_cookie': ('check_fslayer4',
                                   'check_enstore_file_info',),
-    'check_location_cookie':     ('check_fslayer4',
-                                  'check_enstore_file_info',),
-    'check_size':                ('check_lstat',
-                                  'check_fslayer2',
-                                  'check_fslayer4',
-                                  'check_enstore_file_info',),
-    'check_file_family':         ('check_fslayer4',
-                                  'check_enstore_volume_info',),
-#     'check_library':              # Not necessary
-#                                  ('check_enstore_volume_info',),
-    'check_drive':               ('check_fslayer4',
-                                  'check_enstore_file_info',),
-    'check_crc':                 (#'check_fslayer2',
-                                  'check_fslayer4',
-                                  #'check_enstore_volume_info',
-                                  'check_enstore_file_info',),
-    'check_path':                ('check_fslayer4',
-                                  'check_enstore_file_info',),
-    'check_pnfsid':              ('check_fsid',
-                                  'check_fslayer4',
-                                  'check_enstore_file_info',),
+        'check_size': ('check_lstat',
+                       'check_fslayer2',
+                       'check_fslayer4',
+                       'check_enstore_file_info',),
+        'check_file_family': ('check_fslayer4',
+                              'check_enstore_volume_info',),
+        #     'check_library':              # Not necessary
+        #                                  ('check_enstore_volume_info',),
+        'check_drive': ('check_fslayer4',
+                        'check_enstore_file_info',),
+        'check_crc': (  # 'check_fslayer2',
+            'check_fslayer4',
+            # 'check_enstore_volume_info',
+            'check_enstore_file_info',),
+        'check_path': ('check_fslayer4',
+                       'check_enstore_file_info',),
+        'check_pnfsid': ('check_fsid',
+                         'check_fslayer4',
+                         'check_enstore_file_info',),
 
-    'check_copy':                ('check_enstore_file_info',),
+        'check_copy': ('check_enstore_file_info',),
     }
 
     notices = {
-    'NoPath': "Cannot access object's path.",
-    'NotStorage': 'Not an Enstore file or directory.',
-    'NoStat': "Cannot access object's filesystem stat. {exception}",
-    'NlinkGT1': ("lstat nlink (number of hard links) count is >1. It is "
-                 "{nlink}."),
-    'LinkBroken': ('Symbolic link is broken. It points to "{target}" which '
-                   'does not exist.'),
-    'TempFile': ('File is a likely temporary file because its name '
-                 'or extension ends with "{ending}".'),
-    'MarkedBad': 'File is marked bad.',
-    'NoID': 'Cannot read filesystem ID file "{filename}". {exception}',
-    'NoL2File': 'Cannot read layer 2 metadata file "{filename}". {exception}',
-    'L2MultVal': 'Multiple layer 2 "{property_}" property values exist.',
-    'L2RepVal': 'Repetition of layer 2 "{property_}" property values.',
-    'L2Extra': 'Layer 2 has these {num_extra_lines} extra lines: '
-               '{extra_lines}',
-#    'NoParentID': ('Cannot read parent\'s filesystem ID file "{filename}". '
-#                   '{exception}'),
-#    'ParentIDMismatch': ('Parent ID mismatch. The parent IDs provided by files'
-#                         ' "{filename1}" ({parentid1}) and "{filename2}" '
-#                         '({parentid2}) are not the same.'),
-    'L2CRCNone': 'Layer 2 CRC is unavailable.',
-    'L2SizeNone': 'Layer 2 size is missing.',
-    'L2SizeMismatch': ("File size mismatch. Layer 2 size ({size_layer2})"
-                       " doesn't match lstat size ({size_lstat})."),
-    'NoL1File': 'Cannot read layer 1 metadata file "{filename}". {exception}',
-    'L1Empty': 'Layer 1 metadata file "{filename}" is empty.',
-    'L1Extra': 'Extra layer 1 lines detected.',
-#    'L1Mismatch': ('Layer 1 mismatch. Layer 1 provided by files "{filename1}" '
-#                   'and "{filename2}" are not the same.'),
-    'L1BFIDBad': 'Layer 1 BFID ({bfid}) is invalid.',
-    'L1BFIDNone': 'Layer 1 BFID is missing.',
-    'NoL4File': ('Cannot read layer 4 metadata file "{filename}". '
-                 '{exception}'),
-    'L4Empty': 'Layer 4 metadata file "{filename}" is empty.',
-    'L4Extra': 'Extra layer 4 lines detected.',
-#    'L4Mismatch': ('Layer 4 mismatch. Layer 4 provided by files "{filename1}" '
-#                   'and "{filename2}" are not the same.'),
-    'L4BFIDNone': 'Layer 4 BFID is missing.',
-    'FileInfoBadType': ('Enstore file info is not a dict. It is of type '
-                        '"{type_}" and has value "{value}".'),
-    'NoFileInfo': 'File is not in Enstore database.',
-    'FileInfoBad': ('File status in file info provided by Enstore is not ok. '
-                    'It is "{status}".'),
-    'FileInfoPathNone': 'File path in Enstore file info is missing.',
-    'FileInfoPNFSIDNone': 'PNFS ID in Enstore file info is missing.',
-    'FileInfoPNFSIDBad': ('PNFS ID in file info provided by Enstore database '
-                          'is invalid. It is "{pnfsid}".'),
-    'VolInfoBadType': ('Enstore volume info is not a dict. It is of type '
-                       '"{type_}" and has value "{value}".'),
-    'NoVolInfo': 'Volume is not in Enstore database.',
-    'VolInfoBad': ('Volume status in volume info provided by Enstore database '
-                   'is not ok. It is "{status}".'),
-    'BFIDMismatch': ('BFID mismatch. The BFIDs provided by layer 1 '
-                     '({bfid_layer1}) and layer 4 ({bfid_layer4}) are not the '
-                     'same.'),
-    'MarkedDel': ('File is marked deleted by Enstore file info, but its entry '
-                  'still unexpectedly exists in the filesystem.'),
-    'TooRecent': ('Object was modified in the past one day since the scan '
-                  'began.'),
-    'Size0FileInfoOk': ('File is empty. Its lstat size is 0 and its layer 2 '
-                        'size is {layer2_size}. Its info in Enstore is ok.'),
-    'Size0FileInfoNo': ('File is empty. Its lstat size is 0 and its layer 2 '
-                        'size is {layer2_size}. Its info in Enstore is not '
-                        'ok. It presumably has no info in Enstore.'),
-    'MultSFSPaths': ('Multiple paths were returned for PNFS ID {pnfsid}, '
-                     'namely:  {paths}'),
-    'L4VolLabelNone': 'Layer 4 volume label is missing.',
-    'FileInfoVolLabelNone': 'Volume label in Enstore file info is missing.',
-    'VolLabelMismatch': ("Volume label mismatch. File's layer 4 volume label "
-                         "({volume_layer4}) doesn't match its Enstore file "
-                         "info volume label ({volume_enstore})."),
-    'L4LCNone': 'Layer 4 location cookie is missing.',
-    'FileInfoLCNone': 'Location cookie in Enstore file info is missing.',
-    'L4LCBad': 'Layer 4 location cookie ({lc_layer4}) is invalid.',
-    'FileInfoLCBad': ('Location cookie in Enstore file info is invalid. It is '
-                      '"{lc_enstore}".'),
-    'LCMismatch': ("Current location cookie mismatch. File's current layer 4 "
-                   "location cookie ({current_lc_layer4}) doesn't match its "
-                   "current Enstore file info location cookie "
-                   "({current_lc_enstore})."),
-    'SizeNone': 'lstat size is missing.',
-    'L4SizeNone': 'Layer 4 size is missing.',
-    'FileInfoSizeNone': 'File size in Enstore file info is missing.',
-    'SizeMismatch': ("File size mismatch. File sizes for file with layer 1 "
-                     "BFID \"{bfid_layer1}\" provided by {size} don't all "
-                     "match."),
-    'L4FFNone': 'Layer 4 file family is missing.',
-    'VolInfoFFNone': 'File family is missing in Enstore volume info.',
-    'FFMismatch': ("File family mismatch. File's layer 4 file family "
-                   "({ff_layer4}) doesn't match its Enstore volume info "
-                   "file family ({ff_enstore})."),
-    'VolInfoLibNone': 'Library is missing in Enstore volume info.',
-    'VolInfoLibBad': ('Library ({library}) in Enstore volume info is not '
-                      'recognized.'),
-    'L4DriveNone': 'Layer 4 drive is missing.',
-    'FileInfoDriveNone': 'Drive is missing in Enstore file info.',
-    'DriveMismatch': ("Drive mismatch. File's layer 4 drive "
-                      "({drive_layer4}) doesn't match its Enstore file info "
-                      "drive ({drive_enstore})."),
-    'CRCNone': 'CRC is missing in both layer 4 and Enstore file info.',
-    'L4CRCNone': 'Layer 4 CRC is missing.',
-    'FileInfoCRCNone': 'CRC is missing in Enstore file info.',
-    'L4CRCMismatch': ("CRC mismatch. File's layer 4 CRC ({crc_layer4}) doesn't"
-                      " match its Enstore file info CRC ({crc_enstore})."),
-    'L2CRCMismatch': ("CRC mismatch. File's layer 2 CRC ({crc_layer2}) doesn't"
-                      " match its Enstore file info 0-seeded CRC "
-                      "({crc_enstore_0seeded}) or its Enstore file info "
-                      "1-seeded CRC ({crc_enstore_1seeded})."),
-    'L4PathNone': 'Layer 4 file path is missing.',
-    'PathMismatch': ("File path mismatch. Normalized file paths for file with "
-                     "layer 1 BFID \"{bfid_layer1}\" provided by {path} don't "
-                     "all match. File may have been moved."),
-    'L4PNFSIDNone': 'Layer 4 PNFS ID is missing.',
-    'PNFSIDMismatch': ("PNFS ID mismatch. PNFS IDs for file with layer 1 BFID "
-                       "\"{bfid_layer1}\" provided by {pnfsid} don't all "
-                       "match. File may have been moved."),
-    'FileInfoDelNone': 'The "deleted" field is missing in Enstore file info.',
-    'FileInfoDelBad': ('The value of the "deleted" field ({deleted}) in '
-                       'Enstore file info is not recognized.'),
-    'MarkedCopy': 'File is marked as {copy_types} by Enstore file info.',
+        'NoPath': "Cannot access object's path.",
+        'NotStorage': 'Not an Enstore file or directory.',
+        'NoStat': "Cannot access object's filesystem stat. {exception}",
+        'NlinkGT1': ("lstat nlink (number of hard links) count is >1. It is "
+                     "{nlink}."),
+        'LinkBroken': ('Symbolic link is broken. It points to "{target}" which '
+                       'does not exist.'),
+        'TempFile': ('File is a likely temporary file because its name '
+                     'or extension ends with "{ending}".'),
+        'MarkedBad': 'File is marked bad.',
+        'NoID': 'Cannot read filesystem ID file "{filename}". {exception}',
+        'NoL2File': 'Cannot read layer 2 metadata file "{filename}". {exception}',
+        'L2MultVal': 'Multiple layer 2 "{property_}" property values exist.',
+        'L2RepVal': 'Repetition of layer 2 "{property_}" property values.',
+        'L2Extra': 'Layer 2 has these {num_extra_lines} extra lines: '
+        '{extra_lines}',
+        #    'NoParentID': ('Cannot read parent\'s filesystem ID file "{filename}". '
+        #                   '{exception}'),
+        #    'ParentIDMismatch': ('Parent ID mismatch. The parent IDs provided by files'
+        #                         ' "{filename1}" ({parentid1}) and "{filename2}" '
+        #                         '({parentid2}) are not the same.'),
+        'L2CRCNone': 'Layer 2 CRC is unavailable.',
+        'L2SizeNone': 'Layer 2 size is missing.',
+        'L2SizeMismatch': ("File size mismatch. Layer 2 size ({size_layer2})"
+                           " doesn't match lstat size ({size_lstat})."),
+        'NoL1File': 'Cannot read layer 1 metadata file "{filename}". {exception}',
+        'L1Empty': 'Layer 1 metadata file "{filename}" is empty.',
+        'L1Extra': 'Extra layer 1 lines detected.',
+        #    'L1Mismatch': ('Layer 1 mismatch. Layer 1 provided by files "{filename1}" '
+        #                   'and "{filename2}" are not the same.'),
+        'L1BFIDBad': 'Layer 1 BFID ({bfid}) is invalid.',
+        'L1BFIDNone': 'Layer 1 BFID is missing.',
+        'NoL4File': ('Cannot read layer 4 metadata file "{filename}". '
+                     '{exception}'),
+        'L4Empty': 'Layer 4 metadata file "{filename}" is empty.',
+        'L4Extra': 'Extra layer 4 lines detected.',
+        #    'L4Mismatch': ('Layer 4 mismatch. Layer 4 provided by files "{filename1}" '
+        #                   'and "{filename2}" are not the same.'),
+        'L4BFIDNone': 'Layer 4 BFID is missing.',
+        'FileInfoBadType': ('Enstore file info is not a dict. It is of type '
+                            '"{type_}" and has value "{value}".'),
+        'NoFileInfo': 'File is not in Enstore database.',
+        'FileInfoBad': ('File status in file info provided by Enstore is not ok. '
+                        'It is "{status}".'),
+        'FileInfoPathNone': 'File path in Enstore file info is missing.',
+        'FileInfoPNFSIDNone': 'PNFS ID in Enstore file info is missing.',
+        'FileInfoPNFSIDBad': ('PNFS ID in file info provided by Enstore database '
+                              'is invalid. It is "{pnfsid}".'),
+        'VolInfoBadType': ('Enstore volume info is not a dict. It is of type '
+                           '"{type_}" and has value "{value}".'),
+        'NoVolInfo': 'Volume is not in Enstore database.',
+        'VolInfoBad': ('Volume status in volume info provided by Enstore database '
+                       'is not ok. It is "{status}".'),
+        'BFIDMismatch': ('BFID mismatch. The BFIDs provided by layer 1 '
+                         '({bfid_layer1}) and layer 4 ({bfid_layer4}) are not the '
+                         'same.'),
+        'MarkedDel': ('File is marked deleted by Enstore file info, but its entry '
+                      'still unexpectedly exists in the filesystem.'),
+        'TooRecent': ('Object was modified in the past one day since the scan '
+                      'began.'),
+        'Size0FileInfoOk': ('File is empty. Its lstat size is 0 and its layer 2 '
+                            'size is {layer2_size}. Its info in Enstore is ok.'),
+        'Size0FileInfoNo': ('File is empty. Its lstat size is 0 and its layer 2 '
+                            'size is {layer2_size}. Its info in Enstore is not '
+                            'ok. It presumably has no info in Enstore.'),
+        'MultSFSPaths': ('Multiple paths were returned for PNFS ID {pnfsid}, '
+                         'namely:  {paths}'),
+        'L4VolLabelNone': 'Layer 4 volume label is missing.',
+        'FileInfoVolLabelNone': 'Volume label in Enstore file info is missing.',
+        'VolLabelMismatch': ("Volume label mismatch. File's layer 4 volume label "
+                             "({volume_layer4}) doesn't match its Enstore file "
+                             "info volume label ({volume_enstore})."),
+        'L4LCNone': 'Layer 4 location cookie is missing.',
+        'FileInfoLCNone': 'Location cookie in Enstore file info is missing.',
+        'L4LCBad': 'Layer 4 location cookie ({lc_layer4}) is invalid.',
+        'FileInfoLCBad': ('Location cookie in Enstore file info is invalid. It is '
+                          '"{lc_enstore}".'),
+        'LCMismatch': ("Current location cookie mismatch. File's current layer 4 "
+                       "location cookie ({current_lc_layer4}) doesn't match its "
+                       "current Enstore file info location cookie "
+                       "({current_lc_enstore})."),
+        'SizeNone': 'lstat size is missing.',
+        'L4SizeNone': 'Layer 4 size is missing.',
+        'FileInfoSizeNone': 'File size in Enstore file info is missing.',
+        'SizeMismatch': ("File size mismatch. File sizes for file with layer 1 "
+                         "BFID \"{bfid_layer1}\" provided by {size} don't all "
+                         "match."),
+        'L4FFNone': 'Layer 4 file family is missing.',
+        'VolInfoFFNone': 'File family is missing in Enstore volume info.',
+        'FFMismatch': ("File family mismatch. File's layer 4 file family "
+                       "({ff_layer4}) doesn't match its Enstore volume info "
+                       "file family ({ff_enstore})."),
+        'VolInfoLibNone': 'Library is missing in Enstore volume info.',
+        'VolInfoLibBad': ('Library ({library}) in Enstore volume info is not '
+                          'recognized.'),
+        'L4DriveNone': 'Layer 4 drive is missing.',
+        'FileInfoDriveNone': 'Drive is missing in Enstore file info.',
+        'DriveMismatch': ("Drive mismatch. File's layer 4 drive "
+                          "({drive_layer4}) doesn't match its Enstore file info "
+                          "drive ({drive_enstore})."),
+        'CRCNone': 'CRC is missing in both layer 4 and Enstore file info.',
+        'L4CRCNone': 'Layer 4 CRC is missing.',
+        'FileInfoCRCNone': 'CRC is missing in Enstore file info.',
+        'L4CRCMismatch': ("CRC mismatch. File's layer 4 CRC ({crc_layer4}) doesn't"
+                          " match its Enstore file info CRC ({crc_enstore})."),
+        'L2CRCMismatch': ("CRC mismatch. File's layer 2 CRC ({crc_layer2}) doesn't"
+                          " match its Enstore file info 0-seeded CRC "
+                          "({crc_enstore_0seeded}) or its Enstore file info "
+                          "1-seeded CRC ({crc_enstore_1seeded})."),
+        'L4PathNone': 'Layer 4 file path is missing.',
+        'PathMismatch': ("File path mismatch. Normalized file paths for file with "
+                         "layer 1 BFID \"{bfid_layer1}\" provided by {path} don't "
+                         "all match. File may have been moved."),
+        'L4PNFSIDNone': 'Layer 4 PNFS ID is missing.',
+        'PNFSIDMismatch': ("PNFS ID mismatch. PNFS IDs for file with layer 1 BFID "
+                           "\"{bfid_layer1}\" provided by {pnfsid} don't all "
+                           "match. File may have been moved."),
+        'FileInfoDelNone': 'The "deleted" field is missing in Enstore file info.',
+        'FileInfoDelBad': ('The value of the "deleted" field ({deleted}) in '
+                           'Enstore file info is not recognized.'),
+        'MarkedCopy': 'File is marked as {copy_types} by Enstore file info.',
     }
     # Note: The type of each notice, i.e. warning, error, etc. is not noted in
     # the above dict because it can sometimes be dynamic.
@@ -2005,7 +2043,7 @@ class ScannerForward(Scanner):
             # This state is not normally expected.
 
             count = -1  # This allows exclusion of fs_root itself, as done in
-                        # self.queue_items. Resultant minimum will still be 0.
+            # self.queue_items. Resultant minimum will still be 0.
             for _root, _dirs, files in os.walk(settings['fs_root']):
                 count += (1 + len(files))  # 1 is for _root
             return count
@@ -2018,8 +2056,9 @@ class ScannerForward(Scanner):
         os_walker = os.walk(fs_root)
         os_path_join = os.path.join
         items_q_put = self.items_q.put
-        put_item = lambda item: items_q_put(Item(item))
-        put_file = lambda root, file_: put_item(os_path_join(root, file_))
+        def put_item(item): return items_q_put(Item(item))
+        def put_file(root, file_): return put_item(os_path_join(root, file_))
+
         def put_files(root, files):
             for file_ in files:
                 put_file(root, file_)
@@ -2034,8 +2073,8 @@ class ScannerForward(Scanner):
 
                 checkpoint_dir, checkpoint_file = os.path.split(checkpoint)
 
-                generic_failure_msg =  ('The scan cannot be resumed for the '
-                                        'specified output file.\n')
+                generic_failure_msg = ('The scan cannot be resumed for the '
+                                       'specified output file.\n')
 
                 # Perform some checks that are specific to the current Scanner.
 
@@ -2294,7 +2333,7 @@ class ScannerForward(Scanner):
         """
 
         def check_properties(properties):
-            for property_, values in properties.items():
+            for property_, values in list(properties.items()):
                 if len(values) > 1:
                     notice = ErrorNotice('L2MultVal', property_=property_)
                     item.add_notice(notice)
@@ -2308,16 +2347,22 @@ class ScannerForward(Scanner):
             layer_dict = item.fslayer2('filename')
 
             # Check properties
-            try: properties = layer_dict['properties']
-            except KeyError: pass
-            else: check_properties(properties)
+            try:
+                properties = layer_dict['properties']
+            except KeyError:
+                pass
+            else:
+                check_properties(properties)
 
             # Check pools
             if not item.is_file_empty:
-                try: pools = layer_dict['pools']
-                except KeyError: pass
-                else: InfoNotice('L2Extra', num_extra_lines=len(pools),
-                                 extra_lines=pools)
+                try:
+                    pools = layer_dict['pools']
+                except KeyError:
+                    pass
+                else:
+                    InfoNotice('L2Extra', num_extra_lines=len(pools),
+                               extra_lines=pools)
 
     def check_fslayer2_crc(self, item):
         """
@@ -2332,7 +2377,7 @@ class ScannerForward(Scanner):
 
         if (item.is_file() and item.has_fslayer(2)
             and (item.fslayer2_property('hsm') == 'no')
-            and (item.fslayer2_property('crc') is None)):
+                and (item.fslayer2_property('crc') is None)):
 
             raise WarningNotice('L2CRCNone')
 
@@ -2349,7 +2394,7 @@ class ScannerForward(Scanner):
 
         if (item.is_file() and item.has_fslayer(2)
             and (item.fslayer2_property('hsm') == 'no')
-            and (item.fslayer2_property('length') is None)):
+                and (item.fslayer2_property('length') is None)):
             raise WarningNotice('L2SizeNone')
 
     def check_fslayer2_size_match(self, item):
@@ -2368,7 +2413,7 @@ class ScannerForward(Scanner):
             size_lstat = item.lstat.st_size  # int
             size_layer2 = item.fslayer2_property('length')  # int or None
             if ((size_layer2 is not None) and (size_lstat != size_layer2) and
-                not (size_lstat==1 and size_layer2>2147483647)):
+                    not (size_lstat == 1 and size_layer2 > 2147483647)):
                 # Not sure why the check below was done:
                 # "not (size_lstat==1 and size_layer2>2147483647)"
                 # Note that 2147483647 is 2GiB-1.
@@ -2584,7 +2629,7 @@ class ScannerForward(Scanner):
 
         if (item.is_file() and (not item.is_file_a_copy) and
             (not item.is_file_deleted) and item.has_fslayer(1) and
-            item.has_fslayer(4)):
+                item.has_fslayer(4)):
 
             fslayer1_bfid = item.fslayer1_bfid()
             fslayer4_bfid = item.fslayer4_bfid()
@@ -2609,7 +2654,7 @@ class ScannerForward(Scanner):
             if deleted is None:
                 raise ErrorNotice('FileInfoDelNone')
             else:
-                if (not item.is_file_a_copy) and (deleted=='yes'):
+                if (not item.is_file_a_copy) and (deleted == 'yes'):
                     raise ErrorNotice('MarkedDel')
                 if deleted not in ('yes', 'no'):
                     raise ErrorNotice('FileInfoDelBad', deleted=deleted)
@@ -2640,8 +2685,9 @@ class ScannerForward(Scanner):
         if item.is_nonrecent_file and item.is_file_empty:
             fslayer2_size = item.fslayer2_property('length')
             # fslayer2_size can be 0, None, etc.
-            if fslayer2_size is None: fslayer2_size = 'not present'
-            NoticeType = InfoNotice if fslayer2_size==0 else ErrorNotice
+            if fslayer2_size is None:
+                fslayer2_size = 'not present'
+            NoticeType = InfoNotice if fslayer2_size == 0 else ErrorNotice
             notice_key_suffix = 'Ok' if item.is_enstore_file_info_ok else 'No'
             notice_key = 'Size0FileInfo{0}'.format(notice_key_suffix)
             raise NoticeType(notice_key, layer2_size=fslayer2_size)
@@ -2697,7 +2743,7 @@ class ScannerForward(Scanner):
 
             # Check values for consistency
             if (volume_layer4 and volume_enstore and
-                (volume_layer4 != volume_enstore)):
+                    (volume_layer4 != volume_enstore)):
                 raise ErrorNotice('VolLabelMismatch',
                                   volume_layer4=volume_layer4,
                                   volume_enstore=volume_enstore)
@@ -2747,7 +2793,7 @@ class ScannerForward(Scanner):
 
             # Check values for consistency
             if (lc_cur_layer4 and lc_cur_enstore and
-                (lc_cur_layer4 != lc_cur_enstore)):
+                    (lc_cur_layer4 != lc_cur_enstore)):
                 raise ErrorNotice('LCMismatch',
                                   current_lc_layer4=lc_cur_layer4,
                                   current_lc_enstore=lc_cur_enstore)
@@ -2777,12 +2823,13 @@ class ScannerForward(Scanner):
                 item.add_notice(ErrorNotice('FileInfoSizeNone'))
 
             # Check values for consistency
-            num_unique_sizes = len(set(s for s in sizes.values() if
-                                       (s is not None))) # Disambiguates from 0
+            num_unique_sizes = len(set(s for s in list(sizes.values()) if
+                                       # Disambiguates from 0
+                                       (s is not None)))
             if num_unique_sizes > 1:
-#                sizes = dict((b'size_{0}'.format(k),v) for k,v in
-#                              sizes.items())
-#                raise ErrorNotice('SizeMismatch', **sizes)
+                #                sizes = dict((b'size_{0}'.format(k),v) for k,v in
+                #                              sizes.items())
+                #                raise ErrorNotice('SizeMismatch', **sizes)
                 raise ErrorNotice('SizeMismatch',
                                   bfid_layer1=item.fslayer1_bfid(),
                                   size=ReversibleDict(sizes))
@@ -2869,7 +2916,7 @@ class ScannerForward(Scanner):
             drive_enstore_excludes = (drive_layer4, 'imported', 'missing',
                                       'unknown:unknown')
             if (drive_layer4 and drive_enstore and
-                (drive_enstore not in drive_enstore_excludes)):
+                    (drive_enstore not in drive_enstore_excludes)):
                 raise ErrorNotice('DriveMismatch', drive_layer4=drive_layer4,
                                   drive_enstore=drive_enstore)
 
@@ -2897,7 +2944,7 @@ class ScannerForward(Scanner):
             # Check values for availability
             # Note: It is ok for crc_layer2 to be unavailable.
             if (item.has_fslayer(4) and (not crc_layer4) and
-                item.is_enstore_file_info_ok and (not crc_enstore)):
+                    item.is_enstore_file_info_ok and (not crc_enstore)):
                 # Note: When crc_layer4 or crc_enstore are missing, they are
                 # often missing together.
                 item.add_notice(WarningNotice('CRCNone'))
@@ -2910,7 +2957,7 @@ class ScannerForward(Scanner):
             # Check values for consistency
             if (crc_layer2 and (crc_enstore_0seeded or crc_enstore_1seeded) and
                 media_type and (media_type != 'null') and
-                (crc_layer2 not in (crc_enstore_0seeded, crc_enstore_1seeded))):
+                    (crc_layer2 not in (crc_enstore_0seeded, crc_enstore_1seeded))):
                 item.add_notice(ErrorNotice('L2CRCMismatch',
                                 crc_layer2=crc_layer2,
                                 crc_enstore_0seeded=crc_enstore_0seeded,
@@ -2939,7 +2986,7 @@ class ScannerForward(Scanner):
                 item.add_notice(ErrorNotice('L4PathNone'))
 
             # Check values for consistency
-            num_unique_paths = len(set(p for p in paths.values() if p))
+            num_unique_paths = len(set(p for p in list(paths.values()) if p))
             if num_unique_paths > 1:
                 raise ErrorNotice('PathMismatch',
                                   bfid_layer1=item.fslayer1_bfid(),
@@ -2971,7 +3018,7 @@ class ScannerForward(Scanner):
                 item.add_notice(ErrorNotice('L4PNFSIDNone'))
 
             # Check values for consistency
-            num_unique_paths = len(set(p for p in pnfsids.values() if p))
+            num_unique_paths = len(set(p for p in list(pnfsids.values()) if p))
             if num_unique_paths > 1:
                 raise ErrorNotice('PNFSIDMismatch',
                                   bfid_layer1=item.fslayer1_bfid(),
@@ -3000,7 +3047,8 @@ class ScannerForward(Scanner):
             # Identify positive values
             possible_copy_types = ('multiple', 'primary', 'migrated',
                                    'migrated_to')
-            is_true = lambda v: v in ('yes', 'Yes', '1', 1, True)
+
+            def is_true(v): return v in ('yes', 'Yes', '1', 1, True)
             detected_copy_types = []
             for copy_type in possible_copy_types:
                 key = 'is_{0}_copy'.format(copy_type)
@@ -3019,7 +3067,7 @@ class ScannerForward(Scanner):
                 raise InfoNotice('MarkedCopy', copy_types=detected_copy_types)
 
 
-class Item:
+class Item(object):
     """
     Return an object corresponding to a file or a directory.
 
@@ -3035,7 +3083,7 @@ class Item:
     chimera = Chimera()
     _cache_volume_info = settings['cache_volume_info']
     if _cache_volume_info:
-        #volume_info_cache = multiprocessing.Manager().dict()
+        # volume_info_cache = multiprocessing.Manager().dict()
         volume_info_cache = MPSubDictCache()
 
     def __init__(self, item_path):
@@ -3070,7 +3118,7 @@ class Item:
         :rtype: :obj:`bool`
         """
 
-        return (self.path==other.path)
+        return (self.path == other.path)
 
     def __str__(self):
         """Return a string representation."""
@@ -3205,7 +3253,8 @@ class Item:
         key = ('fslayerlines', layer_num, source)
         try:
             raise self._cached_exceptions[key]
-        except KeyError: pass
+        except KeyError:
+            pass
 
         # Read file
         fslayername = self.fslayername(layer_num, source)
@@ -3239,19 +3288,24 @@ class Item:
         layer = {}
 
         # Get lines
-        try: fslayerlines = self.fslayerlines(1, source)
-        except (OSError, IOError): return layer
+        try:
+            fslayerlines = self.fslayerlines(1, source)
+        except (OSError, IOError):
+            return layer
 
         # Parse lines
         if fslayerlines:
 
             # Save BFID
-            try: layer['bfid'] = fslayerlines[0]
-            except IndexError: pass
+            try:
+                layer['bfid'] = fslayerlines[0]
+            except IndexError:
+                pass
 
             # Save anything found in any remaining lines
             pools = fslayerlines[1:]
-            if pools: layer['pools'] = pools
+            if pools:
+                layer['pools'] = pools
 
         return layer
 
@@ -3294,59 +3348,67 @@ class Item:
         layer = {}
 
         # Get lines
-        try: fslayerlines = self.fslayerlines(2, source)
-        except (OSError, IOError): return layer
+        try:
+            fslayerlines = self.fslayerlines(2, source)
+        except (OSError, IOError):
+            return layer
 
         # Parse lines
         if fslayerlines:
 
             # Save numbers
-            try: numbers = fslayerlines[0]
-            except IndexError: pass
+            try:
+                numbers = fslayerlines[0]
+            except IndexError:
+                pass
             else:
                 layer['numbers'] = numbers.split(',')  # (line 1)
 
             # Save properties
-            try: properties = fslayerlines[1]  # (line 2)
-            except IndexError: pass
+            try:
+                properties = fslayerlines[1]  # (line 2)
+            except IndexError:
+                pass
             else:
-                pkm = { # Mapped names for Property Keys.
-                       'c': 'crc', 'h': 'hsm', 'l': 'length'}
-                pvt = { # Transforms applied to Property Values.
-                       'crc': lambda s: int(s.split(':')[1], 16),
-                       'length': int,
-#                       'hsm': lambda h: {'yes': True,
-#                                         'no': False}.get(h),  #ignore
-                       }
+                pkm = {  # Mapped names for Property Keys.
+                    'c': 'crc', 'h': 'hsm', 'l': 'length'}
+                pvt = {  # Transforms applied to Property Values.
+                    'crc': lambda s: int(s.split(':')[1], 16),
+                    'length': int,
+                    #                       'hsm': lambda h: {'yes': True,
+                    #                                         'no': False}.get(h),  #ignore
+                }
 
                 # Sample: ':c=1:ee71915d;h=yes;l=8192;'
-                if properties[0] == ':': properties = properties[1:]
+                if properties[0] == ':':
+                    properties = properties[1:]
                 # Sample: 'c=1:ee71915d;h=yes;l=8192;'
-                properties = sorted(p.split('=',1) for p in
+                properties = sorted(p.split('=', 1) for p in
                                     properties.split(';') if p)
                 # Sample: [['c', '1:ee71915d'], ['h', 'yes'], ['l', '8192']]
-                properties = dict((k,[v[1] for v in v])
-                                  for k,v in
+                properties = dict((k, [v[1] for v in v])
+                                  for k, v in
                                   itertools.groupby(properties, lambda p: p[0]))
                 # This transforms the list into a dict in a way that if
                 # multiple values exist for a key, they are all noted in the
                 # list. Duplicate values are noted as well. Missing items are
                 # possible.
                 # Sample: {'h': ['yes'], 'c': ['1:ee71915d'], 'l': ['8192']}
-                properties = dict((pkm.get(k,k), v) for k,v in
-                                  properties.items())
+                properties = dict((pkm.get(k, k), v) for k, v in
+                                  list(properties.items()))
                 # Sample: {'hsm': ['yes'], 'crc': ['1:ee71915d'],
                 #          'length': ['8192']}
                 properties = dict((k, [(pvt[k](v) if pvt.get(k) else v) for v
                                        in vlist])
-                                  for k,vlist in properties.items())
+                                  for k, vlist in list(properties.items()))
                 # Sample: {'hsm': ['yes'], 'crc': [4000420189],
                 #          'length': [8192]}
                 layer['properties'] = properties
 
             # Save anything found in any remaining lines
             pools = fslayerlines[2:]
-            if pools: layer['pools'] = pools
+            if pools:
+                layer['pools'] = pools
 
         return layer
 
@@ -3394,8 +3456,10 @@ class Item:
         layer = {}
 
         # Get lines
-        try: fslayerlines = self.fslayerlines(4, source)
-        except (OSError, IOError): return layer
+        try:
+            fslayerlines = self.fslayerlines(4, source)
+        except (OSError, IOError):
+            return layer
 
         # Parse lines
         if fslayerlines:
@@ -3404,37 +3468,42 @@ class Item:
                     'original_name', None, 'pnfsid', None, 'bfid', 'drive',
                     'crc',)
             transforms = \
-                {'crc': lambda s: int(long(s)),
-                 'size': lambda s: int(long(s)),
+                {'crc': lambda s: int(s),
+                 'size': lambda s: int(s),
                  # Note that "int(long(s))" covers strings such as '123L' also.
                  }
 
             # Parse known lines
             for i, k in enumerate(keys):
                 if k is not None:
-                    try: layer[k] = fslayerlines[i]
-                    except IndexError: break
+                    try:
+                        layer[k] = fslayerlines[i]
+                    except IndexError:
+                        break
 
             # Transform as applicable
-            for k, tr_func in transforms.items():
+            for k, tr_func in list(transforms.items()):
                 if k in layer:
                     layer[k] = tr_func(layer[k])
 
             # Parse extra lines
             pools = fslayerlines[len(keys):]
-            if pools: layer['pools'] = pools
+            if pools:
+                layer['pools'] = pools
 
             # Add calculated fields
             # Also see similar section in `file_info` method.
             try:
                 layer['location_cookie_list'] = \
                     layer['location_cookie'].split('_')
-            except KeyError: pass
+            except KeyError:
+                pass
             else:
                 try:
                     layer['location_cookie_current'] = \
-                          layer['location_cookie_list'][-1]
-                except IndexError: pass
+                        layer['location_cookie_list'][-1]
+                except IndexError:
+                    pass
 
         return layer
 
@@ -3479,8 +3548,10 @@ class Item:
 
         # Re-raise cached exception if it exists
         key = 'fsid'
-        try: raise self._cached_exceptions[key]
-        except KeyError: pass
+        try:
+            raise self._cached_exceptions[key]
+        except KeyError:
+            pass
 
         # Read file
         try:
@@ -3504,8 +3575,10 @@ class Item:
 
         # Re-raise cached exception if it exists
         key = ('parentfsid', source)
-        try: raise self._cached_exceptions[key]
-        except KeyError: pass
+        try:
+            raise self._cached_exceptions[key]
+        except KeyError:
+            pass
 
         # Read file
         filename = self.parentfsidname(source)
@@ -3576,8 +3649,8 @@ class Item:
     def is_file_a_copy(self):
         """Return a :obj:`bool` indicating whether the ``item`` is a file that
         is a copy."""
-        is_true = lambda v: v in ('yes', 'Yes', '1', 1, True)
-        is_true2 = lambda k: is_true(self.enstore_file_info.get(k))
+        def is_true(v): return v in ('yes', 'Yes', '1', 1, True)
+        def is_true2(k): return is_true(self.enstore_file_info.get(k))
         return (self.is_file() and
                 (is_true2('is_multiple_copy') or is_true2('is_migrated_copy')))
 
@@ -3593,13 +3666,13 @@ class Item:
         """Return a :obj:`bool` indicating whether the ``item`` is a deleted
         file."""
         return (self.is_file() and
-                (self.enstore_file_info.get('deleted')=='yes'))
+                (self.enstore_file_info.get('deleted') == 'yes'))
 
     @memoize_property
     def is_file_empty(self):
         """Return a :obj:`bool` indicating whether the ``item`` is a file with
         size 0."""
-        return (self.is_file() and (self.lstat.st_size==0))
+        return (self.is_file() and (self.lstat.st_size == 0))
 
     @memoize
     def is_dir(self):
@@ -3690,18 +3763,21 @@ class Item:
         try:
             file_info['location_cookie_list'] = \
                 file_info['location_cookie'].split('_')
-        except KeyError: pass
+        except KeyError:
+            pass
         else:
             try:
                 file_info['location_cookie_current'] = \
-                      file_info['location_cookie_list'][-1]
-            except IndexError: pass
+                    file_info['location_cookie_list'][-1]
+            except IndexError:
+                pass
 
         try:
             crc, size = file_info['complete_crc'], file_info['size']
-        except KeyError: pass
+        except KeyError:
+            pass
         else:
-            #file_info['complete_crc_0seeded'] = crc  # not necessary
+            # file_info['complete_crc_0seeded'] = crc  # not necessary
             if (crc is not None) and (size is not None):
                 file_info['complete_crc_1seeded'] = \
                     enstore_checksum.convert_0_adler32_to_1_adler32(crc, size)
@@ -3777,9 +3853,12 @@ class Item:
 
         # Conditionally try returning cached volume info
         if self._cache_volume_info:
-            try: return self.volume_info_cache[volume]
-            except KeyError: volume_is_cacheable = True
-        else: volume_is_cacheable = False
+            try:
+                return self.volume_info_cache[volume]
+            except KeyError:
+                volume_is_cacheable = True
+        else:
+            volume_is_cacheable = False
 
         # Get volume info from Enstore info client
         volume_info = self.enstore.info_client.inquire_vol(volume)
@@ -3788,8 +3867,10 @@ class Item:
             # Note: enstore_errors.OK == 'ok'
 
         # Add calculated volume info keys
-        try: volume_family = volume_info['volume_family']
-        except KeyError: pass
+        try:
+            volume_family = volume_info['volume_family']
+        except KeyError:
+            pass
         else:
             calculated_keys = ('storage_group', 'file_family', 'wrapper')
             # Note: 'wrapper' may very well already exist.
@@ -3806,27 +3887,29 @@ class Item:
             # usage. An alternate approach, possibly even a better one, is to
             # use a whitelist instead of a blacklist.
             unneeded_keys = (
-                             'blocksize',
-                             'capacity_bytes',
-                             'comment',
-                             'declared',
-                             'eod_cookie',
-                             'first_access',
-                             'last_access',
-                             'modification_time',
-                             'non_del_files',
-                             'remaining_bytes',
-                             'si_time',
-                             'sum_mounts',
-                             'sum_rd_access',
-                             'sum_rd_err',
-                             'sum_wr_access',
-                             'sum_wr_err',
-                             'write_protected',
-                             )
+                'blocksize',
+                'capacity_bytes',
+                'comment',
+                'declared',
+                'eod_cookie',
+                'first_access',
+                'last_access',
+                'modification_time',
+                'non_del_files',
+                'remaining_bytes',
+                'si_time',
+                'sum_mounts',
+                'sum_rd_access',
+                'sum_rd_err',
+                'sum_wr_access',
+                'sum_wr_err',
+                'write_protected',
+            )
             for k in unneeded_keys:
-                try: del volume_info[k]
-                except KeyError: pass
+                try:
+                    del volume_info[k]
+                except KeyError:
+                    pass
 
             # Cache volume info
             self.volume_info_cache[volume] = volume_info
@@ -4001,7 +4084,7 @@ class Item:
                       '/pnfs/',
                       '/chimera/',
                       )
-        for path_key, path_val in paths.items():
+        for path_key, path_val in list(paths.items()):
             if path_val:
                 for variation in variations:
                     if variation in path_val:
@@ -4018,8 +4101,8 @@ class Item:
 class Notice(Exception):
     """Provide an :obj:`~exceptions.Exception` representing a single notice."""
 
-    _notices = {'Test': 'Testing "{test}".',}  # Updated externally, specific
-    #-->                                       # to current scanner.
+    _notices = {'Test': 'Testing "{test}".', }  # Updated externally, specific
+    # -->                                       # to current scanner.
 
     @classmethod
     def update_notices(cls, notices):
@@ -4067,7 +4150,7 @@ class Notice(Exception):
         self.key = key
         self._kwargs = kwargs
 
-        #code = self.hashtext(self.key)
+        # code = self.hashtext(self.key)
         message_template = self._notices[self.key]
         message = message_template.format(**self._kwargs).strip()
         self._level = self.__class__.__name__.rpartition('Notice')[0].upper()
@@ -4091,11 +4174,12 @@ class Notice(Exception):
     @classmethod
     def print_notice_templates(cls):
         """Print all notice templates."""
-        #notice_str = lambda k,v: '{0} ({1}): {2}'.format(cls.hashtext(k), k, v)
-        notice_str = lambda k, v: '{0}: {1}'.format(k, v)
-        notices = (notice_str(k,v) for k, v in
-                   sorted(cls._notices.items()) if k!='Test')
-        for n in notices: print(n)
+        # notice_str = lambda k,v: '{0} ({1}): {2}'.format(cls.hashtext(k), k, v)
+        def notice_str(k, v): return '{0}: {1}'.format(k, v)
+        notices = (notice_str(k, v) for k, v in
+                   sorted(cls._notices.items()) if k != 'Test')
+        for n in notices:
+            print(n)
 
     def __repr__(self):
         """
@@ -4118,8 +4202,8 @@ class Notice(Exception):
         :rtype: :obj:`bool`
         """
 
-        return (str(self)==str(other) and self._level==other._level and
-                self.key==other.key and self._kwargs==other._kwargs)
+        return (str(self) == str(other) and self._level == other._level and
+                self.key == other.key and self._kwargs == other._kwargs)
 
     def to_dict(self):
         """
@@ -4153,10 +4237,11 @@ class Notice(Exception):
             are also converted to lowercase, and spaces in a key are removed.
             """
 
-            sep='_'
+            sep = '_'
             final = {}
+
             def _flatten_dict(obj, parent_keys=[]):
-                for k, v in obj.iteritems():
+                for k, v in obj.items():
                     k = k.lower().replace(' ', '')
                     if isinstance(v, dict):
                         _flatten_dict(v, parent_keys + [k])
@@ -4183,7 +4268,7 @@ class Notice(Exception):
         :rtype: :class:`Notice`
         """
 
-        nkey, notice = notice.items()[0]
+        nkey, notice = list(notice.items())[0]
         nlevel = notice['level'].title()
         nclass_name = '{0}Notice'.format(nlevel)
         nclass = globals()[nclass_name]
@@ -4269,7 +4354,8 @@ class NoticeGrp(object):
         self.notices = dict()
 
         if notices:
-            for notice in notices: self.add_notice(notice)
+            for notice in notices:
+                self.add_notice(notice)
 
     def __repr__(self):
         """
@@ -4301,9 +4387,9 @@ class NoticeGrp(object):
         :rtype: :obj:`bool`
         """
 
-        return (self.item==other.item and self.notices==other.notices)
+        return (self.item == other.item and self.notices == other.notices)
 
-    def __nonzero__(self):
+    def __bool__(self):
         """
         Return :obj:`True` if one or more notices exist in the group, otherwise
         return :obj:`False`.
@@ -4323,7 +4409,7 @@ class NoticeGrp(object):
             WARNING (WarnType1): This is warning 1.
         """
 
-        notices_strs = (str(n) for n in self.notices.values())
+        notices_strs = (str(n) for n in list(self.notices.values()))
         return '{0}\n{1}'.format(self.item, '\n'.join(notices_strs))
 
     def to_dict(self):
@@ -4337,8 +4423,8 @@ class NoticeGrp(object):
         """
 
         return {'path': self.item,
-                'notices': dict(v.to_dict().items()[0] for v in
-                                self.notices.values()),
+                'notices': dict(list(v.to_dict().items())[0] for v in
+                                list(self.notices.values())),
                 }
 
     def to_exportable_dict(self):
@@ -4352,8 +4438,8 @@ class NoticeGrp(object):
         """
 
         return {'path': self.item,
-                'notices': dict(v.to_exportable_dict().items()[0] for v in
-                                self.notices.values()),
+                'notices': dict(list(v.to_exportable_dict().items())[0] for v in
+                                list(self.notices.values())),
                 }
 
     @classmethod
@@ -4369,8 +4455,8 @@ class NoticeGrp(object):
         :rtype: :class:`NoticeGrp`
         """
 
-        notices = noticegrp['notices'].items()
-        notices = (Notice.from_dict({k:v}) for k,v in notices)
+        notices = list(noticegrp['notices'].items())
+        notices = (Notice.from_dict({k: v}) for k, v in notices)
         return cls(noticegrp['path'], notices)
 
     def to_json(self, indent=None):
@@ -4387,7 +4473,7 @@ class NoticeGrp(object):
                           indent=indent)
 
 
-class ScanInterface:
+class ScanInterface(object):
     """
     This class is referenced and initialized by the :mod:`enstore` module.
 
@@ -4416,13 +4502,15 @@ def do_work(*args, **kwargs):
 
     # Parse command line options
     options = CommandLineOptionsParser().options
-    #options = {'scan_type': 'forward'} # These options are minimally required.
+    # options = {'scan_type': 'forward'} # These options are minimally
+    # required.
     settings.update(options)  # Merge provided options.
 
     # Select scanner
     scanners = {'forward': ScannerForward}
     scan_type = settings['scan_type']
-    try: scanner = scanners[scan_type]
+    try:
+        scanner = scanners[scan_type]
     except KeyError:
         msg = ('Error: "{0}" scan is not implemented. Select from: {1}'
                ).format(scan_type, ', '.join(scanners))
@@ -4436,6 +4524,7 @@ def do_work(*args, **kwargs):
         Notice.print_notice_templates()
     else:
         scanner().run()
+
 
 if __name__ == "__main__":   # pragma: no cover
     do_work()

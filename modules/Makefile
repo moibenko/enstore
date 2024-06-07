@@ -5,17 +5,9 @@ SHELL=/bin/sh
 #
 #############################################################
 
-ALL_TARGETS=tape_copy tape_write enroute2 m2probe t_rand t_read ecrc ddencp
+ALL_TARGETS=enroute2 t_rand t_read ecrc ddencp
 
-all: adler32.a Makefile.modules Modules $(ALL_TARGETS)
-
-# The target Makefile.modules generates a file Makefile.modules
-# which builds dynamic load modules (.so files) for each of the .c files
-# listed in the Setup file.   The file Makefile.pre.in knows how to make
-# dll files on the platform and "make -f Makefile.pre.in boot" generates
-# an appropriate Makefile (in a subdirectory) .   We copy it to
-# ../Makefile.modules for the Modules: target
-# The ACI/EMASS products are only made if they are setup
+all: adler32.a Modules $(ALL_TARGETS)
 
 POSIX4=`if [ "_SunOS" = _\`uname\` ]; then echo "-lposix4"; else echo ""; fi`
 RT=`if [ "_OSF1" = _\`uname\` ]; then echo "-lrt"; else echo ""; fi`
@@ -25,55 +17,35 @@ LIBDL=`if [ "_OSF1" = _\`uname\` ]; then echo ""; else echo -ldl; fi`
 PIC1=`if [ "_Linux" = _\`uname\` -a "_x86_64" = _\`uname -p\` ]; then echo "-fPIC"; fi`
 PIC2=`if [ "_SunOS" = _\`uname\` -a "_i386" = _\`uname -p\` ]; then echo "-fPIC"; fi`
 PIC=$(PIC1) $(PIC2)
-BITS_FLAG=`if [ "_Linux" = _\`uname\` ]; then which_python=\`which python\`; bits=\`file -L $$which_python | cut -f 3 -d " " | cut -f 1 -d "-"\`; echo -m$$bits ; fi`
+BITS_FLAG=`if [ "_Linux" = _\`uname\` ]; then bits=64; echo -m$$bits ; fi`
 MACOS_FLAGS=`if [ "_Darwin" = _\`uname\` ]; then echo "-arch ppc -arch i386 -isysroot /Developer/SDKs/MacOSX10.4u.sdk"; fi`
 XINCLUDES=-I/usr/X11R6/include/X11 -I/usr/X11R6/include/ -I/usr/include/X11
 XLIBS=-L/usr/X11R6/lib/X11 -L/usr/X11R6/lib64 -L/usr/X11R6/lib -L/usr/lib/X11 -lX11 -lm
 #-lXext -lXmu -lXt -lXi -lSM -lICE
 FTT_INCLUDES=-I. -I$(FTT_DIR)/ftt_lib -I$(FTT_DIR)/include
-FTT_LIBS=-L. -L$(FTT_DIR)/lib -L$(FTT_DIR)/ftt_lib -lftt $(LIBDS)
-FTTTEST_LIBS=$(FTT_LIBS) -lftt_test
+#FTT_LIBS=-L. -L$(FTT_DIR)/lib -L$(FTT_DIR)/ftt_lib -lftt $(LIBDS)
+FTT_LIBS=-L. -L$(FTT_DIR)/lib -L$(FTT_DIR)/ftt_lib $(LIBDS)
+FTTTEST_LIBS=$(FTT_LIBS)
 CFLAGS=$(BITS_FLAG) $(MACOS_FLAGS)
-
-Makefile.modules: Setup
-	@echo "MAKING MODULE Makefile  ================================"
-	if [ ! -d mksetup ] ; then  mkdir mksetup; fi
-	cd mksetup/ ; \
-	cp ../Setup . ; \
-	if [ "$(ACI_DIR)"x = x ]; then \
-		grep -v ACI Setup > x; \
-		mv x Setup; \
-	fi ; \
-	if [ "$(DRIVESTAT_CLIENT_DIR)"x = x ]; then \
-		grep -v DRIVESTAT_CLIENT Setup > x; \
-		mv x Setup; \
-	fi ; \
-	if [ "$(FTT_DIR)"x = x ]; then \
-		grep -v FTT_DIR Setup > x; \
-		mv x Setup; \
-	fi ; \
-	cp $(PYTHON_DIR)/Python-*/Makefile.pre . ; \
-	cp $(PYTHONLIB)/config/makesetup . ;\
-	./makesetup -c - ; \
-	cp Makefile ../Makefile.modules
 
 Modules:
 	@echo "MAKING MODULES ================================"
 	cd SWIG && make
-	@echo "in $$PWD"
-	make BITS_FLAG=$(BITS_FLAG) -f Makefile.modules oldsharedmods
+	python Setup build
+	cp -p build/lib.*/*.so .
 
 #Modules made using swig need to have two names; one for swig 1.1 and the
 # other for swig 1.3.  Those with the letter c in the middle are for
 # swig 1.1.
 #	- cp aci_shadowcmodule.so _aci_shadowmodule.so
 #	- cp derrnocmodule.so _derrnomodule.so
-	cp checksumcmodule.so _checksummodule.so
-	cp socket_extcmodule.so _socket_extmodule.so
-	cp strbuffercmodule.so _strbuffermodule.so
-	- cp ftt2cmodule.so _ftt2module.so
-	cp runoncmodule.so _runonmodule.so
-	cp enroutecmodule.so _enroutemodule.so
+	cp checksumcmodule.*.so _checksum.so
+	cp socket_extcmodule.*.so _socket_ext.so
+	cp strbuffercmodule.*.so _strbuffer.so
+	- cp ftt2cmodule.*.so _ftt2.so
+	cp runoncmodule.*.so _runon.so
+	cp enroutecmodule.*.so _enroute.so
+	cp mtxcmodule.*.so _mtx.so 
 
 adler32.o: adler32.c
 	$(CC) $(CFLAGS) -c $(PIC) adler32.c
@@ -141,5 +113,6 @@ clean:
 	-rm -rf Makefile.pre
 	-rm -rf mksetup makesetup
 	-rm -rf $(ALL_TARGETS) autologinenstore mouse_move
+	-rm -rf build
 	@if [ ! -d ../sbin ];then mkdir ../sbin; fi
 	cd SWIG && make clean

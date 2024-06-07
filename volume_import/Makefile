@@ -1,6 +1,6 @@
 # $Id$
 
-PROGS=enstore_tape
+PROGS=enstore_tape import_castor_tape volume_import
 
 OBJS=ECRC.o add_to_tape.o cpio.o dbfuncs.o do_add_file.o dump_db.o \
  global_data.o init_tape.o main.o pathutil.o tape.o time.o verify.o
@@ -8,11 +8,21 @@ OBJS=ECRC.o add_to_tape.o cpio.o dbfuncs.o do_add_file.o dump_db.o \
 HDRS=volume_import.h version.h
 
 all: $(PROGS)
-
+	rm -rf build
+	rm -rf dist
 #For Linux
 #CC=gcc -Wall
 #For Irix and others
 CC=cc
+
+import_castor_tape:
+	pyinstaller --onefile import_castor_tape.py
+	mv dist/import_castor_tape .
+	rm -f import_castor_tape.spec
+volume_import:
+	pyinstaller --onefile volume_import.py
+	mv dist/volume_import .
+	rm -f volume_import.spec
 
 enstore_tape: $(OBJS)
 	$(CC) -o enstore_tape $(OBJS)
@@ -58,6 +68,11 @@ global_data.o: global_data.c
 
 clean:
 	rm -f *.o $(PROGS)
-
-
-
+	rm -rf build
+	rm -rf dist
+	rm -f *.spec
+install:
+	if [ ! -d $(ENSTORE_HOME)/bin ]; then \
+	  mkdir $(ENSTORE_HOME)/bin; \
+	fi
+	cp -p $(PROGS) $(ENSTORE_HOME)/bin 

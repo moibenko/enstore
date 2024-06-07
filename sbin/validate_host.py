@@ -15,13 +15,14 @@ import Interfaces
 def this_alias(host):
     ip = socket.gethostbyname(host)
     interfaces_list = Interfaces.interfacesGet()
-    #print interfaces_list
+    # print interfaces_list
     for interface in interfaces_list.keys():
         if interfaces_list[interface]['ip'] == ip:
             rc = [host] + [] + [ip]
             return rc
     else:
         return None
+
 
 def this_host(use_alias=0):
     rtn = socket.gethostbyname_ex(socket.getfqdn())
@@ -37,11 +38,13 @@ def this_host(use_alias=0):
     else:
         return [rtn[0]] + rtn[1] + rtn[2]
 
+
 def is_on_host(host, use_alias=0):
     if host in this_host(use_alias):
         return 1
 
     return 0
+
 
 if __name__ == '__main__':
     import sys

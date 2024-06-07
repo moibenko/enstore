@@ -1,9 +1,10 @@
+from __future__ import print_function
 ###############################################################################
 # src/$RCSfile$   $Revision$
 #
 
-#import sys
-#import string
+# import sys
+# import string
 import types
 import errno
 import os
@@ -52,7 +53,8 @@ QUOTAEXCEEDED = 'STORAGE_QUOTA_EXCEEDED'
 CRC_ERROR = 'CRC MISMATCH'  # CRC error if caught by mover.
 CRC_ENCP_ERROR = 'CRC ENCP MISMATCH'  # CRC error if caught by encp.
 CRC_ECRC_ERROR = 'CRC ECRC MISMATCH'  # CRC error if caught by encp --ecrc.
-# CRC error if caught by mover write_client (reading from memory and sending to network).
+# CRC error if caught by mover write_client (reading from memory and
+# sending to network).
 CRC_ERROR_IN_WRITE_CLIENT = 'CRC ERROR IN MOVER WRITE_CLIENT'
 # Encp warning if no crc returned.
 NO_CRC_RETURNED = 'mover did not return CRC'
@@ -207,7 +209,8 @@ MC_DRVNOTFOUND = 9993  # volume not found
 
 
 # Retry policy:
-# 3 strikes and you're out.  Also, locally-caught errors (permissions, no such file) are not retried.
+# 3 strikes and you're out.  Also, locally-caught errors (permissions, no
+# such file) are not retried.
 non_retriable_errors = (NOACCESS,  # set by enstore
                         NOTALLOWED,  # set by admin
                         USERERROR,
@@ -407,10 +410,12 @@ class EnstoreError(Exception):
         Exception.__init__(self)
 
         # Handle the errno (if a valid one passed in).
-        if e_errno in errno.errorcode.keys():
+        if e_errno in errno.errorcode:
             self.errno = e_errno
+        elif isinstance(e, Exception):
+                self.errno = e.errno
         else:
-            self.errno = None
+            self.errno = UNKNOWN
 
         # In python 2.6 python throws warnings for using Exception.message.
         if sys.version_info[:2] >= (2, 6):
@@ -419,13 +424,13 @@ class EnstoreError(Exception):
             self.message_attribute_name = "message"
 
         # Handel the message if not given.
-        if e_message == None:
+        if e_message is None:
             if e_errno:  # By now this is None or a valid errno.
                 setattr(self, self.message_attribute_name,
                         os.strerror(self.errno))
             else:
                 setattr(self, self.message_attribute_name, None)
-        elif type(e_message) == types.StringType:
+        elif isinstance(e_message, bytes):
             # There was a string message passed.
             setattr(self, self.message_attribute_name, e_message)
         else:
@@ -446,7 +451,7 @@ class EnstoreError(Exception):
 
         # If no usefull information was passed in (overriding the default
         # empty dictionary) then set the ticket to being {}.
-        if e_ticket == None:
+        if e_ticket is None:
             self.ticket = {}
         else:
             self.ticket = e_ticket
@@ -456,8 +461,8 @@ class EnstoreError(Exception):
 
         # Do this after calling self._string().  Otherwise, self.strerror
         # will not be defined yet.
-        if type(self.ticket) == types.DictType:
-            if not self.ticket.has_key('status'):
+        if isinstance(self.ticket, dict):
+            if 'status' not in self.ticket:
                 self.ticket['status'] = (self.type, self.strerror)
             elif is_ok(self.ticket):
                 self.ticket['status'] = (self.type, self.strerror)
@@ -487,7 +492,7 @@ class EnstoreError(Exception):
         Returns:
             str: String representation of the exception
         """
-        if self.errno in errno.errorcode.keys():
+        if self.errno in list(errno.errorcode.keys()):
             errno_name = errno.errorcode[self.errno]
             errno_description = os.strerror(self.errno)
             self.strerror = "%s: [ ERRNO %s ] %s: %s" \
@@ -512,13 +517,13 @@ def _get_error(obj):
         obj (str, tuple, dict): Response object (required)
 
     Returns:
-        str: Error message 
+        str: Error message
     """
-    if type(obj) == types.StringType:
+    if isinstance(obj, bytes):
         error = obj
-    elif type(obj) == types.TupleType and len(obj) == 2:
+    elif isinstance(obj, tuple) and len(obj) == 2:
         error = obj[0]
-    elif type(obj) == types.DictionaryType and obj.get('status', None):
+    elif isinstance(obj, dict) and obj.get('status', None):
         error = obj['status'][0]
     else:
         error = obj
@@ -710,8 +715,8 @@ def is_media(e):
         return 1
     return 0
 
+
 if __name__ == '__main__':
-    print "unit tests are in enstore/src/tests/test_e_errors.py"
+    print("unit tests are in enstore/src/tests/test_e_errors.py")
     import sys
     sys.exit(0)
-

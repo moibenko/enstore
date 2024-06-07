@@ -10,17 +10,17 @@ for line in sys.stdin.readlines():
     if line[-1]=='\n':
         line = line[:-1]
     if line[:len(leadin)]==leadin:
-        print line
+        print(line)
         fname = line[len(leadin):]
         while fname[-1] != '(':
             fname = fname[:-1]
         fname = fname[:-1]
-    elif string.find(line, fname+'(')>0:
-        print "Py_BEGIN_ALLOW_THREADS"
-        print line
-        print "Py_END_ALLOW_THREADS"
+    elif line.find(fname+'(')>0:
+        print ("Py_BEGIN_ALLOW_THREADS")
+        print(line)
+        print ("Py_END_ALLOW_THREADS")
     else:
-        print line
+        print(line)
     
 
         

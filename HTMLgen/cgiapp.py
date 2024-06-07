@@ -1,24 +1,32 @@
+from __future__ import print_function
+from future.utils import raise_
 __version__ = '$Id$'
 from HTMLgen import *
 from HTMLcolors import *
 from HTMLutil import *
-from types import ListType
-import cgi, sys, tempfile, traceback
+import cgi
+import sys
+import tempfile
+import traceback
+
 
 def _fstodict(fs):
     d = {}
-    for tok in fs.keys():
+    for tok in list(fs.keys()):
         alist = []
-        if type(fs[tok]) == ListType:
+        if isinstance(fs[tok], list):
             for val in fs[tok]:
-                if val.value: alist.append(val.value)
+                if val.value:
+                    alist.append(val.value)
         elif fs[tok].file:
             alist = (fs[tok].filename, fs[tok].file)
         else:
             if fs[tok].value:
                 alist = fs[tok].value
-        if alist: d[tok] = alist
+        if alist:
+            d[tok] = alist
     return d
+
 
 class CGI(Document):
     def __init__(self, **kw):
@@ -39,35 +47,35 @@ class CGI(Document):
         self.form_errors = {}
         self.form_messages = []
 
-        self.http = { 'Content-type': 'text/html' }
-        for item in kw.keys():
-            if self.__dict__.has_key(item):
+        self.http = {'Content-type': 'text/html'}
+        for item in list(kw.keys()):
+            if item in self.__dict__:
                 self.__dict__[item] = kw[item]
             else:
-                raise KeyError,\
-                        `item`+' not a valid parameter of the CGI class'
+                raise_(KeyError,
+                       repr(item) + ' not a valid parameter of the CGI class')
 
     def get_form(self):
         self.form = _fstodict(cgi.FieldStorage())
-        if self.form.has_key('function'):
+        if 'function' in self.form:
             f = self.form['function']
-            if f in self.valid.keys():
+            if f in list(self.valid.keys()):
                 self.function = f
 
     def verify(self):
-        for tok in self.form_defaults.keys():
-            if not self.form.has_key(tok):
+        for tok in list(self.form_defaults.keys()):
+            if tok not in self.form:
                 self.form[tok] = self.form_defaults[tok]
-        for tok in self.form_errors.keys():
-            if not form.has_key(tok):
+        for tok in list(self.form_errors.keys()):
+            if tok not in self.form:
                 self.form_messages.append(self.form_errors[tok])
                 self.form_ok = 0
 
     def run(self, cont=0):
         # Print HTTP messages
-        for key in self.http.keys():
-            print '%s: %s' % (key, self.http[key])
-        print
+        for key in list(self.http.keys()):
+            print('%s: %s' % (key, self.http[key]))
+        print()
 
         # Redirect stderr
         sys.stderr = open(self._tempfile, 'w')
@@ -78,15 +86,15 @@ class CGI(Document):
         # Function handling
         if not self.active:
             ret = _not_active(self)
-            print self
+            print(self)
             sys.exit(0)
-        elif not '_no_function' in self.valid.keys():
+        elif not '_no_function' in list(self.valid.keys()):
             self.valid['_no_function'] = _no_function
-        if not self.function or self.function not in self.valid.keys():
+        if not self.function or self.function not in list(self.valid.keys()):
             self.function = '_no_function'
         try:
             ret = self.valid[self.function](self)
-        except:
+        except BaseException:
             traceback.print_exc()
             sys.stderr.flush()
             f = open(self._tempfile, 'r')
@@ -95,15 +103,18 @@ class CGI(Document):
             f.close()
 
         # Print Document object
-        print self
+        print(self)
         if not cont:
-            sys.exit(0) # Provide a speedy exit
+            sys.exit(0)  # Provide a speedy exit
+
 
 class MinimalCGI(MinimalDocument, CGI):
     __init__ = CGI.__init__
 
+
 # For backward compatibility
 CGIApp = CGI
+
 
 def _not_active(cgi):
     cgi.title = 'Script Inactive!'
@@ -115,6 +126,7 @@ def _not_active(cgi):
             """))
     return 0
 
+
 def _no_function(cgi):
     cgi.title = 'Error!'
     cgi.subtitle = 'No Action'
@@ -123,4 +135,3 @@ def _no_function(cgi):
             in the list of valid actions. Please send
             feedback to the author."""))
     return 0
-

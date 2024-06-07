@@ -87,7 +87,7 @@ for i in *; do
      fi
      file=`mktemp /tmp/cronplot.XXXXXXXX`
      file2=`mktemp /tmp/cronplot2.XXXXXXXX`
-     pt=`python $ENSTORE_DIR/src/get_cron_title.py $f`
+     pt=`python $ENSTORE_DIR/sbin/get_cron_title $f`
      title="$pt - $i/$f"
      echo "
 set term postscript enhanced color solid 'Helvetica' 10

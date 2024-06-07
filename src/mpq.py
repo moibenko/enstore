@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A priority queue which supports multiple comparison methods"""
+from __future__ import print_function
 ###############################################################################
 #
 # $Id$
@@ -13,6 +14,9 @@
 # __cmp__ method.  We want to be able to put the *same* object
 # into multiple queues, without changing the object's class definition
 # to overload __cmp__
+from past.builtins import cmp
+from builtins import str
+from builtins import object
 import sys
 import Trace
 
@@ -21,7 +25,7 @@ def _insort(a, x, compare, lo=0, hi=None):
     if hi is None:
         hi = len(a)
     while lo < hi:
-        mid = (lo + hi) / 2
+        mid = (lo + hi) // 2
         try:
             if compare(x, a[mid]) < 0:
                 hi = mid
@@ -41,7 +45,7 @@ def _bisect(a, x, compare, lo=0, hi=None):
     if hi is None:
         hi = len(a) - 1
     while lo < hi:
-        mid = (lo + hi) / 2
+        mid = (lo + hi) // 2
         if compare(x, a[mid]) < 0:
             hi = mid
         else:
@@ -51,7 +55,7 @@ def _bisect(a, x, compare, lo=0, hi=None):
     return lo
 
 
-class MPQ:
+class MPQ(object):
 
     def __init__(self, comparator):
         self.items = []
@@ -68,7 +72,7 @@ class MPQ:
             self.items.remove(item)
         except ValueError:
             exc, msg = sys.exc_info()[:2]
-            print "remove: error", exc, msg
+            print("remove: error", exc, msg)
 
     def __getitem__(self, index):
         return self.items[index]
@@ -76,7 +80,7 @@ class MPQ:
     def __len__(self):
         return len(self.items)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return len(self) != 0
 
     def __repr__(self):
@@ -86,7 +90,7 @@ class MPQ:
 # test case
 if __name__ == "__main__":   # pragma: no cover
 
-    class Req:
+    class Req(object):
         def __init__(self, size, priority):
             self.size = size
             self.priority = priority
@@ -94,6 +98,13 @@ if __name__ == "__main__":   # pragma: no cover
         def __repr__(self):
             return "<size=%s, priority=%s>" % (self.size, self.priority)
 
+    def cmp(a, b):
+        """
+        In python 3 thre is no built in function cmp.
+        So define it here
+        """
+        return (a > b) - (a < b)
+    
     def compare_priority(r1, r2):
         return -cmp(r1.priority, r2.priority)
 
@@ -112,15 +123,15 @@ if __name__ == "__main__":   # pragma: no cover
         q1.insort(r)
         q2.insort(r)
 
-    print "q1, sorted by priority:", q1
-    print "q2, sorted by size:", q2
+    print("q1, sorted by priority:", q1)
+    print("q2, sorted by size:", q2)
 
-    print "Now let's find the smallest size element, and delete it from both queues"
+    print("Now let's find the smallest size element, and delete it from both queues")
     e = q2[0]
-    print "smallest is", e
+    print("smallest is", e)
     q1.remove(e)
     q2.remove(e)
-    print "Now the queues are:"
+    print("Now the queues are:")
 
-    print "q1, sorted by priority:", q1
-    print "q2, sorted by size:", q2
+    print("q1, sorted by priority:", q1)
+    print("q2, sorted by size:", q2)

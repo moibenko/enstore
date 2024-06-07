@@ -2,15 +2,22 @@
 """
 Manage the pending Library Manager work queue
 """
+from __future__ import print_function
+from past.builtins import cmp
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from builtins import object
 import sys
-import string
 import threading
 import time
+import inspect
 
 import mpq  # binary search / put
 import Trace
 import e_errors
 import hostaddr
+import enstore_functions3
 
 MAX_PRI = 1000001
 TR = 400
@@ -21,6 +28,21 @@ MAX_LONG = (2 << 64) - 1
 
 # Comparison functions
 
+def cmp(a,b):
+    """
+    There is no builtin cmp in python 3.
+    So redefine it
+    """
+    Trace.trace(423, "AM CMP {} {}".format(a, b))
+    if isinstance(a, int) and isinstance(b, str):
+        b = enstore_functions3.cookie_to_int(b)
+    if isinstance(b, int) and isinstance(a, str):
+        a = enstore_functions3.cookie_to_int(b)
+    try:
+        return (a > b) - (a < b)
+    except TypeError:
+        print("AM TYPE ERROR", inspect.stack())
+        raise TypeError("AM Types incomparable {0} {1}".format(a, b))
 
 def compare_priority(r1, r2):
     """
@@ -43,10 +65,13 @@ def compare_priority(r1, r2):
     :rtype: :obj:`tuple` - comparison result
     """
 
+    Trace.trace(423, "AM CMP PRIO {} {}".format(r1, r2))
+
     if r1 is r2:
         return 0
     pri1 = (r1.pri, -getattr(r1, 'queued', 0), id(r1))
     pri2 = (r2.pri, -getattr(r2, 'queued', 0), id(r2))
+    Trace.trace(423, "AM CMP PRIO {} {}".format(pri1, pri2))
     return -cmp(pri1, pri2)
 
 
@@ -64,11 +89,11 @@ def compare_value(r1, r2):
     :arg r2: request 2
     :rtype: :obj:`tuple` - comparison result
     """
-
+    Trace.trace(423, "AM compare_value {0} {1} {2} {3}".format(r1, r2, r1.value, r2.value))
     return cmp(r1.value, r2.value)
 
 
-class Request:
+class Request(object):
     """
     Pending request.
     """
@@ -98,14 +123,14 @@ class Request:
             self.adminpri = -1
 
         self.unique_id = ticket.get('unique_id', '')
-        #self.queued = ticket['times']['job_queued']
+        # self.queued = ticket['times']['job_queued']
         self.queued = time.time()
         if ticket:
             ticket['times']['job_queued'] = self.queued
             ticket['at_the_top'] = 0
             ticket['encp']['curpri'] = self.pri
-            #ticket['encp']['agetime'] = self.agetime
-            #ticket['encp']['delpri'] = self.delpri
+            # ticket['encp']['agetime'] = self.agetime
+            # ticket['encp']['delpri'] = self.delpri
             self.sg = ticket['vc']['storage_group']
 
         self.work = ticket.get('work', '')
@@ -127,8 +152,8 @@ class Request:
 
     # compare 2 requestst
     def __cmp__(self, other):
-        #pri1=(self.pri, getattr(self,'time',0), id(self))
-        #pri2=(other.pri, getattr(other,'time',0), id(other))
+        # pri1=(self.pri, getattr(self,'time',0), id(self))
+        # pri2=(other.pri, getattr(other,'time',0), id(other))
         pri1 = (self.pri, getattr(self, 'queued', 0), id(self))
         pri2 = (other.pri, getattr(other, 'queued', 0), id(other))
         rc = cmp(pri1, pri2)
@@ -152,7 +177,7 @@ class Request:
         self.ticket['encp']['curpri'] = self.pri
 
 
-class SortedList:
+class SortedList(object):
     """
     Sorted list of requests.
     This class is the lowest in the hierarchy of
@@ -176,7 +201,8 @@ class SortedList:
         :type name: :obj:`str`
         :arg name: list name (to make debugging easier)
         """
-
+        Trace.trace(423, "name %s by_pri %s comparison func %s" % 
+                    (name, by_pri,comparison_function)) # REMOVE
         self.sorted_list = mpq.MPQ(comparison_function)
         self.last_aging_time = 0
         self.aging_quantum = aging_quantum
@@ -239,7 +265,7 @@ class SortedList:
         if not self.update_flag:
             return  # no need to update by_location list
         time_now = time.time()
-        #Trace.trace(TR+23, "now %s self.last_aging_time %s self.aging_quantum %s"%(time_now,self.last_aging_time, self.aging_quantum))
+        # Trace.trace(TR+23, "now %s self.last_aging_time %s self.aging_quantum %s"%(time_now,self.last_aging_time, self.aging_quantum))
         self.updated = False
         if ((time_now - self.last_aging_time >= self.aging_quantum) or
                 now):
@@ -296,7 +322,7 @@ class SortedList:
             except BaseException:
                 exc, detail, tb = sys.exc_info()
                 Trace.handle_error(exc, detail, tb)
-                del(tb)
+                del (tb)
             self.lock.release()
 
             stat = e_errors.OK
@@ -333,6 +359,7 @@ class SortedList:
             return None    # list is empty
         Trace.trace(TR + 23, "%s:::SortedList.get: pri %s, u_f %s" %
                     (self.my_name, pri, self.update_flag))
+        Trace.trace(423, "AM dir {}".format(dir(self.sorted_list[0])))
         # update flag is meaningful only for write list
         if self.update_flag and not pri:
             index = 0
@@ -341,8 +368,15 @@ class SortedList:
             self.lock.release()
         else:
             # find request that has "priority" higher than pri
-            #Trace.trace(TR+23, '%s:::SortedList.get:sorted_list %s'%(self.my_name,self.sorted_list,))
+            # Trace.trace(TR+23, '%s:::SortedList.get:sorted_list %s'%(self.my_name,self.sorted_list,))
             rq = Request(pri, pri, {})
+            """
+            if self.sorted_list[self.current_index].work == 'write_to_hsm':
+                rq = Request(pri, pri, {})
+            else:
+                #rq = Request(pri, self.sorted_list[self.current_index].value, {})
+                rq = Request(pri, '0000_000000000_0000001', {})
+            """
             index = self.sorted_list.bisect(rq)
             Trace.trace(
                 TR + 23, '%s:::SortedList.get: i %s rq %s rec %s' %
@@ -356,7 +390,7 @@ class SortedList:
                             (pri, self.sorted_list[index].value, self.last_deleted))
                 Trace.trace(TR + 23, 'SortedList.get: comparing %s %s' %
                             (pri, self.sorted_list[index].value))
-                if pri > 0 and cmp(pri, self.sorted_list[index].value) == 1:
+                if enstore_functions3.cookie_to_int(pri) > 0 and cmp(pri, self.sorted_list[index].value) == 1:
                     if self.last_deleted and self.last_deleted.value == pri:
                         Trace.trace(TR + 23, 'SortedList.get: setting index to 0 %s' %
                                     (self.sorted_list[0],))
@@ -513,7 +547,7 @@ class SortedList:
             except BaseException:
                 exc, detail, tb = sys.exc_info()
                 Trace.handle_error(exc, detail, tb)
-                del(tb)
+                del (tb)
 
                 pass
             self.lock.release()
@@ -574,11 +608,11 @@ class SortedList:
         Print :class:`SortedList` to STDO
         """
 
-        print "LIST LENGTH", len(self.sorted_list)
+        print("LIST LENGTH", len(self.sorted_list))
         cnt = 0
         if len(self.sorted_list):
             for rq in self.sorted_list:
-                print rq
+                print(rq)
                 cnt = cnt + 1
                 if DEBUG and cnt > 100:
                     break
@@ -616,7 +650,7 @@ class SortedList:
         return tickets
 
 
-class Queue:
+class Queue(object):
     """
     Request queue.
     Separate queues are created for write and read requests.
@@ -681,7 +715,7 @@ class Queue:
         except BaseException:
             exc, detail, tb = sys.exc_info()
             Trace.handle_error(exc, detail, tb)
-            del(tb)
+            del (tb)
             return None, None
         if res:
             # already in the list
@@ -691,7 +725,7 @@ class Queue:
         except BaseException:
             exc, detail, tb = sys.exc_info()
             Trace.handle_error(exc, detail, tb)
-            del(tb)
+            del (tb)
             # put into opt list failed
             # remove request from by_priority list
             self.queue[key]['by_priority'].delete(rq)
@@ -738,14 +772,14 @@ class Queue:
         :rtype: :class:`Request`
         """
 
-        #Trace.trace(TR+23, 'Queue.get: Queue list %s'% (self.sprint(),))
+        # Trace.trace(TR+23, 'Queue.get: Queue list %s'% (self.sprint(),))
         if not key:
             return None
         if not self.queue:
             Trace.trace(TR + 23, "Queue.get: queue is empty")
             return None
         Trace.trace(TR + 23, "Queue.get: queue %s" % (self.queue,))
-        Trace.trace(TR + 23, "Queue.get: key %s location %s" % (key, location))
+        Trace.trace(TR + 23, "Queue.get: key %s location ||%s||" % (key, location))
         if key not in self.queue:
             Trace.trace(
                 TR + 23, "Queue.get: key %s is not in the queue" %
@@ -800,7 +834,7 @@ class Queue:
         if not key:
             return
         if key not in self.queue:
-            #Trace.log(e_errors.INFO,"manage_queue.delete: no such key %s" %(key,))
+            # Trace.log(e_errors.INFO,"manage_queue.delete: no such key %s" %(key,))
             return
         # remove opt entry
         Trace.trace(TR + 23, "Queue.delete: opt %s %s" % (key, request.ticket))
@@ -810,7 +844,7 @@ class Queue:
         # if list for this queue is empty, remove
         # the dictionary entry
         if len(self.queue[key]['by_priority'].sorted_list) == 0:
-            del(self.queue[key])
+            del (self.queue[key])
 
     def change_pri(self, request, pri):
         """
@@ -853,7 +887,7 @@ class Queue:
         if not self.queue:
             Trace.trace(TR + 23, "Queue.get_next: queue is empty")
             return None
-        Trace.trace(TR + 23, "Queue.get_next: keys %s" % (self.queue.keys(),))
+        Trace.trace(TR + 23, "Queue.get_next: keys %s" % (list(self.queue.keys()),))
         if key not in self.queue:
             Trace.trace(
                 TR + 23, "Queue.get_next: key %s is not in the queue" %
@@ -864,7 +898,7 @@ class Queue:
         else:
             # write request"
             sublist = self.queue[key]['by_priority']
-        #Trace.trace(TR+23,"Queue.get_next: sublist %s"%(sublist.sprint(),))
+        # Trace.trace(TR+23,"Queue.get_next: sublist %s"%(sublist.sprint(),))
         rc = sublist.get_next(disabled_hosts=disabled_hosts)
         Trace.trace(TR + 23, "Queue.get_next: sublist returns %s" % (rc,))
         return rc
@@ -874,22 +908,22 @@ class Queue:
         Print :class:`Queue` to STDO
         """
 
-        print "********************"
+        print("********************")
         if not self.queue_type:
-            print "UKNOWN QUEUE type"
+            print("UKNOWN QUEUE type")
             return
         else:
-            print self.queue_type, " Queue"
-        print "by_val"
-        for key in self.queue.keys():
-            print "KEY", key
+            print(self.queue_type, " Queue")
+        print("by_val")
+        for key in list(self.queue.keys()):
+            print("KEY", key)
             self.queue[key]['opt'].wprint()
-        print "------------------------------"
-        print "by_priority"
-        for key in self.queue.keys():
-            print "KEY", key
+        print("------------------------------")
+        print("by_priority")
+        for key in list(self.queue.keys()):
+            print("KEY", key)
             self.queue[key]['by_priority'].wprint()
-        print "********************"
+        print("********************")
 
     def sprint(self):
         """
@@ -903,10 +937,10 @@ class Queue:
             m = '%sUKNOWN QUEUE type\n' % (m,)
             return m
         m = '%s%s Queue\nby_val\n' % (m, self.queue_type)
-        for key in self.queue.keys():
+        for key in list(self.queue.keys()):
             m = '%s KEY %s\n%s' % (m, key, self.queue[key]['opt'].sprint())
         m = '%s------------------------------\nby_priority\n' % (m,)
-        for key in self.queue.keys():
+        for key in list(self.queue.keys()):
             m = '%s KEY %s\n%s' % (
                 m, key, self.queue[key]['by_priority'].sprint())
         m = '%s********************\n' % (m,)
@@ -920,7 +954,7 @@ class Queue:
         """
 
         _list = []
-        for key in self.queue.keys():
+        for key in list(self.queue.keys()):
             _list = _list + self.queue[key][queue_key].get_tickets()
         return _list
 
@@ -935,7 +969,7 @@ class Queue:
         """
 
         # id - request unuque id
-        for key in self.queue.keys():
+        for key in list(self.queue.keys()):
             record, status = self.queue[key]['by_priority'].find(id)
             if record:
                 break
@@ -953,7 +987,7 @@ class Queue:
         """
 
         updated_requests = {}
-        for key in self.queue.keys():
+        for key in list(self.queue.keys()):
             Trace.trace(TR + 23, 'Queue.update_priority: updating %s' % (key,))
             try:
                 self.queue[key]['by_priority'].update()
@@ -976,7 +1010,7 @@ class Queue:
         return updated_requests
 
 
-class Atomic_Request_Queue:
+class Atomic_Request_Queue(object):
     """
     This class is for either regular or for admin queue.
     Each such queue contains 2 subqueues(:class:`Queue`), one for read requests and another for write requests.
@@ -1035,7 +1069,7 @@ class Atomic_Request_Queue:
             (self.tags.keys,))
         Trace.trace(
             TR + 23, " Atomic_Request_Queue:update:refs.keys: %s" %
-            (self.ref.keys(),))
+            (list(self.ref.keys()),))
         updated_rq = None
 
         self.lockacquire()
@@ -1049,7 +1083,7 @@ class Atomic_Request_Queue:
                 if request.pri > self.ref[key].pri:
                     self.tags.rm(self.ref[key], key)
                     self.tags.put(request, key)
-                    del(self.ref[key])
+                    del (self.ref[key])
                     self.ref[key] = request
                     updated_rq = request
             else:
@@ -1061,7 +1095,7 @@ class Atomic_Request_Queue:
         except BaseException:
             exc, detail, tb = sys.exc_info()
             Trace.handle_error(exc, detail, tb)
-            del(tb)
+            del (tb)
         self.lockrelease()
 
         if not updated_rq:
@@ -1085,7 +1119,7 @@ class Atomic_Request_Queue:
         if updated_requests:
             for key in self.tags.keys:
                 Trace.trace(TR + 23, "key %s" % (key,))
-                if key in (updated_requests.keys()):
+                if key in (list(updated_requests.keys())):
                     tags_toreplace.append((key, updated_requests[key]))
 
             Trace.trace(
@@ -1102,12 +1136,12 @@ class Atomic_Request_Queue:
                     try:
                         self.tags.rm(self.ref[key], key)
                         self.tags.put(request, key)
-                        del(self.ref[key])
+                        del (self.ref[key])
                         self.ref[key] = request
                     except BaseException:
                         exc, detail, tb = sys.exc_info()
                         Trace.handle_error(exc, detail, tb)
-                        del(tb)
+                        del (tb)
 
                     self.lockrelease()
 
@@ -1119,7 +1153,6 @@ class Atomic_Request_Queue:
         :rtype: :obj:`set`
         """
         return self.tags.keys
-
 
     def get_sg(self, tag):
         """
@@ -1156,19 +1189,18 @@ class Atomic_Request_Queue:
             # backward compatibility
             if 'storage_group' not in ticket['vc']:
                 # special treatment for D0 requests
-                if string.find(ticket['wrapper']
-                               ['pnfsFilename'], "/pnfs/sam") == 0:
+                if ticket['wrapper']['pnfsFilename'].find("/pnfs/sam") == 0:
                     ticket['vc']['storage_group'] = 'D0'
                 else:
                     ticket['vc']['storage_group'] = 'unknown'
             # combine volume family
             if ticket['vc']['file_family'] != 'ephemeral':
-                key = string.join((ticket['vc']['storage_group'],
-                                   ticket['vc']['file_family'],
-                                   ticket['vc']['wrapper']), '.')
+                key = '.'.join((ticket['vc']['storage_group'],
+                                ticket['vc']['file_family'],
+                                ticket['vc']['wrapper']))
             else:
-                key = string.join((ticket['vc']['storage_group'],
-                                   'ephemeral', ticket['vc']['wrapper']), '.')
+                key = '.'.join((ticket['vc']['storage_group'],
+                                'ephemeral', ticket['vc']['wrapper']))
             ticket['vc']['volume_family'] = key
         elif ticket['work'] == 'read_from_hsm':
             key = ticket['fc']['external_label']
@@ -1189,7 +1221,7 @@ class Atomic_Request_Queue:
         except BaseException:
             exc, detail, tb = sys.exc_info()
             Trace.handle_error(exc, detail, tb)
-            del(tb)
+            del (tb)
         self.lockrelease()
         if rc is None:
             try:
@@ -1200,7 +1232,7 @@ class Atomic_Request_Queue:
             except BaseException:
                 exc, detail, tb = sys.exc_info()
                 Trace.handle_error(exc, detail, tb)
-                del(tb)
+                del (tb)
         return rc
 
     def test(self, ticket):
@@ -1213,12 +1245,12 @@ class Atomic_Request_Queue:
         """
         if ticket['work'] == 'write_to_hsm':
             if ticket['vc']['file_family'] != 'ephemeral':
-                key = string.join((ticket['vc']['storage_group'],
-                                   ticket['vc']['file_family'],
-                                   ticket['vc']['wrapper']), '.')
+                key = '.'.join((ticket['vc']['storage_group'],
+                                ticket['vc']['file_family'],
+                                ticket['vc']['wrapper']))
             else:
-                key = string.join((ticket['vc']['storage_group'],
-                                   'ephemeral', ticket['vc']['wrapper']), '.')
+                key = '.'.join((ticket['vc']['storage_group'],
+                                'ephemeral', ticket['vc']['wrapper']))
             ticket['vc']['volume_family'] = key
             q = self.write_queue
         elif ticket['work'] == 'read_from_hsm':
@@ -1251,7 +1283,7 @@ class Atomic_Request_Queue:
                     # if record is in the reference list (and hence in the
                     # tags list) these enrires must be replaced by record
                     # with the same key if exists
-                    del(self.ref[key])
+                    del (self.ref[key])
                     # find the highest priority request for this
                     # key
                     hp_rq = queue.get(key)
@@ -1261,7 +1293,7 @@ class Atomic_Request_Queue:
         except BaseException:
             exc, detail, tb = sys.exc_info()
             Trace.handle_error(exc, detail, tb)
-            del(tb)
+            del (tb)
         self.lockrelease()
         if hp_rq:
             self.update(hp_rq, key)
@@ -1297,7 +1329,7 @@ class Atomic_Request_Queue:
                     (key, location, next, active_volumes, disabled_hosts))
         if key:
             # see if key points to write queue
-            if key in self.ref.keys():
+            if key in list(self.ref.keys()):
                 if next:
                     Trace.trace(TR + 21, "Atomic_Request_Queue:get:GET_NEXT_0")
                     record = self.write_queue.get_next(
@@ -1318,7 +1350,7 @@ class Atomic_Request_Queue:
                         Trace.trace(
                             TR + 21, "Atomic_Request_Queue:get:GET_AA record %s" %
                             (record,))
-                        #if not location: record = self.read_queue.get(key)
+                        # if not location: record = self.read_queue.get(key)
                         # else: record = self.read_queue.get(key, location)
             else:
                 record = None
@@ -1458,23 +1490,23 @@ class Atomic_Request_Queue:
         Print :class:`Atomic_Request_Queue` to STDO
         """
 
-        print "NAME", self.queue_name
+        print("NAME", self.queue_name)
         if len(self.tags.keys) == 0:
-            print "EMPTY"
+            print("EMPTY")
             return
-        print "TAGS"
-        print "keys", self.tags.keys
+        print("TAGS")
+        print("keys", self.tags.keys)
         self.tags.wprint()
-        print "--------------------------------"
-        print "REFERENCES"
-        for key in self.ref.keys():
-            print "KEY", key
-            print "VALUE", self.ref[key]
-        print "--------------------------------"
-        print "WRITE QUEUE"
+        print("--------------------------------")
+        print("REFERENCES")
+        for key in list(self.ref.keys()):
+            print("KEY", key)
+            print("VALUE", self.ref[key])
+        print("--------------------------------")
+        print("WRITE QUEUE")
         self.write_queue.wprint()
-        print "+++++++++++++++++++++++++++++++"
-        print "READ QUEUE"
+        print("+++++++++++++++++++++++++++++++")
+        print("READ QUEUE")
         self.read_queue.wprint()
 
     def sprint(self):
@@ -1487,7 +1519,7 @@ class Atomic_Request_Queue:
         m = 'NAME %s\n TAGS\nkeys%s\n%s\n' % (
             self.queue_name, self.tags.keys, self.tags.sprint())
         m = '%s--------------------------------\nREFERENCES\n' % (m,)
-        for key in self.ref.keys():
+        for key in list(self.ref.keys()):
             m = '%s KEY %s\n VALUE %s\n' % (m, key, self.ref[key])
         m = '%s--------------------------------\nWRITE QUEUE\n%s' % (
             m, self.write_queue.sprint())
@@ -1496,7 +1528,7 @@ class Atomic_Request_Queue:
         return m
 
 
-class Request_Queue:
+class Request_Queue(object):
     """
     Complete requests queue.
     Contains queue of regular(:class:`Atomic_Request_Queue`)
@@ -1595,7 +1627,7 @@ class Request_Queue:
             except BaseException:
                 exc, detail, tb = sys.exc_info()
                 Trace.handle_error(exc, detail, tb)
-                del(tb)
+                del (tb)
                 Trace.trace(TR + 23, "More Details %s %s" % (basepri, ticket))
                 rq = None
                 stat = None
@@ -1623,7 +1655,7 @@ class Request_Queue:
                 except BaseException:
                     exc, detail, tb = sys.exc_info()
                     Trace.handle_error(exc, detail, tb)
-                    del(tb)
+                    del (tb)
 
         return rq, stat
 
@@ -1661,21 +1693,21 @@ class Request_Queue:
                     self.families[record.ticket['vc']['file_family']
                                   ] = self.families[record.ticket['vc']['file_family']] - 1
                     if self.families[record.ticket['vc']['file_family']] <= 0:
-                        del(self.families[record.ticket['vc']['file_family']])
+                        del (self.families[record.ticket['vc']['file_family']])
 
             if record.ticket["vc"]["storage_group"] in self.storage_groups:
                 self.storage_groups[record.ticket["vc"]["storage_group"]
                                     ] = self.storage_groups[record.ticket["vc"]["storage_group"]] - 1
                 if self.storage_groups[record.ticket["vc"]
                                        ["storage_group"]] <= 0:
-                    del(self.storage_groups[record.ticket["vc"]
-                        ["storage_group"]])
+                    del (self.storage_groups[record.ticket["vc"]
+                                             ["storage_group"]])
 
             queue.delete(record)
         except BaseException:
             exc, detail, tb = sys.exc_info()
             Trace.handle_error(exc, detail, tb)
-            del(tb)
+            del (tb)
 
         self._lock.release()
         if self.queue_length > 0:
@@ -1730,7 +1762,7 @@ class Request_Queue:
                 Trace.trace(
                     TR + 22, "get_admin_request: delete %s in %s" %
                     (rq.ticket['fc']['external_label'], rq))
-                del(rq.ticket['fc']['external_label'])
+                del (rq.ticket['fc']['external_label'])
             self.processed_requests.append(rq)
 
         return rq
@@ -1767,7 +1799,7 @@ class Request_Queue:
         # the commented Trace may take a substantial time
         # depending on a queue size
         # uncomment only for debugging
-        #Trace.trace(TR+50, "Request_Queue.get: Queue: %s" % (self.sprint(),))
+        # Trace.trace(TR+50, "Request_Queue.get: Queue: %s" % (self.sprint(),))
         Trace.trace(TR + 22, 'Request_Queue.get: key %s location %s next %s use_admin_queue %s active %s hosts %s' %
                     (key, location, next, use_admin_queue, active_volumes, disabled_hosts))
         if key:
@@ -1810,7 +1842,7 @@ class Request_Queue:
                             Trace.trace(
                                 TR + 22, "get_admin_request: delete %s in %s" %
                                 (rq.ticket['fc']['external_label'], rq))
-                            del(rq.ticket['fc']['external_label'])
+                            del (rq.ticket['fc']['external_label'])
                         self.processed_requests.append(rq)
 
                     return rq
@@ -1843,7 +1875,7 @@ class Request_Queue:
                 Trace.trace(
                     TR + 22, "get_admin_request: delete %s in %s" %
                     (record.ticket['fc']['external_label'], record))
-                del(record.ticket['fc']['external_label'])
+                del (record.ticket['fc']['external_label'])
             self.processed_requests.append(record)
         return record
 
@@ -1895,11 +1927,11 @@ class Request_Queue:
         Print :class:`Request_Queue` to STDO
         """
 
-        print "+++++++++++++++++++++++++++++++"
-        print "ADMIN QUEUE"
+        print("+++++++++++++++++++++++++++++++")
+        print("ADMIN QUEUE")
         self.admin_queue.wprint()
-        print "==============================="
-        print "REGULAR QUEUE"
+        print("===============================")
+        print("REGULAR QUEUE")
         self.regular_queue.wprint()
 
     def sprint(self):
@@ -1938,10 +1970,10 @@ def unit_test():  # pragma: no cover
     t1['fc']['external_label'] = 'vol1'
     t1['fc']['location_cookie'] = '2'
     t1['vc']['storage_group'] = 'D0'
-    print "PUT", t1['work']
+    print("PUT", t1['work'])
     res = pending_work.put(t1)
     time.sleep(.5)
-    print "RESULT", res, t1['fc']['external_label']
+    print("RESULT", res, t1['fc']['external_label'])
     pending_work.sprint()
 
     t2 = {}
@@ -1959,10 +1991,10 @@ def unit_test():  # pragma: no cover
     t2['fc']['external_label'] = 'vol2'
     t2['fc']['location_cookie'] = '1'
     t2['vc']['storage_group'] = 'D0'
-    print "PUT", t2['work']
+    print("PUT", t2['work'])
     res = pending_work.put(t2)
     time.sleep(.5)
-    print "RESULT", res, t2['fc']['external_label']
+    print("RESULT", res, t2['fc']['external_label'])
     # pending_work.wprint()
 
     t4 = {}
@@ -1980,10 +2012,10 @@ def unit_test():  # pragma: no cover
     t4['fc']['external_label'] = 'vol3'
     t4['fc']['location_cookie'] = '5'
     t4['vc']['storage_group'] = 'D0'
-    print "PUT", t4['work']
+    print("PUT", t4['work'])
     res = pending_work.put(t4)
     time.sleep(.5)
-    print "RESULT", res, t4['fc']['external_label']
+    print("RESULT", res, t4['fc']['external_label'])
     # pending_work.wprint()
     """
     t5={}
@@ -2189,11 +2221,11 @@ def unit_test():  # pragma: no cover
     """
     pending_work.start_cycle()
     rq = pending_work.get()
-    print "RQ", rq
+    print("RQ", rq)
     rq1 = pending_work.get(next=1)
-    print "RQ1", rq1
+    print("RQ1", rq1)
     rq2 = pending_work.get(next=1)
-    print "RQ2", rq2
+    print("RQ2", rq2)
 
 
 def unit_test_bz_769():  # pragma: no cover
@@ -2217,9 +2249,9 @@ def unit_test_bz_769():  # pragma: no cover
     t1['fc']['location_cookie'] = '2'
     t1['vc']['storage_group'] = 'D0'
     t1['callback_addr'] = ('131.225.13.129', 7000)
-    print "PUT", t1['work']
+    print("PUT", t1['work'])
     res = pending_work.put(t1)
-    print "RESULT", res, t1['fc']['external_label']
+    print("RESULT", res, t1['fc']['external_label'])
 
     t3 = {}
     t3["encp"] = {}
@@ -2240,9 +2272,9 @@ def unit_test_bz_769():  # pragma: no cover
     t3['vc']['storage_group'] = 'D0'
     t3['wrapper']['pnfsFilename'] = 'file1'
     t3['callback_addr'] = ('131.225.84.71', 7000)
-    print "PUT", t3['work']
+    print("PUT", t3['work'])
     res = pending_work.put(t3)
-    print "RESULT", res, t3['vc']['file_family']
+    print("RESULT", res, t3['vc']['file_family'])
 
     t31 = {}
     t31["encp"] = {}
@@ -2263,9 +2295,9 @@ def unit_test_bz_769():  # pragma: no cover
     t31['vc']['storage_group'] = 'D0'
     t31['wrapper']['pnfsFilename'] = 'file31'
     t31['callback_addr'] = ('131.225.84.71', 7000)
-    print "PUT", t31['work']
+    print("PUT", t31['work'])
     res = pending_work.put(t31)
-    print "RESULT", res, t31['vc']['file_family']
+    print("RESULT", res, t31['vc']['file_family'])
 
     t311 = {}
     t311["encp"] = {}
@@ -2286,9 +2318,9 @@ def unit_test_bz_769():  # pragma: no cover
     t311['vc']['storage_group'] = 'D0'
     t311['wrapper']['pnfsFilename'] = 'file311'
     t311['callback_addr'] = ('131.225.84.71', 7000)
-    print "PUT", t311['work']
+    print("PUT", t311['work'])
     res = pending_work.put(t311)
-    print "RESULT", res, t311['vc']['file_family']
+    print("RESULT", res, t311['vc']['file_family'])
 
     t32 = {}
     t32["encp"] = {}
@@ -2309,36 +2341,36 @@ def unit_test_bz_769():  # pragma: no cover
     t32['vc']['storage_group'] = 'D0'
     t32['wrapper']['pnfsFilename'] = 'file32'
     t32['callback_addr'] = ('131.225.84.71', 7000)
-    print "PUT", t32['work']
+    print("PUT", t32['work'])
     res = pending_work.put(t32)
-    print "RESULT", res, t32['vc']['file_family']
+    print("RESULT", res, t32['vc']['file_family'])
 
     # Trace.do_print(range(5, 500)) # uncomment this line for debugging
     pending_work.start_cycle()
-    print "PR_GET"
+    print("PR_GET")
     rq = pending_work.get()
-    print "RQ", rq
+    print("RQ", rq)
     if rq:
-        print "TICKET", rq.ticket
-        print "HOST", rq.host
+        print("TICKET", rq.ticket)
+        print("HOST", rq.host)
     cnt = 0
     if rq.ticket['work'] == 'write_to_hsm':
         key = rq.ticket['vc']['volume_family']
     else:
         key = rq.ticket['fc']['external_label']
     while rq:
-        print "PR_GET1"
+        print("PR_GET1")
         rq = pending_work.get(key, next=1, disabled_hosts=['tundra.fnal.gov'])
         cnt = cnt + 1
         if rq:
-            print "RQ%s %s" % (cnt, rq)
-            print "TICKET", rq.ticket
+            print("RQ%s %s" % (cnt, rq))
+            print("TICKET", rq.ticket)
         else:
-            print "NO KEY"
+            print("NO KEY")
             rq = pending_work.get(next=1, disabled_hosts=['tundra.fnal.gov'])
             if rq:
-                print "NKRQ%s %s" % (cnt, rq)
-                print "NKTICKET", rq.ticket
+                print("NKRQ%s %s" % (cnt, rq))
+                print("NKTICKET", rq.ticket)
 
 
 def unit_test_bz_774():  # pragma: no cover
@@ -2372,9 +2404,9 @@ def unit_test_bz_774():  # pragma: no cover
     t1['fc']['location_cookie'] = 5
     t1['vc']['storage_group'] = 'D0'
     t1['callback_addr'] = ('131.225.13.129', 7000)
-    print "PUT", t1['work']
+    print("PUT", t1['work'])
     res = pending_work.put(t1)
-    print "RESULT", res, t1['fc']['external_label']
+    print("RESULT", res, t1['fc']['external_label'])
 
     t2 = {}
     t2["encp"] = {}
@@ -2392,9 +2424,9 @@ def unit_test_bz_774():  # pragma: no cover
     t2['fc']['location_cookie'] = 2
     t2['vc']['storage_group'] = 'D0'
     t2['callback_addr'] = ('131.225.13.129', 7000)
-    print "PUT", t2['work']
+    print("PUT", t2['work'])
     res = pending_work.put(t2)
-    print "RESULT", res, t2['fc']['external_label']
+    print("RESULT", res, t2['fc']['external_label'])
 
     t12 = {}
     t12["encp"] = {}
@@ -2412,9 +2444,9 @@ def unit_test_bz_774():  # pragma: no cover
     t12['fc']['location_cookie'] = 12
     t12['vc']['storage_group'] = 'D0'
     t12['callback_addr'] = ('131.225.13.129', 7000)
-    print "PUT", t12['work']
+    print("PUT", t12['work'])
     res = pending_work.put(t12)
-    print "RESULT", res, t12['fc']['external_label']
+    print("RESULT", res, t12['fc']['external_label'])
 
     t3 = {}
     t3["encp"] = {}
@@ -2432,48 +2464,48 @@ def unit_test_bz_774():  # pragma: no cover
     t3['fc']['location_cookie'] = 3
     t3['vc']['storage_group'] = 'D0'
     t3['callback_addr'] = ('131.225.13.129', 7000)
-    print "PUT", t3['work']
+    print("PUT", t3['work'])
     res = pending_work.put(t3)
-    print "RESULT", res, t3['fc']['external_label']
+    print("RESULT", res, t3['fc']['external_label'])
     pending_work.wprint()
-    Trace.do_print(range(5, 500))  # uncomment this line for debugging
+    Trace.do_print(list(range(5, 500)))  # uncomment this line for debugging
     pending_work.start_cycle()
-    print "PR_GET"
+    print("PR_GET")
     rq = pending_work.get(key='vol1', location=6)
-    print "RQ1", rq
+    print("RQ1", rq)
     if rq:
-        print "TICKET", rq.ticket
-        print "HOST", rq.host
+        print("TICKET", rq.ticket)
+        print("HOST", rq.host)
         pending_work.delete(rq)
     else:
-        print "NONE"
+        print("NONE")
 
-    print "START NEW CYCLE"
+    print("START NEW CYCLE")
     pending_work.start_cycle()
 
     rq = pending_work.get()
-    print "RQ11", rq
+    print("RQ11", rq)
     if rq:
-        print "TICKET", rq.ticket
-        print "HOST", rq.host
+        print("TICKET", rq.ticket)
+        print("HOST", rq.host)
     else:
-        print "NONE"
+        print("NONE")
 
     rq = pending_work.get(next=1, disabled_hosts=['gccensrv1.fnal.gov'])
-    print "RQ12", rq
+    print("RQ12", rq)
     if rq:
-        print "TICKET", rq.ticket
-        print "HOST", rq.host
+        print("TICKET", rq.ticket)
+        print("HOST", rq.host)
     else:
-        print "NONE"
+        print("NONE")
 
     rq = pending_work.get(next=1, disabled_hosts=['gccensrv1.fnal.gov'])
-    print "RQ22", rq
+    print("RQ22", rq)
     if rq:
-        print "TICKET", rq.ticket
-        print "HOST", rq.host
+        print("TICKET", rq.ticket)
+        print("HOST", rq.host)
     else:
-        print "NONE"
+        print("NONE")
 
 
 def unit_test_bz_924():  # pragma: no cover
@@ -2522,9 +2554,9 @@ def unit_test_bz_924():  # pragma: no cover
     t1['vc']['storage_group'] = 'D0'
     t1['callback_addr'] = ('131.225.13.129', 7000)
     t1['comment'] = "Come out order 2"
-    print "PUT", t1
+    print("PUT", t1)
     res = pending_work.put(t1)
-    #print "RESULT",res, t1['fc']['external_label']
+    # print "RESULT",res, t1['fc']['external_label']
 
     t2 = {}
     t2["encp"] = {}
@@ -2541,18 +2573,18 @@ def unit_test_bz_924():  # pragma: no cover
     t2['vc']['storage_group'] = 'D0'
     t2['callback_addr'] = ('131.225.13.129', 7000)
     t2['comment'] = "Come out order 1"
-    print "PUT", t2
+    print("PUT", t2)
     res = pending_work.put(t2)
-    #print "RESULT",res, t2['fc']['external_label']
+    # print "RESULT",res, t2['fc']['external_label']
 
-    print "Waiting %s s" % (waiting_time,)
+    print("Waiting %s s" % (waiting_time,))
     time.sleep(waiting_time)
     # pending_work.wprint()
     pending_work.start_cycle()
 
     rq = pending_work.get()
     pending_work.delete(rq)
-    print "RQ1", rq.ticket
+    print("RQ1", rq.ticket)
 
     t2 = {}
     t2["encp"] = {}
@@ -2569,18 +2601,18 @@ def unit_test_bz_924():  # pragma: no cover
     t2['vc']['storage_group'] = 'D0'
     t2['callback_addr'] = ('131.225.13.129', 7000)
     t2['comment'] = "Come out order 3"
-    print "PUT", t2
+    print("PUT", t2)
     res = pending_work.put(t2)
-    #print "RESULT",res, t2['fc']['external_label']
+    # print "RESULT",res, t2['fc']['external_label']
 
-    print "Waiting %s s" % (waiting_time,)
+    print("Waiting %s s" % (waiting_time,))
     time.sleep(waiting_time)
     # pending_work.wprint()
     pending_work.start_cycle()
 
     rq = pending_work.get()
     pending_work.delete(rq)
-    print "RQ2", rq.ticket
+    print("RQ2", rq.ticket)
 
     t2 = {}
     t2["encp"] = {}
@@ -2597,18 +2629,18 @@ def unit_test_bz_924():  # pragma: no cover
     t2['vc']['storage_group'] = 'D0'
     t2['callback_addr'] = ('131.225.13.129', 7000)
     t2['comment'] = "Come out order 4"
-    print "PUT", t2
+    print("PUT", t2)
     res = pending_work.put(t2)
-    #print "RESULT",res, t2['fc']['external_label']
+    # print "RESULT",res, t2['fc']['external_label']
 
-    print "Waiting %s s" % (waiting_time,)
+    print("Waiting %s s" % (waiting_time,))
     time.sleep(waiting_time)
     # pending_work.wprint()
     pending_work.start_cycle()
 
     rq = pending_work.get()
     pending_work.delete(rq)
-    print "RQ3", rq.ticket
+    print("RQ3", rq.ticket)
 
     t2 = {}
     t2["encp"] = {}
@@ -2625,18 +2657,18 @@ def unit_test_bz_924():  # pragma: no cover
     t2['vc']['storage_group'] = 'D0'
     t2['callback_addr'] = ('131.225.13.129', 7000)
     t2['comment'] = "Come out order 5"
-    print "PUT", t2
+    print("PUT", t2)
     res = pending_work.put(t2)
-    #print "RESULT",res, t2['fc']['external_label']
+    # print "RESULT",res, t2['fc']['external_label']
 
-    print "Waiting %s s" % (waiting_time,)
+    print("Waiting %s s" % (waiting_time,))
     time.sleep(waiting_time)
     # pending_work.wprint()
     pending_work.start_cycle()
 
     rq = pending_work.get()
     pending_work.delete(rq)
-    print "RQ4", rq.ticket
+    print("RQ4", rq.ticket)
 
     t1 = {}
     t1["encp"] = {}
@@ -2653,23 +2685,23 @@ def unit_test_bz_924():  # pragma: no cover
     t1['vc']['storage_group'] = 'D0'
     t1['callback_addr'] = ('131.225.13.129', 7000)
     t1['comment'] = "Come out order 6"
-    print "PUT", t1
+    print("PUT", t1)
     res = pending_work.put(t1)
-    #print "RESULT",res, t1['fc']['external_label']
+    # print "RESULT",res, t1['fc']['external_label']
 
-    print "Waiting %s s" % (waiting_time,)
+    print("Waiting %s s" % (waiting_time,))
     time.sleep(waiting_time)
     # pending_work.wprint()
     pending_work.start_cycle()
 
     rq = pending_work.get()
     pending_work.delete(rq)
-    print "RQ5", rq.ticket
+    print("RQ5", rq.ticket)
 
     # pending_work.wprint()
     rq = pending_work.get()
     pending_work.delete(rq)
-    print "RQ6", rq.ticket
+    print("RQ6", rq.ticket)
 
 
 def unit_test_bz_975():  # pragma: no cover
@@ -2681,7 +2713,7 @@ def unit_test_bz_975():  # pragma: no cover
     # 4. Gets request from the queue with active_volumes = ["vol1", "vol2"]
     # This creates indefinite loop for old code
 
-    Trace.do_print(range(5, 500))  # uncomment this line for debugging
+    Trace.do_print(list(range(5, 500)))  # uncomment this line for debugging
     pending_work = Request_Queue()
     t1 = {}
     t1["encp"] = {}
@@ -2735,9 +2767,9 @@ def unit_test_bz_975():  # pragma: no cover
 
     rq = pending_work.get(key="K1", next=1, active_volumes=['vv3', 'vv4'])
     rq = pending_work.get(next=1, active_volumes=['vv3', 'vv4'])
-    print "RQ", rq
+    print("RQ", rq)
     if rq:
-        print "Ticket", rq.ticket
+        print("Ticket", rq.ticket)
         pending_work.delete(rq)
 
     """
@@ -2749,14 +2781,14 @@ def unit_test_bz_975():  # pragma: no cover
         print "Ticket", rq.ticket
 
     """
-    print "Once more"
+    print("Once more")
     res = pending_work.put(t2)
     res = pending_work.put(t3)
     pending_work.start_cycle()
 
     rq = pending_work.get(key="K1", next=1, active_volumes=['vol1', 'vol2'])
     rq = pending_work.get(next=1, active_volumes=['vol1', 'vol2'])
-    print "TEST FINISHED"
+    print("TEST FINISHED")
 
 
 def unit_test_bz_992():  # pragma: no cover
@@ -2773,7 +2805,7 @@ def unit_test_bz_992():  # pragma: no cover
     # read, which gets requests from the queue and deletes them.
 
     Trace.init("MQ", 'yes')
-    Trace.do_print(range(5, 500))  # uncomment this line for debugging
+    Trace.do_print(list(range(5, 500)))  # uncomment this line for debugging
     pending_work = Request_Queue()
     tickets = []
 
@@ -2829,7 +2861,7 @@ def unit_test_bz_992():  # pragma: no cover
             try:
                 rq = pending_work.get(next=1)
                 if rq:
-                    print "RQ", rq
+                    print("RQ", rq)
                     pending_work.delete(rq)
                 else:
                     pending_work.start_cycle()
@@ -2841,18 +2873,18 @@ def unit_test_bz_992():  # pragma: no cover
     thread.start()
     th1()
 
-    print "TEST FINISHED"
+    print("TEST FINISHED")
 
 
 def usage(prog_name):  # pragma: no cover
-    print "usage: %s arg" % (prog_name,)
-    print "where arg is"
-    print "0 - main unit test"
-    print "1 - unit test for bugzilla ticket 769 (http://www-enstore.fnal.gov/Bugzilla/show_bug.cgi?id=769)"
-    print "2 - unit test for bugzilla ticket 774 (http://www-enstore.fnal.gov/Bugzilla/show_bug.cgi?id=774)"
-    print "3 - unit test for update priority:  bugzilla ticket 924 (http://www-enstore.fnal.gov/Bugzilla/show_bug.cgi?id=924)"
-    print "4 - unit test for indefinite loop in Atomic_Request_Queue.get:  bugzilla ticket 975 (http://www-enstore.fnal.gov/Bugzilla/show_bug.cgi?id=975)"
-    print "5 - unit test for threading resynchronization problem:  bugzilla ticket 992 (http://www-enstore.fnal.gov/Bugzilla/show_bug.cgi?id=975)"
+    print("usage: %s arg" % (prog_name,))
+    print("where arg is")
+    print("0 - main unit test")
+    print("1 - unit test for bugzilla ticket 769 (http://www-enstore.fnal.gov/Bugzilla/show_bug.cgi?id=769)")
+    print("2 - unit test for bugzilla ticket 774 (http://www-enstore.fnal.gov/Bugzilla/show_bug.cgi?id=774)")
+    print("3 - unit test for update priority:  bugzilla ticket 924 (http://www-enstore.fnal.gov/Bugzilla/show_bug.cgi?id=924)")
+    print("4 - unit test for indefinite loop in Atomic_Request_Queue.get:  bugzilla ticket 975 (http://www-enstore.fnal.gov/Bugzilla/show_bug.cgi?id=975)")
+    print("5 - unit test for threading resynchronization problem:  bugzilla ticket 992 (http://www-enstore.fnal.gov/Bugzilla/show_bug.cgi?id=975)")
 
 
 if __name__ == "__main__":   # pragma: no cover

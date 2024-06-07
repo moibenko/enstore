@@ -14,8 +14,14 @@ TO DO:
 2) Add commands similar to those added for pnfs_agent_client.py to make
    maintaining the encp regression tests easier.  (Same for "enstore sfs".)
 """
+from __future__ import print_function
 
 # system imports
+from builtins import oct
+from builtins import str
+from builtins import range
+from builtins import object
+from future.utils import raise_
 import sys
 import os
 import errno
@@ -24,7 +30,7 @@ import pwd
 import grp
 import string
 import time
-import _strptime   #Make freeze work, this ticks off pychecker.
+import _strptime  # Make freeze work, this ticks off pychecker.
 import re
 import types
 import socket
@@ -33,9 +39,9 @@ import threading
 # enstore imports
 import Trace
 import e_errors
-#try:
+# try:
 #    import Devcodes # this is a compiled enstore module
-#except ImportError:
+# except ImportError:
 #    Trace.log(e_errors.INFO, "Devcodes unavailable")
 import option
 import enstore_constants
@@ -45,40 +51,46 @@ import charset
 import atomic
 import file_utils
 
-#ENABLED = "enabled"
-#DISABLED = "disabled"
-#VALID = "valid"
-#INVALID =  "invalid"
-UNKNOWN = "unknown"  #Same in namespace and chimera.
-#EXISTS = "file exists"
-#DIREXISTS = "directory exists"
+# ENABLED = "enabled"
+# DISABLED = "disabled"
+# VALID = "valid"
+# INVALID =  "invalid"
+UNKNOWN = "unknown"  # Same in namespace and chimera.
+# EXISTS = "file exists"
+# DIREXISTS = "directory exists"
 ERROR = -1
 
 PATH_MAX = 199
 
 ##############################################################################
 
-#This is used to print out some of the results to the terminal that are more
+# This is used to print out some of the results to the terminal that are more
 # than one line long and contained in a list.  The list is usually generated
 # by a f.readlines() where if is a file object.  Otherwise the result is
 # printed as is.
-def print_results(result):
-    if type(result) == types.ListType:
-         for line in result:
-            print line, #constains a '\012' at the end.
-    else:
-        print result
-def print_results2(result):
-    if type(result) == types.ListType:
-         for line in result:
-            print line #no '\012' at the end.
-    else:
-        print result
 
-#Make this shortcut so there is less to type.
+
+def print_results(result):
+    if type(result) == list:
+        for line in result:
+            print(line, end=' ')  # constains a '\012' at the end.
+    else:
+        print(result)
+
+
+def print_results2(result):
+    if type(result) == list:
+        for line in result:
+            print(line)  # no '\012' at the end.
+    else:
+        print(result)
+
+
+# Make this shortcut so there is less to type.
 fullpath = enstore_functions2.fullpath
 
 #######################################################################
+
 
 def layer_file(f, n):
     pn, fn = os.path.split(f)
@@ -87,12 +99,14 @@ def layer_file(f, n):
     else:
         return os.path.join(pn, ".(use)(%d)(%s)" % (n, fn))
 
+
 def id_file(f):
-    #We need to be careful that a .(access)() file does not get passed here.
+    # We need to be careful that a .(access)() file does not get passed here.
     pn, fn = os.path.split(f)
     return os.path.join(pn, ".(id)(%s)" % (fn, ))
 
-def parent_file(f, pnfsid = None):
+
+def parent_file(f, pnfsid=None):
     pn, fn = os.path.split(f)
     if pnfsid:
         return os.path.join(pn, ".(parent)(%s)" % (pnfsid))
@@ -108,63 +122,73 @@ def parent_file(f, pnfsid = None):
             f.close()
         return os.path.join(pn, ".(parent)(%s)" % (pnfsid))
 
+
 def access_file(dn, pnfsid):
     return os.path.join(dn, ".(access)(%s)" % (pnfsid))
 
+
 def database_file(directory):
     return os.path.join(directory, ".(get)(database)")
+
 
 def showid_file(dn, pnfsid):
     return os.path.join(dn, ".(showid)(%s)" % (pnfsid,))
 
 ##############################################################################
 
+
 def is_access_name(filepath):
-    #Determine if it is an ".(access)()" name.
-    access_match = re.compile("\.\(access\)\([0-9A-Fa-f]+\)")
+    # Determine if it is an ".(access)()" name.
+    access_match = re.compile("\\.\\(access\\)\\([0-9A-Fa-f]+\\)")
     if re.search(access_match, os.path.basename(filepath)):
         return True
 
     return False
 
+
 def is_access_path(filepath):
-    #Determine if it is an ".(access)()" name.
-    access_match = re.compile("\.\(access\)\([0-9A-Fa-f]+\)")
+    # Determine if it is an ".(access)()" name.
+    access_match = re.compile("\\.\\(access\\)\\([0-9A-Fa-f]+\\)")
     if re.search(access_match, filepath):
         return True
 
     return False
 
+
 def is_layer_access_name(filepath):
-    #Determine if it is an ".(access)(pnfsid)(1-8)" name.
-    access_match = re.compile("\.\(access\)\([0-9A-Fa-f]+\)\([1-8]\)")
+    # Determine if it is an ".(access)(pnfsid)(1-8)" name.
+    access_match = re.compile("\\.\\(access\\)\\([0-9A-Fa-f]+\\)\\([1-8]\\)")
     if re.search(access_match, os.path.basename(filepath)):
         return True
 
     return False
 
+
 def is_nameof_name(filepath):
-    #Determine if it is an ".(access)()" name.
-    nameof_match = re.compile("\.\(nameof\)\([0-9A-Fa-f]+\)")
+    # Determine if it is an ".(access)()" name.
+    nameof_match = re.compile("\\.\\(nameof\\)\\([0-9A-Fa-f]+\\)")
     if re.search(nameof_match, os.path.basename(filepath)):
         return True
 
     return False
+
 
 def is_parent_name(filepath):
-    #Determine if it is an ".(parent)()" name.
-    nameof_match = re.compile("\.\(parent\)\([0-9A-Fa-f]+\)")
+    # Determine if it is an ".(parent)()" name.
+    nameof_match = re.compile("\\.\\(parent\\)\\([0-9A-Fa-f]+\\)")
     if re.search(nameof_match, os.path.basename(filepath)):
         return True
 
     return False
 
-#Remove all .(access)(), .(nameof)(), etc. paths from the specified path,
+# Remove all .(access)(), .(nameof)(), etc. paths from the specified path,
 # then return that string.
 #
-#Using .(access)() paths for directories is dangerous.  Paths can be created
+# Using .(access)() paths for directories is dangerous.  Paths can be created
 # that form graphs and not trees.  Linux assumes filesystems can only look
 # like trees and the kernel can hang in a circular loop.
+
+
 def remove_special_paths(filepath):
     rtn_path = filepath
     while is_access_name(rtn_path) or is_nameof_name(rtn_path) or \
@@ -175,17 +199,18 @@ def remove_special_paths(filepath):
 
 ##############################################################################
 
-def is_pnfs_path(pathname, check_name_only = None):
-    if not pathname:  #Handle None and empty string.
+
+def is_pnfs_path(pathname, check_name_only=None):
+    if not pathname:  # Handle None and empty string.
         return False
 
-    #Try and find a matching mount point.
+    # Try and find a matching mount point.
     for cached_item in process_mtab():
         mount_point = cached_item[DB_MOUNT_POINTS][0]
         if mount_point and pathname.startswith(mount_point):
             break
     else:
-        #Next try and find it after removing symbolic links.  We want to
+        # Next try and find it after removing symbolic links.  We want to
         # avoid this is possible for performance.
         use_pathname = file_utils.wrapper(os.path.realpath, (pathname,),
                                           unstable_filesystem=True)
@@ -196,126 +221,134 @@ def is_pnfs_path(pathname, check_name_only = None):
         else:
             return False
 
-    #If the pathname existance test should be skipped, return true at
+    # If the pathname existance test should be skipped, return true at
     # this time.
     if check_name_only:
         return True
 
-    #If check_name_only is python false then we can reach this check
+    # If check_name_only is python false then we can reach this check
     # that checks to make sure that the filename exists.  Use os.stat()
     # instead of os.path.exist(), since the later was found to be returning
     # ENOENT errors that really should have been EACCES errors.
     try:
         if get_stat(pathname, unstable_filesystem=True):
             return True
-    except (OSError, IOError), msg:
+    except (OSError, IOError) as msg:
         if msg.args[0] == errno.ENOENT:
             pass
         else:
             return True
 
-    #If we get here, then the path contains a directory named 'pnfs' but does
+    # If we get here, then the path contains a directory named 'pnfs' but does
     # not point to a pnfs directory.
     return False
 
-def is_normal_pnfs_path(pathname, check_name_only = None):
+
+def is_normal_pnfs_path(pathname, check_name_only=None):
     rtn = is_pnfs_path(pathname, check_name_only)
     if rtn:
-        #Additional check to make sure that this is a normal path.  Remove
+        # Additional check to make sure that this is a normal path.  Remove
         # the directory component seperator "/" from the character list.
         basename_charset = charset.filenamecharset.replace("/", "")
         if re.search("/pnfs/[%s]*/usr/" % (basename_charset), pathname):
-            rtn = 0 #Admin path.
+            rtn = 0  # Admin path.
 
     return rtn
 
 
-def is_admin_pnfs_path(pathname, check_name_only = None):
+def is_admin_pnfs_path(pathname, check_name_only=None):
     rtn = is_pnfs_path(pathname, check_name_only)
     if rtn:
-        #Additional check to make sure that this is an admin path.  Remove
+        # Additional check to make sure that this is an admin path.  Remove
         # the directory component seperator "/" from the character list.
         basename_charset = charset.filenamecharset.replace("/", "")
         if not re.search("/pnfs/[%s]*/usr/" % (basename_charset), pathname):
-            rtn = 0 #Normal path.
+            rtn = 0  # Normal path.
 
     return rtn
 
+
 def isdir(pathname):
-    #Stat()ing an access path can cause cyclic paths.  For these we need to
+    # Stat()ing an access path can cause cyclic paths.  For these we need to
     # get the showid information.
     if is_access_name(pathname):
-        #Exctract the PNFS ID from the path.
+        # Exctract the PNFS ID from the path.
         pnfs_id = get_pnfsid(pathname)
-        #Get the showid information.
+        # Get the showid information.
         showid_data = get_showid(os.path.dirname(pathname), pnfs_id)
         if is_showid_directory(showid_data):
-            #If python true, this is a directory.
+            # If python true, this is a directory.
             return True
 
         return False
 
     return file_utils.wrapper(os.path.isdir, (pathname,))
 
+
 def isfile(pathname):
-    #Stat()ing an access path can cause cyclic paths.  For these we need to
+    # Stat()ing an access path can cause cyclic paths.  For these we need to
     # get the showid information.
     if is_access_name(pathname):
-        #Exctract the PNFS ID from the path.
+        # Exctract the PNFS ID from the path.
         pnfs_id = get_pnfsid(pathname)
-        #Get the showid information.
+        # Get the showid information.
         showid_data = get_showid(os.path.dirname(pathname), pnfs_id)
         if is_showid_regular_file(showid_data):
-            #If python true, this is a regular file.
+            # If python true, this is a regular file.
             return True
 
         return False
 
     return file_utils.wrapper(os.path.isfile, (pathname,))
 
+
 def islink(pathname):
-    #Stat()ing an access path can cause cyclic paths.  For these we need to
+    # Stat()ing an access path can cause cyclic paths.  For these we need to
     # get the showid information.
     if is_access_name(pathname):
-        #Exctract the PNFS ID from the path.
+        # Exctract the PNFS ID from the path.
         pnfs_id = get_pnfsid(pathname)
-        #Get the showid information.
+        # Get the showid information.
         showid_data = get_showid(os.path.dirname(pathname), pnfs_id)
         if is_showid_symbolic_link(showid_data):
-            #If python true, this is not a symbolic link.
+            # If python true, this is not a symbolic link.
             return True
 
         return False
 
     return file_utils.wrapper(os.path.islink, (pathname,))
 
+
 def is_pnfsid(pnfsid):
-    #This is an attempt to deterime if a string is a pnfsid.
+    # This is an attempt to deterime if a string is a pnfsid.
     # 1) Is it a string?
     # 2) Is it 24 characters long?
     # 3) All characters are in the capital hex character set.
-    #Note: Does it need to be capital set of hex characters???
-    if type(pnfsid) == types.StringType and len(pnfsid) == 24:
-        allowable_characters = string.upper(string.hexdigits)
+    # Note: Does it need to be capital set of hex characters???
+    if type(pnfsid) == bytes and len(pnfsid) == 24:
+        allowable_characters = string.hexdigits.upper()
         for c in pnfsid:
             if c not in allowable_characters:
                 return 0
-        else: #success
+        else:  # success
             return 1
     return 0
 
-#For is_special_path():
+
+# For is_special_path():
 TAG = "TAG"
 LAYER = "LAYER"
 
-#Return a python true value if the pathname is a tag or layer file.
+# Return a python true value if the pathname is a tag or layer file.
 # False otherwise.
-#For tag files:
+# For tag files:
 # Returning a tuple of the base ID and tag name as a side effect for
 # performance.
-#For layer files:
+# For layer files:
 # Returning a tuple of the base ID and layer number as a side effect for
 # performance.  The base ID is the same as the parent ID.
+
+
 def is_special_path(pathname, tag=True, layer=True):
     if is_access_name(pathname):
 
@@ -329,25 +362,25 @@ def is_special_path(pathname, tag=True, layer=True):
         finally:
             fp.close()
         if len(data) >= 25:
-            #Based on the number of lines read in we can tell if we are short
+            # Based on the number of lines read in we can tell if we are short
             # in the expected response.  Inherited tags have 25 lines,
             # locally set ones have 26.
 
-            #Tags and layers have the type listed on line 9 (index 8).
+            # Tags and layers have the type listed on line 9 (index 8).
             file_type_line = data[8]
 
             if tag and file_type_line[17:].startswith("Tag"):
-                #File type line will look like this for tags:
+                # File type line will look like this for tags:
                 # Type          : Tag ( Inode )
                 base_id = data[4][17:].strip()
                 name = data[9][12:].strip()
                 return (TAG, base_id, name)
             if layer and file_type_line[17:].startswith("Regular ( Data )"):
-                #File type line will look like this for layers:
+                # File type line will look like this for layers:
                 # Type          : Regular ( Data )
                 base_id = data[4][17:].strip()
                 parent_id = data[5][17:].strip()
-                #The parent ID and base ID need to match and not be all zeros.
+                # The parent ID and base ID need to match and not be all zeros.
                 # This is to tell the difference between a layer file and
                 # a regluar file with data written to it.
                 if base_id == parent_id and \
@@ -358,38 +391,42 @@ def is_special_path(pathname, tag=True, layer=True):
                         base_data = base_fp.readlines()
                     finally:
                         base_fp.close()
-                    #Need to find the line that matches for this layer.
-                    for line in base_data[24:]:  #Skip the headers.
+                    # Need to find the line that matches for this layer.
+                    for line in base_data[24:]:  # Skip the headers.
                         if line.find(pnfs_id) != -1:
-                            #Matching lines look like:
+                            # Matching lines look like:
                             # Chain(1)         : 0001000000000000000DE948
-                            #Also, layers are one character long 0 through 7,
+                            # Also, layers are one character long 0 through 7,
                             # which makes grabbing the number easy.
                             rtn_layer = int(line[7])
                             return (LAYER, base_id, rtn_layer)
 
     return False
 
+
 def is_tag_path(pathname):
     return is_special_path(pathname, tag=True, layer=False)
+
 
 def is_layer_path(pathname):
     return is_special_path(pathname, tag=False, layer=True)
 
 ##############################################################################
 
-#Remove the /pnfs/, /pnfs/fnal.gov/usr or /pnfs/fs/usr/ from the pnfs path.
+# Remove the /pnfs/, /pnfs/fnal.gov/usr or /pnfs/fs/usr/ from the pnfs path.
+
+
 def strip_pnfs_mountpoint(pathname):
     tmp1 = pathname[pathname.find("/pnfs/"):]
     tmp2 = tmp1[6:]
 
-    #Determine the canonical path base.  (i.e /pnfs/fnal.gov/usr/)
+    # Determine the canonical path base.  (i.e /pnfs/fnal.gov/usr/)
     # If the ENCP_CANONICAL_DOMAINNAME overriding environmental variable
     # is set, use that.
     if os.environ.get('ENCP_CANONICAL_DOMAINNAME', None):
         canonical_name = os.environ['ENCP_CANONICAL_DOMAINNAME']
     else:
-        canonical_name = string.join(socket.getfqdn().split(".")[1:], ".")
+        canonical_name = ".".join(socket.getfqdn().split(".")[1:])
     canonical_path = os.path.join(canonical_name, "usr")
 
     if tmp2[:7] == "fs/usr/":
@@ -400,72 +437,76 @@ def strip_pnfs_mountpoint(pathname):
         tmp3 = tmp2
     return tmp3
 
-#Return the directory for the requested path.  For normal paths, this is
+# Return the directory for the requested path.  For normal paths, this is
 # just the directory part.  For PNFS/Chimera .(access)() files, there is
 # additional handling.
 #
-#Note: Do not return paths like the following:
+# Note: Do not return paths like the following:
 # /pnfs/data3/.(access)(000000000000000000001080)/data3/zalokar/NULL/regression_testing/encp_test_for_zalokar/
 # This path should resolve to the correct i-nodes, but for Linux kernels
 # this can cause the kernel to go into an infinite loop.  See
 # https://plone4.fnal.gov/P0/Enstore_and_Dcache/developers/enstore-developers/documents/encp-investigation-of-inc000000056879-pbi000000000147/
 # for more information.
+
+
 def get_directory_name(filepath):
-    if type(filepath) != types.StringType:
+    if type(filepath) != bytes:
         return None
 
-    #If we already have a directory...
-    #if file_utils.wrapper(os.path.isdir, (filepath,)):
+    # If we already have a directory...
+    # if file_utils.wrapper(os.path.isdir, (filepath,)):
     #    return filepath
 
-    #Determine if it is an ".(access)()" name.
+    # Determine if it is an ".(access)()" name.
     if is_access_name(filepath) or is_nameof_name(filepath):
-        #Since, we have the .(access)() name we need to split off the id.
+        # Since, we have the .(access)() name we need to split off the id.
         dirname, filename = os.path.split(filepath)
-        pnfsid = filename[10:-1]  #len(".(access)(") == 10 and len ")" == 1
-        #Remove all trailing .(access)(), .(nameof)(), .(parent)(), etc. path
+        pnfsid = filename[10:-1]  # len(".(access)(") == 10 and len ")" == 1
+        # Remove all trailing .(access)(), .(nameof)(), .(parent)(), etc. path
         # components.
         use_dir = remove_special_paths(dirname)
-        #Get the parent ID.
+        # Get the parent ID.
         return_value = is_tag_path(filepath)
         if return_value and return_value[0] == TAG:
-            #We have a tag pnfs_id.  Use the base id returned in
+            # We have a tag pnfs_id.  Use the base id returned in
             # return_value[1] instead.
             parent_id = return_value[1]
         else:
-            #Regular files and layer files.
+            # Regular files and layer files.
             parent_id = get_parent_id(use_dir, pnfsid)
 
-        #Build the .(access)() filename of the parent directory.
+        # Build the .(access)() filename of the parent directory.
         directory_name = os.path.join(use_dir, ".(access)(%s)" % parent_id)
     else:
         directory_name = os.path.dirname(filepath)
 
-    #If the directory is "." we need to expand it.
+    # If the directory is "." we need to expand it.
     return enstore_functions2.expand_path(directory_name)
 
 ###############################################################################
 
 # get the database information
 # Sample answer:  admin:0:r:enabled:/diskb/pnfs/db/admin
+
+
 def get_database(f):
     global database_info_cache
 
     db_a_dirpath = get_directory_name(f)
     database_path = database_file(db_a_dirpath)
 
-    if database_path in database_info_cache.keys():
+    if database_path in list(database_info_cache.keys()):
         database = database_info_cache[database_path]
     else:
         try:
-            #Get the .(get)(database) information despite the reuse of the
+            # Get the .(get)(database) information despite the reuse of the
             # get_layer() funciton.
             database = get_layer(database_path)[0].strip()
 
             if not is_access_path(database_path):
-                #Don't cache indirect .(access)() path directories.
+                # Don't cache indirect .(access)() path directories.
 
-                #Update the database cache.
+                # Update the database cache.
                 db_num = int(database.split(":")[1])
                 add_mtab(database, db_num, db_a_dirpath)
         except (OSError, IOError):
@@ -473,10 +514,11 @@ def get_database(f):
 
     return database
 
-def get_layer(layer_filename, max_lines = None):
+
+def get_layer(layer_filename, max_lines=None):
     RETRY_COUNT = 2
 
-    #Remove .(access)() paths from the directory.
+    # Remove .(access)() paths from the directory.
     split_path = os.path.split(layer_filename)
     use_layer_filename = os.path.join(remove_special_paths(split_path[0]),
                                       split_path[1])
@@ -501,15 +543,15 @@ def get_layer(layer_filename, max_lines = None):
                 fl.close()
             break
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
-        except (OSError, IOError), msg:
-            #Increment the retry count before it is needed to determine if
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+        except (OSError, IOError) as msg:
+            # Increment the retry count before it is needed to determine if
             # we should sleep or not sleep.
             i = i + 1
 
             use_errno = getattr(msg, 'errno', msg.args[0])
             if use_errno in [errno.EACCES, errno.EPERM] and os.getuid() == 0:
-                #If we get here and the real id is user root, we need to reset
+                # If we get here and the real id is user root, we need to reset
                 # the effective user id back to that of root ...
                 try:
                     os.seteuid(0)
@@ -517,26 +559,27 @@ def get_layer(layer_filename, max_lines = None):
                 except OSError:
                     pass
             elif i < RETRY_COUNT:
-                #If the problem wasn't permissions, lets give the system a
+                # If the problem wasn't permissions, lets give the system a
                 # moment to catch up.
-                #Skip the sleep if we are not going to try again.
-                ##time.sleep(0.1)
+                # Skip the sleep if we are not going to try again.
+                # time.sleep(0.1)
 
-                ##It is known that stat() can return an incorrect ENOENT
-                ## if pnfs is really loaded.  Is this true for open() or
-                ## readline()?  Skipping the time.sleep() makes the scan
-                ## much faster.
+                # It is known that stat() can return an incorrect ENOENT
+                # if pnfs is really loaded.  Is this true for open() or
+                # readline()?  Skipping the time.sleep() makes the scan
+                # much faster.
                 raise msg
     else:
         raise msg
 
     return layer_info
 
+
 def get_layer_1(f):
     # get bfid from layer 1
     try:
         bfid = get_layer(layer_file(f, 1))
-    except (OSError, IOError), detail:
+    except (OSError, IOError) as detail:
         bfid = None
         if detail.errno in [errno.EACCES, errno.EPERM]:
             raise OSError(detail.errno, "no read permissions for layer 1",
@@ -559,7 +602,7 @@ def get_layer_2(f):
     # get dcache info from layer 2
     try:
         layer2 = get_layer(layer_file(f, 2))
-    except (OSError, IOError), detail:
+    except (OSError, IOError) as detail:
         layer2 = None
         if detail.errno in [errno.EACCES, errno.EPERM]:
             raise OSError(detail.errno, "no read permissions for layer 2",
@@ -590,13 +633,13 @@ def get_layer_2(f):
 
         try:
             crc_match = re.compile("c=[1-9]+:[a-zA-Z0-9]{8}")
-            l2['crc'] = long(crc_match.search(line2).group().split(":")[1], 16)
+            l2['crc'] = int(crc_match.search(line2).group().split(":")[1], 16)
         except AttributeError:
             l2['crc'] = None
 
         try:
             size_match = re.compile("l=[0-9]+")
-            l2['size'] = long(size_match.search(line2).group().split("=")[1])
+            l2['size'] = int(size_match.search(line2).group().split("=")[1])
         except AttributeError:
             l2['size'] = None
 
@@ -606,11 +649,12 @@ def get_layer_2(f):
 
     return l2
 
-def get_layer_4(f, max_lines = None):
+
+def get_layer_4(f, max_lines=None):
     # get xref from layer 4 (?)
     try:
         layer4 = get_layer(layer_file(f, 4), max_lines)
-    except (OSError, IOError), detail:
+    except (OSError, IOError) as detail:
         layer4 = None
         if detail.errno in [errno.EACCES, errno.EPERM]:
             raise OSError(detail.errno, "no read permissions for layer 4",
@@ -654,28 +698,29 @@ def get_layer_4(f, max_lines = None):
         except IndexError:
             pass
         try:
-            l4['drive'] = layer4[9].strip() #optionally present
+            l4['drive'] = layer4[9].strip()  # optionally present
         except IndexError:
             pass
         try:
-            l4['crc'] = layer4[10].strip() #optionally present
+            l4['crc'] = layer4[10].strip()  # optionally present
         except IndexError:
             pass
 
     return l4
 
+
 def get_pnfsid(f):
     if is_access_name(f) or is_nameof_name(f) or is_parent_name(f):
-        #Convenient that these all have the same length.
+        # Convenient that these all have the same length.
         pnfsid = os.path.basename(f)[10:-1]
         return pnfsid
 
-    #Remove .(access)() paths from the directory.
+    # Remove .(access)() paths from the directory.
     split_path = os.path.split(f)
     use_path = os.path.join(remove_special_paths(split_path[0]),
                             split_path[1])
 
-    #Get the id of the file or directory.
+    # Get the id of the file or directory.
     try:
         fname = id_file(use_path)
         f = file_utils.open(fname, unstable_filesystem=True)
@@ -684,8 +729,8 @@ def get_pnfsid(f):
         finally:
             f.close()
     except (KeyboardInterrupt, SystemExit):
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
-    except(OSError, IOError), detail:
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+    except (OSError, IOError) as detail:
         pnfs_id = None
         use_errno = getattr(detail, 'errno', detail.args[0])
         if not use_errno == errno.ENOENT or not os.path.ismount(f):
@@ -695,18 +740,21 @@ def get_pnfsid(f):
 
     return pnfs_id
 
-#For future compatibility with other storage file systems.
+
+# For future compatibility with other storage file systems.
 get_id = get_pnfsid
 
-#Get the parent ID of the pnfs_id requested.
+# Get the parent ID of the pnfs_id requested.
+
+
 def get_parent_id(directory, pnfs_id):
-    #Remove .(access)() paths from the directory.
+    # Remove .(access)() paths from the directory.
     use_directory = remove_special_paths(directory)
 
-    #Create the filename to obtain the parent id.
+    # Create the filename to obtain the parent id.
     parent_id_name = os.path.join(use_directory, ".(parent)(%s)" % pnfs_id)
 
-    #Read the parent id.
+    # Read the parent id.
     f = file_utils.open(parent_id_name, unstable_filesystem=True)
     try:
         parent_id = file_utils.readline(f, unstable_filesystem=True).strip()
@@ -715,15 +763,17 @@ def get_parent_id(directory, pnfs_id):
 
     return parent_id
 
-#Get the PNFS specific showid information for the pnfs_id.
+# Get the PNFS specific showid information for the pnfs_id.
+
+
 def get_showid(directory, pnfs_id):
-    #Remove .(access)() paths from the directory.
+    # Remove .(access)() paths from the directory.
     use_directory = remove_special_paths(directory)
 
-    #Create the filename to obtain the parent id.
+    # Create the filename to obtain the parent id.
     show_id_name = os.path.join(use_directory, ".(showid)(%s)" % pnfs_id)
 
-    #Read the parent id.
+    # Read the parent id.
     f = file_utils.open(show_id_name, unstable_filesystem=True)
     try:
         showid_data = file_utils.readlines(f, unstable_filesystem=True)
@@ -732,26 +782,28 @@ def get_showid(directory, pnfs_id):
 
     return showid_data
 
-#Wrapper around file_utils.get_stat().  This version catches .(access)()
+# Wrapper around file_utils.get_stat().  This version catches .(access)()
 # paths and gets the stat information from showid information.
+
+
 def get_stat(pathname, unstable_filesystem=False):
-    if type(pathname) == types.StringType and is_access_name(pathname):
+    if type(pathname) == bytes and is_access_name(pathname):
         pnfs_id = get_id(pathname)
         showid_data = get_showid(os.path.dirname(pathname), pnfs_id)
 
-        #sbi means Stat Base Index.
+        # sbi means Stat Base Index.
         if is_showid_directory(showid_data):
             sbi = 9
         elif is_showid_regular_file(showid_data):
             sbi = 11
         elif is_showid_symbolic_link(showid_data):
-            sbi = 11  #TO DO: verify this value
+            sbi = 11  # TO DO: verify this value
         elif is_showid_tag(showid_data):
-            #For tags we need to really stat() it to get inherited values.
+            # For tags we need to really stat() it to get inherited values.
             return file_utils.get_stat(pathname,
                                        unstable_filesystem=unstable_filesystem)
         elif is_showid_layer(showid_data):
-            #For layers the showid information does not contain the stat
+            # For layers the showid information does not contain the stat
             # information.
             return file_utils.get_stat(pathname,
                                        unstable_filesystem=unstable_filesystem)
@@ -759,14 +811,14 @@ def get_stat(pathname, unstable_filesystem=False):
             message = "Unknown PNFS file type: %s" % (showid_data[8][20:],)
             raise TypeError(message)
 
-        vsi = 18 #Value Starting Index
+        vsi = 18  # Value Starting Index
 
         # mst_mode       : 100640
-        st_mode = int(showid_data[sbi + 2][vsi:], 8)  #octal
+        st_mode = int(showid_data[sbi + 2][vsi:], 8)  # octal
         # mst_ino        : 16877600
         st_ino = int(showid_data[sbi + 1][vsi:])
-        #mst_dev        : 1
-        st_dev = long(showid_data[sbi][vsi:])
+        # mst_dev        : 1
+        st_dev = int(showid_data[sbi][vsi:])
         # mst_nlink      : 1
         st_nlink = int(showid_data[sbi + 3][vsi:])
         # mst_uid        : 9276
@@ -774,7 +826,7 @@ def get_stat(pathname, unstable_filesystem=False):
         # mst_gid        : 1530
         st_gid = int(showid_data[sbi + 5][vsi:])
         # mst_size       : 1024
-        st_size = long(showid_data[sbi + 7][vsi:])
+        st_size = int(showid_data[sbi + 7][vsi:])
         # mst_atime      : Thu Sep  9 10:43:05 2010
         st_atime = int(time.mktime(time.strptime(showid_data[sbi + 8][vsi:-1],
                                                  "%a %b %d %H:%M:%S %Y")))
@@ -788,16 +840,18 @@ def get_stat(pathname, unstable_filesystem=False):
         stat_results = (st_mode, st_ino, st_dev, st_nlink, st_uid, st_gid,
                             st_size, st_atime, st_mtime, st_ctime)
     else:
-        stat_results = file_utils.get_stat(pathname, unstable_filesystem=unstable_filesystem)
+        stat_results = file_utils.get_stat(
+    pathname, unstable_filesystem=unstable_filesystem)
 
     return stat_results
 
 ###############################################################################
 
+
 def __is_showid(showid_data, match_string):
-    if type(showid_data) == types.ListType and \
+    if type(showid_data) == list and \
            len(showid_data) >= 9 and \
-           type(showid_data[8]) == types.StringType:
+           type(showid_data[8]) == bytes:
 
         if showid_data[8].find(match_string) != -1:
             return True
@@ -807,47 +861,59 @@ def __is_showid(showid_data, match_string):
 
     return False
 
-#Return True if the showid information belongs to a directory.
+# Return True if the showid information belongs to a directory.
 # False otherwise.
+
+
 def is_showid_directory(showid_data):
     return __is_showid(showid_data, "Directory ( Inode )")
 
-#Return True if the showid information belongs to a regular file.
+# Return True if the showid information belongs to a regular file.
 # False otherwise.
+
+
 def is_showid_regular_file(showid_data):
     return __is_showid(showid_data, "Regular ( Inode )")
 
-#Return True if the showid information belongs to a symbolic link.
+# Return True if the showid information belongs to a symbolic link.
 # False otherwise.
+
+
 def is_showid_symbolic_link(showid_data):
     return __is_showid(showid_data, "Link ( Inode )")
 
-#Return True if the showid information belongs to a tag.
+# Return True if the showid information belongs to a tag.
 # False otherwise.
+
+
 def is_showid_tag(showid_data):
     return __is_showid(showid_data, "Tag ( Inode )")
 
-#Return True if the showid information belongs to a layer.
+# Return True if the showid information belongs to a layer.
 # False otherwise.
+
+
 def is_showid_layer(showid_data):
     return __is_showid(showid_data, "Regular ( Data )")
 
-#Return the specials file's directory ID (aka base id) and its special value.
+# Return the specials file's directory ID (aka base id) and its special value.
 # For tag files, this is the tag name.  For layer files, this is the layer
 # number (only if directory is given).
 # None is returned if this is a regular file or directory.
-def get_showid_special_file_info(showid_data, directory=None):
-    if type(showid_data) == types.ListType and \
-           len(showid_data) >= 9 and \
-           type(showid_data[8]) == types.StringType:
 
-        #Get the current id.
+
+def get_showid_special_file_info(showid_data, directory=None):
+    if type(showid_data) == list and \
+           len(showid_data) >= 9 and \
+           type(showid_data[8]) == bytes:
+
+        # Get the current id.
         try:
             pnfs_id = showid_data[1][16:-1].strip()
         except (TypeError, ValueError):
             raise TypeError("Expected showid information.")
 
-        #Get the base id.  For Tags this is the directory id.  For layers
+        # Get the base id.  For Tags this is the directory id.  For layers
         # the parent and base ids are the same.
         try:
             base_id = showid_data[4][16:-1].strip()
@@ -855,14 +921,14 @@ def get_showid_special_file_info(showid_data, directory=None):
             raise TypeError("Expected showid information.")
 
         if showid_data[8].find("Tag ( Inode )") != -1:
-            #Tag.
+            # Tag.
             tag_name = showid_data[9][12:-1].strip()
 
-            #Assign the special value.
+            # Assign the special value.
             special_value = tag_name
         elif showid_data[8].find("Regular ( Data )") != -1:
             if directory:
-                #The only way to determine which layer this layer file is,
+                # The only way to determine which layer this layer file is,
                 # involves looking at the showid information of its
                 # parent/base id for a match.
                 base_showid = get_showid(base_id, directory)
@@ -871,17 +937,17 @@ def get_showid_special_file_info(showid_data, directory=None):
                         layer_number = int(line[7])
                         break
                 else:
-                    #Dummy value.  This should never happen.
+                    # Dummy value.  This should never happen.
                     layer_number = -1
             else:
-                #Dummy value.  Is possible if directory not given.
+                # Dummy value.  Is possible if directory not given.
                 layer_number = -1
 
-            #Assign the special value.
+            # Assign the special value.
             special_value = layer_number
 
         else:
-            #This is not a special file PNFS ID.
+            # This is not a special file PNFS ID.
             return None
 
         return (base_id, special_value)
@@ -890,28 +956,31 @@ def get_showid_special_file_info(showid_data, directory=None):
 
 ###############################################################################
 
-#Global cache.
+
+# Global cache.
 # Shared with Pnfs.get_database() and pnfs.get_database().
-mount_points_cache = {}  #keyed by mount point.
-database_info_cache = {} #Keyed by .(get)(database) content.
+mount_points_cache = {}  # keyed by mount point.
+database_info_cache = {}  # Keyed by .(get)(database) content.
 # Keys for global cache.
-#TO DO:  Move these into a common place for pnfs and chimera.
+# TO DO:  Move these into a common place for pnfs and chimera.
 DB_NUMBER = "db_number"
 DB_INFO = "db_info"
 DB_MOUNT_POINTS = "db_mount_point"
-#Constant for empty mount point in cache.
-EMPTY_MOUNT_POINT = {DB_INFO : "",
-                     DB_NUMBER : -1,
-                     DB_MOUNT_POINTS : ["",],
+# Constant for empty mount point in cache.
+EMPTY_MOUNT_POINT = {DB_INFO: "",
+                     DB_NUMBER: -1,
+                     DB_MOUNT_POINTS: ["",],
                      }
 # Make copy, don't share reference.
 last_db_tried = EMPTY_MOUNT_POINT.copy()
 # Lock globals.
 pnfs_global_lock = threading.Lock()
 
-#Get currently mounted pnfs mountpoints.
+# Get currently mounted pnfs mountpoints.
+
+
 def parse_mtab():
-    #Different systems have different names for this file.
+    # Different systems have different names for this file.
     # /etc/mtab: Linux, IRIX
     # /etc/mnttab: SunOS
     # MacOS doesn't have one.
@@ -924,25 +993,25 @@ def parse_mtab():
                 fp.close()
             break
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
-        except OSError, msg:
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+        except OSError as msg:
             if msg.args[0] in [errno.ENOENT]:
                 continue
             else:
-                raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+                raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
     else:
-        #Should this raise an error?
+        # Should this raise an error?
         mtab_data = []
 
     found_mount_points = {}
     found_db_infos = {}
     for line in mtab_data:
-        #The 2nd and 3rd items in the list are important to us here.
+        # The 2nd and 3rd items in the list are important to us here.
         data = line[:-1].split()
         mount_point = data[1]
         fs_type = data[2]
 
-        #If the filesystem is not an NFS filesystem, skip it.
+        # If the filesystem is not an NFS filesystem, skip it.
         if fs_type != "nfs":
             continue
 
@@ -957,37 +1026,37 @@ def parse_mtab():
             continue
 
         db_datas = db_info.split(":")
-        #db_datas[0] is the database name
-        #db_datas[1] is the database id
-        #db_datas[2] is the database (???)
-        #db_datas[3] is the database enabled or disabled status
-        #db_datas[4] is the database (???)
+        # db_datas[0] is the database name
+        # db_datas[1] is the database id
+        # db_datas[2] is the database (???)
+        # db_datas[3] is the database enabled or disabled status
+        # db_datas[4] is the database (???)
 
-        #If the database's id is not in the cache, add it along with the
+        # If the database's id is not in the cache, add it along with the
         # mount point that goes with it.
         db_number = int(db_datas[1])
 
-        if db_info not in found_db_infos.keys():
-            #Create a new entry for this PNFS database.
-            found_db_infos[db_info] = {DB_INFO : db_info,
-                                       DB_NUMBER : db_number,
+        if db_info not in list(found_db_infos.keys()):
+            # Create a new entry for this PNFS database.
+            found_db_infos[db_info] = {DB_INFO: db_info,
+                                       DB_NUMBER: db_number,
                                        DB_MOUNT_POINTS: [mount_point,],
                                        }
         elif mount_point not in found_db_infos[db_info][DB_MOUNT_POINTS]:
-            #Add this mount point to the list for this PNFS database.
+            # Add this mount point to the list for this PNFS database.
             found_db_infos[db_info][DB_MOUNT_POINTS].append(mount_point)
 
-        if mount_point not in found_mount_points.keys():
-            #Create a new entry for this PNFS mount point.
-            found_mount_points[mount_point] = {DB_INFO : db_info,
-                                               DB_NUMBER : db_number,
+        if mount_point not in list(found_mount_points.keys()):
+            # Create a new entry for this PNFS mount point.
+            found_mount_points[mount_point] = {DB_INFO: db_info,
+                                               DB_NUMBER: db_number,
                                                DB_MOUNT_POINTS: [mount_point,],
                                                }
-        #We do not have an elif here, since duplicates of db_info for a
+        # We do not have an elif here, since duplicates of db_info for a
         # mount point are handled by inserting a entry in the cache for
         # the directory that starts the a new database.
 
-    #if not found_db_infos and not found_mount_points:
+    # if not found_db_infos and not found_mount_points:
     #    add_mtab(EMPTY_MOUNT_POINT[DB_INFO], EMPTY_MOUNT_POINT[DB_NUMBER],
     #             EMPTY_MOUNT_POINT[DB_MOUNT_POINTS][0])
 
@@ -997,21 +1066,21 @@ def parse_mtab():
 def set_last_db(database_values):
     global last_db_tried
 
-    ## database_info: Should be the pnfs --database output.  Something like:
-    ##   cms:9:r:enabled:/diskb/pnfs/db/cms
+    # database_info: Should be the pnfs --database output.  Something like:
+    # cms:9:r:enabled:/diskb/pnfs/db/cms
     ##
-    ## database_number: The number of the database.  This should match the
-    ## second part of the database_info line.
+    # database_number: The number of the database.  This should match the
+    # second part of the database_info line.
     ##
-    ## mount_point: The current location of the mount point for this
-    ## pnfs database.
-    if type(database_values) == types.TupleType:
-        #Old format:  (database_info, (database_number, mount_point))
+    # mount_point: The current location of the mount point for this
+    # pnfs database.
+    if type(database_values) == tuple:
+        # Old format:  (database_info, (database_number, mount_point))
         database_info = database_values[0]
         database_number = database_values[1][0]
         mount_point = database_values[1][1]
-    elif type(database_values) == types.DictType:
-        #New format: {DB_INFO : database_info,
+    elif type(database_values) == dict:
+        # New format: {DB_INFO : database_info,
         #             DB_NUMBER : database_number,
         #             DB_MOUNT_POINTS: mount_points,
         #             }
@@ -1021,47 +1090,49 @@ def set_last_db(database_values):
     else:
         raise TypeError("Expected PNFS DB info, number and mount point.")
 
-    #This should be a list.  It is possible for one database to be mounted
+    # This should be a list.  It is possible for one database to be mounted
     # multiple times with differrent mount points.
-    if type(mount_point) == types.ListType:
+    if type(mount_point) == list:
         mount_points = mount_point
     else:
         mount_points = [mount_point,]
 
-    last_db_tried = {DB_INFO : database_info,
-                     DB_NUMBER : database_number,
+    last_db_tried = {DB_INFO: database_info,
+                     DB_NUMBER: database_number,
                      DB_MOUNT_POINTS: mount_points,
                      }
+
 
 def get_last_db():
     global last_db_tried
     return last_db_tried
+
 
 def _process_mtab():
     global mount_points_cache
     global database_info_cache
 
     pnfs_global_lock.acquire()
-    #Grab copies for this thread in case another makes changes.
+    # Grab copies for this thread in case another makes changes.
     try:
-        mount_points_cache_copy = mount_points_cache.values()
-        database_info_cache_keys = database_info_cache.keys()
+        mount_points_cache_copy = list(mount_points_cache.values())
+        database_info_cache_keys = list(database_info_cache.keys())
     except:
         pnfs_global_lock.release()
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
     pnfs_global_lock.release()
 
     try:
         for cache_item in mount_points_cache_copy:
             db_num = cache_item[DB_NUMBER]
-            mp = cache_item[DB_MOUNT_POINTS][0] #Should only be one long.
+            mp = cache_item[DB_MOUNT_POINTS][0]  # Should only be one long.
             if db_num == 0 or os.path.basename(mp) == "fs":
-                #For /pnfs/fs we need to find all of the /pnfs/fs/usr/* dirs.
+                # For /pnfs/fs we need to find all of the /pnfs/fs/usr/* dirs.
                 use_path = os.path.join(mp, "usr")
                 for dname in os.listdir(use_path):
                     tmp_name = os.path.join(use_path, dname)
                     try:
-                        #The "True" for the second arguement to for get_stat(),
+                        # The "True" for the second arguement to for get_stat(),
                         # to use os.lstat() instead of os.stat().  This allows
                         # for symbolic links to be screened out with S_ISLNK.
                         fstat = file_utils.wrapper(file_utils.get_stat,
@@ -1079,25 +1150,27 @@ def _process_mtab():
                     if tmp_db_info in database_info_cache_keys:
                         continue
 
-                    #We don't need to worry about modifying the sequence
+                    # We don't need to worry about modifying the sequence
                     # we are looping over, since we are looping over a copy.
                     tmp_db = int(tmp_db_info.split(":")[1])
                     add_mtab(tmp_db_info, tmp_db, tmp_name)
     except:
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+
 
 def process_mtab():
     global mount_points_cache
     global database_info_cache
 
     if not mount_points_cache:
-        #Sets global mount_points_cache.
+        # Sets global mount_points_cache.
         (mount_points_cache, database_info_cache) = parse_mtab()
 
-        #For /pnfs/fs we need to find all of the /pnfs/fs/usr/* dirs.
+        # For /pnfs/fs we need to find all of the /pnfs/fs/usr/* dirs.
         _process_mtab()
 
     return [last_db_tried] + sort_mtab()
+
 
 def __db_cmp(x, y):
     is_x_fs_usr = x[DB_MOUNT_POINTS][0].find("/fs/usr/") > 0
@@ -1106,19 +1179,19 @@ def __db_cmp(x, y):
     is_x_fs = (x[DB_NUMBER] == 0)
     is_y_fs = (y[DB_NUMBER] == 0)
 
-    #Always put /pnfs/fs last.
+    # Always put /pnfs/fs last.
     if is_x_fs and not is_y_fs:
         return 1
     elif not is_x_fs and is_y_fs:
         return -1
 
-    #Always put /pnfs/xyz first.
+    # Always put /pnfs/xyz first.
     elif is_x_fs_usr and not is_y_fs_usr:
         return 1
     elif not is_x_fs_usr and is_y_fs_usr:
         return -1
 
-    #The are the same type of path.  Sort by db number.
+    # The are the same type of path.  Sort by db number.
     if x[DB_NUMBER] < y[DB_NUMBER]:
         return 1
     elif x[DB_NUMBER] > y[DB_NUMBER]:
@@ -1126,37 +1199,41 @@ def __db_cmp(x, y):
 
     return 0
 
-#Sort the list of mount points in search order.
+# Sort the list of mount points in search order.
+
+
 def sort_mtab():
     global mount_points_cache
 
     pnfs_global_lock.acquire()
 
     try:
-        search_list = mount_points_cache.values()  #Return a copy of info.
-        #By sorting and reversing, we can leave db number 0 (/pnfs/fs) in
+        search_list = list(mount_points_cache.values())  # Return a copy of info.
+        # By sorting and reversing, we can leave db number 0 (/pnfs/fs) in
         # the list and it will be sorted to the end of the list.
         search_list.sort(lambda x, y: __db_cmp(x, y))
     except:
         pnfs_global_lock.release()
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
     pnfs_global_lock.release()
     return search_list
 
-#Add the database information provided to their respective caches.
-def add_mtab(db_info, db_num, db_mp):
-    global mount_points_cache  #dictionary
-    global database_info_cache   #dictionary
+# Add the database information provided to their respective caches.
 
-    #Grab copies for this thread in case another makes changes.
+
+def add_mtab(db_info, db_num, db_mp):
+    global mount_points_cache  # dictionary
+    global database_info_cache  # dictionary
+
+    # Grab copies for this thread in case another makes changes.
     pnfs_global_lock.acquire()
     try:
-        mount_points_cache_keys = mount_points_cache.keys()
-        database_info_cache_keys = database_info_cache.keys()
+        mount_points_cache_keys = list(mount_points_cache.keys())
+        database_info_cache_keys = list(database_info_cache.keys())
     except:
         pnfs_global_lock.release()
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
     pnfs_global_lock.release()
 
     try:
@@ -1177,30 +1254,30 @@ def add_mtab(db_info, db_num, db_mp):
             # Rule out that parent_db_info is None and we actually have the
             # starting point of a new database
             if (parent_db_info and parent_db_info == db_info) and \
-                   use_db_mp == db_mp:  #eliminate /pnfs/fs/usr cases
+                   use_db_mp == db_mp:  # eliminate /pnfs/fs/usr cases
                 return
 
-            #We don't need to worry about modifying the sequence
+            # We don't need to worry about modifying the sequence
             # we are looping over, since we are looping over a copy.
             pnfs_global_lock.acquire()
             try:
-                mount_points_cache[db_mp] = {DB_NUMBER : db_num,
-                                             DB_INFO : db_info,
-                                             DB_MOUNT_POINTS : [db_mp,],
+                mount_points_cache[db_mp] = {DB_NUMBER: db_num,
+                                             DB_INFO: db_info,
+                                             DB_MOUNT_POINTS: [db_mp,],
                                              }
-                if not database_info_cache.has_key(db_info):
-                    database_info_cache[db_info] = {DB_NUMBER : db_num,
-                                                    DB_INFO : db_info,
-                                                    DB_MOUNT_POINTS : [db_mp,],
+                if db_info not in database_info_cache:
+                    database_info_cache[db_info] = {DB_NUMBER: db_num,
+                                                    DB_INFO: db_info,
+                                                    DB_MOUNT_POINTS: [db_mp,],
                                                     }
                 else:
                     database_info_cache[db_info][DB_MOUNT_POINTS].append(db_mp)
             except:
                 pnfs_global_lock.release()
-                raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+                raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
             pnfs_global_lock.release()
     except:
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
 #Return the mount points as a dictionary keyed by .(get)(database) values,
 # or just a single element if mount_point_key is set.
@@ -1217,7 +1294,7 @@ def get_cache_by_db_info(db_info_key = None, default = None):
             return_value = database_info_cache.get(db_info_key, default)
     except:
         pnfs_global_lock.release()
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
     pnfs_global_lock.release()
     return return_value
@@ -1236,7 +1313,7 @@ def get_cache_by_mount_point(mount_point_key = None, default = None):
             return_value = mount_points_cache.get(mount_point_key, default)
     except:
         pnfs_global_lock.release()
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
     pnfs_global_lock.release()
     return return_value
@@ -1266,7 +1343,7 @@ def get_enstore_admin_mount_point(pnfsid = None):
                 access_path = access_file(mount_path, pnfsid)
                 try:
                     file_utils.get_stat(access_path, unstable_filesystem=True)
-                except OSError, msg:
+                except OSError as msg:
                     if msg.errno in [errno.ENOENT]:
                         continue
                     else:
@@ -1294,8 +1371,8 @@ def get_enstore_mount_point(pnfsid = None):
             else:
                 access_path = access_file(mount_path, pnfsid)
                 try:
-                    file_utils.stat(access_path, unstable_filesystem=True)
-                except OSError, msg:
+                    file_utils.get_stat(access_path, unstable_filesystem=True)
+                except OSError as msg:
                     if msg.errno in [errno.ENOENT]:
                         continue
                     else:
@@ -1310,11 +1387,11 @@ def get_enstore_mount_point(pnfsid = None):
 #replacement_path should be one of "/pnfs/", "/pnfs/fnal.gov" or "/pnfs/".
 def __get_special_path(filepath, replacement_path):
     #Make sure this is a string.
-    if type(filepath) != types.StringType:
+    if type(filepath) != bytes:
         raise TypeError("Expected string filename.",
                         e_errors.WRONGPARAMETER)
     #Make sure this is a string.
-    if type(replacement_path) != types.StringType:
+    if type(replacement_path) != bytes:
         raise TypeError("Expected string replacement string.",
                         e_errors.WRONGPARAMETER)
 
@@ -1331,8 +1408,8 @@ def __get_special_path(filepath, replacement_path):
     if os.environ.get('ENCP_CANONICAL_DOMAINNAME', None):
         canonical_name = os.environ['ENCP_CANONICAL_DOMAINNAME']
     else:
-        canonical_name = string.join(socket.getfqdn().split(".")[1:], ".")
-    canonical_name = string.join(socket.getfqdn().split(".")[1:], ".")
+        canonical_name = ".".join(socket.getfqdn().split(".")[1:])
+    canonical_name = ".".join(socket.getfqdn().split(".")[1:])
     canonical_pathbase = os.path.join("/pnfs", canonical_name, "usr") + "/"
 
     #Return an error if the file is not a pnfs filename.
@@ -1392,7 +1469,7 @@ def get_enstore_canonical_path(filepath):
     if os.environ.get('ENCP_CANONICAL_DOMAINNAME', None):
         canonical_name = os.environ['ENCP_CANONICAL_DOMAINNAME']
     else:
-        canonical_name = string.join(socket.getfqdn().split(".")[1:], ".")
+        canonical_name = ".".join(socket.getfqdn().split(".")[1:])
     #Use the canonical_name to determine the canonical pathname base.
     canonical_pathbase = os.path.join("/pnfs", canonical_name, "usr") + "/"
 
@@ -1400,7 +1477,7 @@ def get_enstore_canonical_path(filepath):
 
 ###############################################################################
 
-class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
+class Pnfs(object):# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
     # initialize - we will be needing all these things soon, get them now
     #
     #pnfsFilename: The filename of a file in pnfs.  This may also be the
@@ -1437,7 +1514,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             self.id = pnfsFilename
             try:
                 if shortcut:
-                    raise ValueError, "Applying filename shortcut"
+                    raise ValueError("Applying filename shortcut")
 
                 pnfsFilename_list = self.get_path(self.id)
                 if len(pnfsFilename_list) == 1:
@@ -1463,13 +1540,13 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
                     self.dir = dir_list[0]
                     pnfsFilename = os.path.join(self.dir,
                                                 ".(access)(%s)" % self.id)
-                except OSError, msg:
+                except OSError as msg:
                     #If we got the ENODEV errno, it means that the same
                     # pnfsid was found under two different pnfs mount points.
                     # For this error we keep going, but for all others
                     # re-raise the traceback.
                     if msg.args[0] not in [errno.ENODEV]:
-                        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+                        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
                 if not is_pnfs_path(pnfsFilename):
                     pnfsFilename = ""
@@ -1500,7 +1577,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
                     if stat.S_ISDIR(f_stats[stat.ST_MODE]):
                         #We have the pnfs id of a tag file.
                         self.dir = use_dir
-                except (OSError, IOError), msg:
+                except (OSError, IOError) as msg:
                     if msg.args[0] != errno.ENOTDIR:
                         #We have the pnfs id of a tag file.
                         self.dir = use_dir
@@ -1621,7 +1698,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
     # list what is in the current object
     def dump(self):
         #Trace.trace(14, repr(self.__dict__))
-        print repr(self.__dict__)
+        print(repr(self.__dict__))
 
 
     #This function is used to test for various conditions on the file.
@@ -1681,14 +1758,14 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
 
         try:
             self.utime(use_filename)
-        except os.error, msg:
+        except os.error as msg:
             if msg.errno == errno.ENOENT:
                 f = file_utils.open(use_filename,'w', unstable_filesystem=True)
                 f.close()
             else:
                 Trace.log(e_errors.INFO,
                           "problem with pnfsFilename = " + use_filename)
-                raise os.error, msg
+                raise_(os.error, msg)
 
         if not filename:
             self.pstatinfo()
@@ -1706,7 +1783,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         else:
             fd = atomic.open(fname, os.O_RDWR | os.O_CREAT | os.O_EXCL)
 
-	if not filename:
+        if not filename:
             self.pstatinfo()
 
         os.close(fd)
@@ -1738,7 +1815,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         # I don't know how right now.
         file_utils.remove(filename, unstable_filesystem=True)
         if not filename:
-           self.pstatinfo()
+            self.pstatinfo()
 
     ##########################################################################
 
@@ -1757,7 +1834,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         fname = self.use_file(use_filepath, layer)
 
         #If the value isn't a string, make it one.
-        if type(value)!=types.StringType:
+        if type(value)!=bytes:
             value=str(value)
 
         f = file_utils.open(fname,'w', unstable_filesystem=True)
@@ -1960,7 +2037,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             search_paths, targets = self._get_mount_point2(use_id, use_dir,
                                                            ".(nameof)(%s)",
                                                            return_all = True)
-        except OSError, msg:
+        except OSError as msg:
             if msg.args[0] in [errno.ENODEV]:
                 if msg.filename:
                     search_paths = msg.filename
@@ -1970,7 +2047,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
                     search_paths = []
                 targets = msg.args[3]
             else:
-                raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+                raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
         #TO DO;  fix this comment!!!
         #At this point:
@@ -1996,9 +2073,9 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         rtn_filepaths = []
         old_base_id = None
         for i in range(len(search_paths)):
-            if type(targets[i]) == types.ListType and \
+            if type(targets[i]) == list and \
                len(targets[i]) >= 9 and \
-               type(targets[i][8]) == types.StringType and \
+               type(targets[i][8]) == bytes and \
                (targets[i][8].find("Tag ( Inode )") != -1 \
                 or targets[i][8].find("Regular ( Data )") != -1):
                 #
@@ -2056,7 +2133,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
 
                 #Remember this id to use in the repeated directory check.
                 old_base_id = base_id
-            elif type(targets[i]) == types.TupleType and \
+            elif type(targets[i]) == tuple and \
                  len(targets[i]) == 3:
                 #
                 #This is a TAG or LAYER pnfsid.  Handle it.
@@ -2234,7 +2311,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
                 else:
                     ip=i
                     break
-            filepath = os.path.join(found_search_path,string.join(pieces[ip:],"/"))
+            filepath = os.path.join(found_search_path,"/".join(pieces[ip:]))
         else:
             filepath = found_search_path
 
@@ -2257,7 +2334,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
 
         #Loop over the mount points, looking for a mount point match.
         mp_dict, dbinfo_dict = parse_mtab()
-        for mount_point in mp_dict.keys():
+        for mount_point in list(mp_dict.keys()):
             if fname.startswith(mount_point):
                 return mount_point
         return None
@@ -2286,14 +2363,14 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
                 try:
                     n = N(current_id_db_num, use_search_path)
                     db_info = n.get_databaseN(current_id_db_num)
-                except (OSError, IOError), msg:
+                except (OSError, IOError) as msg:
                     if msg.errno == errno.ENOTDIR:
                         #Back to top of for loop.
                         break
                     else:
                         #give up.
-                        raise sys.exc_info()[0], sys.exc_info()[1], \
-                              sys.exc_info()[2]
+                        raise_(sys.exc_info()[0], sys.exc_info()[1], \
+                              sys.exc_info()[2])
 
                 cached_info = get_cache_by_db_info(db_info)
                 if cached_info:
@@ -2340,7 +2417,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             raise ValueError("No valid pnfs id.")
 
         #Try and optimize things by looking for the target to begin with.
-        if type(pnfsname) == types.StringType:
+        if type(pnfsname) == bytes:
             use_pnfsname = pnfsname % id
         else:
             use_pnfsname = ".(access)(%s)" % id
@@ -2366,9 +2443,9 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
                 mount_point = search_item[DB_MOUNT_POINTS][0]
 
                 if not mount_point:
-                   #If the directory argument was not in PNFS,
-                   # use_directory gets set to None, and we get here.
-                   continue
+                    #If the directory argument was not in PNFS,
+                    # use_directory gets set to None, and we get here.
+                    continue
 
                 #If the mountpoint doesn't know about our database fail now.
                 try:
@@ -2416,8 +2493,8 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
                     finally:
                         f.close()
                 except (KeyboardInterrupt, SystemExit):
-                    raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
-                except (OSError, IOError), msg:
+                    raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+                except (OSError, IOError) as msg:
                     if msg.errno == errno.ENOTDIR:
                         return_result = is_special_path(afn)
                         if return_result:
@@ -2527,7 +2604,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
 
         fname = os.path.join(use_directory, ".(get)(database)")
 
-        if fname in database_info_cache.keys():
+        if fname in list(database_info_cache.keys()):
             database = database_info_cache[fname]
         else:
             f = file_utils.open(fname, 'r', unstable_filesystem=False)
@@ -2536,11 +2613,11 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             finally:
                 f.close()
 
-            database = string.replace(database, "\n", "")
+            database = database.replace("\n", "")
 
             #Update the database cache.
             if not is_access_path(directory) and \
-                   directory not in database_info_cache.keys():
+                   directory not in list(database_info_cache.keys()):
                 #database_info_cache[directory] = database
                 db_num = int(database.split(":")[1])
                 add_mtab(database, db_num, directory)
@@ -2556,28 +2633,28 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         if filepath:
             fname = filepath
             #Get the file system size.
-            os_filesize = long(file_utils.get_stat(
+            os_filesize = int(file_utils.get_stat(
                 fname, unstable_filesystem=True)[stat.ST_SIZE])
         else:
             fname = self.filepath
             self.verify_existance()
             self.pstatinfo(update=0) #verify_existance does the os.stat().
             #Get the file system size.
-            os_filesize = long(self.file_size)
+            os_filesize = int(self.file_size)
 
         #If there is no layer 4, make sure an error occurs.
         try:
-            pnfs_filesize = long(self.get_xreference(fname)[2].strip())
+            pnfs_filesize = int(self.get_xreference(fname)[2].strip())
         except ValueError:
-            pnfs_filesize = long(-1)
+            pnfs_filesize = -1
             #self.file_size = os_filesize
             #return os_filesize
 
         #Error checking.  However first ignore large file cases.
-        if os_filesize == 1 and pnfs_filesize > long(2L**31L) - 1:
+        if os_filesize == 1 and pnfs_filesize > int(2**31) - 1:
             if not filepath:
                 self.file_size = pnfs_filesize
-            return long(pnfs_filesize)
+            return int(pnfs_filesize)
         #Make sure they are the same.
         elif os_filesize != pnfs_filesize:
             raise OSError(errno.EBADFD,
@@ -2586,12 +2663,12 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
 
         if not filepath:
             self.file_size = os_filesize
-        return long(os_filesize)
+        return int(os_filesize)
 
 
     def set_file_size(self, filesize, filepath=None):
         #handle large files.
-        if filesize > (2**31L) - 1:
+        if filesize > (2**31) - 1:
             size = 1
         else:
             size = filesize
@@ -2616,7 +2693,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         try:
             f = file_utils.open(fname, 'w', unstable_filesystem=True)
             f.close()
-        except (OSError, IOError), msg:
+        except (OSError, IOError) as msg:
             if msg.args[0] == errno.ENAMETOOLONG:
                 #If the .(fset) filename is too long for PNFS, then we need
                 # to make a shorter temproary link to it and try it again.
@@ -2641,7 +2718,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
                 #Make the temporary link using the sorter name.
                 try:
                     os.link(try_path, link_name)
-                except (OSError, IOError), msg:
+                except (OSError, IOError) as msg:
                     if msg.args[0] == errno.EEXIST \
                        and file_utils.get_stat(
                         link_name, unstable_filesystem=True)[stat.ST_NLINK] == link_count + 1:
@@ -2650,24 +2727,24 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
                         # situation can occur over NFS V2.
                         pass
                     else:
-                        raise sys.exc_info()[0], sys.exc_info()[1], \
-                              sys.exc_info()[2]
+                        raise_(sys.exc_info()[0], sys.exc_info()[1], \
+                              sys.exc_info()[2])
 
                 #Set the new file size.
                 try:
                     fname = self.fset_file(link_name, size)
                     f = file_utils.open(fname, "w", unstable_filesystem=True)
                     f.close()
-                except (OSError, IOError), msg:
+                except (OSError, IOError) as msg:
                     os.unlink(link_name)
-                    raise sys.exc_info()[0], sys.exc_info()[1], \
-                          sys.exc_info()[2]
+                    raise_(sys.exc_info()[0], sys.exc_info()[1], \
+                           sys.exc_info()[2])
 
                 #Cleanup the temporary link.
                 os.unlink(link_name)
 
             else:
-                raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+                raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
 
         #Update the times.
@@ -2765,7 +2842,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
                           (os.strerror(errno.EIO),
                            enstore_constants.BFID_LAYER,
                            use_filepath))
-        except (OSError, IOError), msg:
+        except (OSError, IOError) as msg:
             if msg.args[0] in (errno.ENOENT,):
                 #We only need to re-create the ENOENT error.  If reading
                 # layer 1 gives ENOENT, then the entire file is gone
@@ -2776,9 +2853,9 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
                 raise exception(msg.args[0], "%s: %s" % \
                                 (os.strerror(msg.args[0]), use_filepath))
             else:
-                #Just pass allong all other exceptions.
-                raise sys.exc_info()[0], sys.exc_info()[1], \
-                      sys.exc_info()[2]
+                #Just pass along all other exceptions.
+                raise_(sys.exc_info()[0], sys.exc_info()[1], \
+                      sys.exc_info()[2])
 
         if not filepath:
             self.bit_file_id = bit_file_id
@@ -2802,7 +2879,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
                            use_filepath))
 
         #Strip off whitespace from each line.
-        xinfo = map(string.strip, xinfo[:11])
+        xinfo = list([x.strip() for x in xinfo[:11]])
         #Make sure there are 11 elements.  Early versions only contain 9.
         # Some contain 10.  This prevents problems.
         xinfo = xinfo + ([UNKNOWN] * (11 - len(xinfo)))
@@ -2874,7 +2951,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
 
     # get the uid from the stat member
     def pstat_decode(self):
-	self.uid = ERROR
+        self.uid = ERROR
         self.uname = UNKNOWN
         self.gid = ERROR
         self.gname = UNKNOWN
@@ -2894,7 +2971,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         try:
             self.uid = self.pstat[stat.ST_UID]
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             pass
 
@@ -2902,7 +2979,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         try:
             self.uname = pwd.getpwuid(self.uid)[0]
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             pass
 
@@ -2910,7 +2987,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         try:
             self.gid = self.pstat[stat.ST_GID]
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             pass
 
@@ -2918,7 +2995,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         try:
             self.gname = grp.getgrgid(self.gid)[0]
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             pass
 
@@ -2928,10 +3005,10 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             #  it can use used in enstore cpio creation  (we will be
             #  creating a file in this directory)
             # real mode is available in self.stat for people who need it
-            self.mode = (self.pstat[stat.ST_MODE] % 0777) | 0100000
+            self.mode = (self.pstat[stat.ST_MODE] % 0o777) | 0o100000
             self.mode_octal = str(oct(self.mode))
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             self.mode = 0
             self.mode_octal = 0
@@ -2945,16 +3022,16 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         #Get the file size.
         try:
             if real_file:    #os.path.exists(self.filepath):
-                self.file_size = long(self.pstat[stat.ST_SIZE])
-                if self.file_size == 1L:
-                    self.file_size = long(self.get_xreference()[2]) #[2] = size
+                self.file_size = int(self.pstat[stat.ST_SIZE])
+                if self.file_size == 1:
+                    self.file_size = int(self.get_xreference()[2]) #[2] = size
             else:
                 try:
                     del self.file_size
                 except AttributeError:
                     pass  #Was not present.
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             pass
 
@@ -2968,7 +3045,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
                 except AttributeError:
                     pass #Was not present.
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             pass
 
@@ -2988,7 +3065,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             self.major = int(((self.pstat[stat.ST_DEV]) >> 8) & 0xff)
             self.minor = int((self.pstat[stat.ST_DEV]) & 0xff)
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             pass
 
@@ -3009,10 +3086,10 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             self.verify_existance()
             data = self.readlayer(intf.named_layer)
             for datum in data:
-                print datum.strip()
+                print(datum.strip())
             return 0
-        except (OSError, IOError), detail:
-            print str(detail)
+        except (OSError, IOError) as detail:
+            print(str(detail))
             return 1
 
     #For legacy purposes.
@@ -3030,10 +3107,10 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             #With the data stored in lists, with corresponding values
             # based on the index, then just print them out.
             for i in range(len(names)):
-                print "%s: %s" % (names[i], data[i])
+                print("%s: %s" % (names[i], data[i]))
             return 0
-        except (OSError, IOError), detail:
-            print str(detail)
+        except (OSError, IOError) as detail:
+            print(str(detail))
             return 1
 
     #For legacy purposes.
@@ -3045,13 +3122,13 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         try:
             self.verify_existance()
             self.get_bit_file_id()
-            print self.bit_file_id
+            print(self.bit_file_id)
             return 0
         except IndexError:
-            print UNKNOWN
+            print(UNKNOWN)
             return 1
-        except (IOError, OSError), detail:
-            print str(detail)
+        except (IOError, OSError) as detail:
+            print(str(detail))
             return 1
 
     #Print out the filesize of the file from this layer.  It should only
@@ -3061,9 +3138,9 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
     def pfilesize(self):  #, intf):
         try:
             self.get_file_size()
-            print self.file_size
+            print(self.file_size)
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             """
             try:
                 # Get layer 2 when layer 4 is not available.
@@ -3108,7 +3185,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
                 pass
             """
 
-            print str(detail)
+            print(str(detail))
             return 1
 
 ##############################################################################
@@ -3121,7 +3198,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         try:
             self.writelayer(intf.named_layer, intf.text)
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             return 1
 
@@ -3129,7 +3206,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         try:
             self.writelayer(intf.named_layer, "")
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             return 1
 
@@ -3148,7 +3225,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             self.writelayer(intf.named_layer, file_data_as_string)
 
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             return 1
 
@@ -3156,12 +3233,12 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         try:
             self.set_file_size(intf.filesize)
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             return 1
 
     def pio(self):
-        print "Feature not yet implemented."
+        print("Feature not yet implemented.")
 
         #fname = "%s/.(fset)(%s)(io)(on)" % (self.dir, self.file)
         #os.system("touch" + fname)
@@ -3171,7 +3248,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             self.get_id()
             print_results(self.id)
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             return 1
 
@@ -3180,10 +3257,10 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             self.get_showid()
             print_results(self.showid)
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             return 1
-        except (AttributeError, ValueError), detail:
+        except (AttributeError, ValueError) as detail:
             sys.stderr.write("A valid pnfs id was not entered.\n")
             return 1
 
@@ -3192,7 +3269,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             self.get_const()
             print_results(self.const)
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             return 1
 
@@ -3201,10 +3278,10 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             self.get_nameof()
             print_results(self.nameof)
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             return 1
-        except (AttributeError, ValueError), detail:
+        except (AttributeError, ValueError) as detail:
             sys.stderr.write("A valid pnfs id was not entered.\n")
             return 1
 
@@ -3213,13 +3290,13 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             rtn_results = self.get_path()
             print_results2(rtn_results)
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             if detail.args[0] in [errno.ENODEV]:
                 print_results2(detail.filename)
             return 1
-        except (AttributeError, ValueError), detail:
-            print detail
+        except (AttributeError, ValueError) as detail:
+            print(detail)
             sys.stderr.write("A valid pnfs id was not entered.\n")
             return 1
 
@@ -3227,10 +3304,10 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         try:
             print_results(self.get_mount_point())
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             return 1
-        except (AttributeError, ValueError), detail:
+        except (AttributeError, ValueError) as detail:
             sys.stderr.write("A valid pnfs id was not entered.\n")
             return 1
 
@@ -3239,10 +3316,10 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             self.get_parent()
             print_results(self.parent)
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             return 1
-        except (AttributeError, ValueError), detail:
+        except (AttributeError, ValueError) as detail:
             sys.stderr.write("A valid pnfs id was not entered.\n")
             return 1
 
@@ -3251,7 +3328,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             self.get_counters()
             print_results(self.counters)
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             return 1
 
@@ -3260,7 +3337,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             self.get_cursor()
             print_results(self.cursor)
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             return 1
 
@@ -3269,7 +3346,7 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
             self.get_position()
             print_results(self.position)
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             return 1
 
@@ -3277,19 +3354,19 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         try:
             print_results(self.get_database(intf.file))
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % str(detail))
             return 1
 
 
     def pdown(self, intf):
         if os.environ['USER'] != "root":
-            print "must be root to create enstore system-down wormhole"
+            print("must be root to create enstore system-down wormhole")
             return
 
         dname = "/pnfs/fs/admin/etc/config/flags"
         if not os.access(dname, os.F_OK | os.R_OK):
-            print "/pnfs/fs is not mounted"
+            print("/pnfs/fs is not mounted")
             return
 
         fname = "/pnfs/fs/admin/etc/config/flags/disabled"
@@ -3301,12 +3378,12 @@ class Pnfs:# pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
 
     def pup(self):
         if os.environ['USER'] != "root":
-            print "must be root to create enstore system-down wormhole"
+            print("must be root to create enstore system-down wormhole")
             return
 
         dname = "/pnfs/fs/admin/etc/config/flags"
         if not os.access(dname, os.F_OK | os.R_OK):
-            print "/pnfs/fs is not mounted"
+            print("/pnfs/fs is not mounted")
             return
 
         os.remove("/pnfs/fs/admin/etc/config/flags/disabled")
@@ -3339,7 +3416,7 @@ class PnfsInterface(option.Interface):
                      option.VALUE_USAGE:option.REQUIRED,
                      option.VALUE_LABEL:"filename",
                      option.FORCE_SET_DEFAULT:option.FORCE,
-		     option.USER_LEVEL:option.USER
+                     option.USER_LEVEL:option.USER
                      },
         option.CAT:{option.HELP_STRING:"see --layer",
                     option.DEFAULT_VALUE:option.DEFAULT,
@@ -3365,7 +3442,7 @@ class PnfsInterface(option.Interface):
                      option.DEFAULT_NAME:"duplicate",
                      option.DEFAULT_TYPE:option.INTEGER,
                      option.VALUE_USAGE:option.IGNORED,
-		     option.USER_LEVEL:option.ADMIN,
+                     option.USER_LEVEL:option.ADMIN,
                      option.EXTRA_VALUES:[{option.DEFAULT_VALUE:"",
                                            option.DEFAULT_NAME:"file",
                                            option.DEFAULT_TYPE:option.STRING,
@@ -3426,13 +3503,13 @@ class PnfsInterface(option.Interface):
                                     option.USER_LEVEL:option.USER,
                                     option.VALUE_USAGE:option.OPTIONAL,
                    },
-	option.FILESIZE:{option.HELP_STRING:"print out real filesize",
-			 option.VALUE_NAME:"file",
-			 option.VALUE_TYPE:option.STRING,
-			 option.VALUE_LABEL:"file",
+        option.FILESIZE:{option.HELP_STRING:"print out real filesize",
+                         option.VALUE_NAME:"file",
+                         option.VALUE_TYPE:option.STRING,
+                         option.VALUE_LABEL:"file",
                          option.USER_LEVEL:option.USER,
-			 option.VALUE_USAGE:option.REQUIRED,
-			 },
+                         option.VALUE_USAGE:option.REQUIRED,
+                         },
         option.INFO:{option.HELP_STRING:"see --xref",
                      option.DEFAULT_VALUE:option.DEFAULT,
                      option.DEFAULT_NAME:"xref",
@@ -3900,7 +3977,7 @@ class PnfsInterface(option.Interface):
 
 # This is a cleaner interface to access the tags in /pnfs
 
-class Tag:
+class Tag(object):
     def __init__(self, directory = None):
         self.dir = directory
 
@@ -3908,7 +3985,7 @@ class Tag:
     # the file needs to exist before you call this
     # remember, tags are a propery of the directory, not of a file
     def writetag(self, tag, value, directory=None):
-        if type(value) != types.StringType:
+        if type(value) != bytes:
             value=str(value)
 
         #Remove all trailing .(access)(), .(nameof)(), .(parent)(), etc. path
@@ -3958,13 +4035,13 @@ class Tag:
                               os.path.dirname(fname))
             else:
                 use_msg = msg
-            raise exc, use_msg, sys.exc_info()[2] #Don't have tb be local!
+            raise_(exc, use_msg, sys.exc_info()[2]) #Don't have tb be local!
 
     # read the value stored in the requested tag
     def readtag(self, tag, directory=None):
         #Remove all trailing .(access)(), .(nameof)(), .(parent)(), etc. path
         # components.
-	if directory:
+        if directory:
             use_dir = directory
         elif self.dir:
             use_dir = self.dir
@@ -4008,7 +4085,7 @@ class Tag:
                               os.path.dirname(fname))
             else:
                 use_msg = msg
-            raise exc, use_msg, sys.exc_info()[2] #Don't have tb be local!
+            raise_(exc, use_msg, sys.exc_info()[2]) #Don't have tb be local!
 
         return t
 
@@ -4023,7 +4100,7 @@ class Tag:
         if hasattr(intf, "directory"):
             try:
                 cwd = os.path.abspath(intf.directory)
-            except OSError, detail:
+            except OSError as detail:
                 sys.stderr.write("%s\n" % (str(detail,)))
                 return 1
         else:
@@ -4048,7 +4125,7 @@ class Tag:
                 data = file_utils.readlines(f, unstable_filesystem=True)
             finally:
                 f.close()
-        except IOError, detail:
+        except IOError as detail:
             sys.stderr.write("%s\n" % (str(detail),))
             return 1
 
@@ -4057,11 +4134,11 @@ class Tag:
         # used to remove it.
         for line in data:
             try:
-                tag = string.split(line[7:], ")")[0]
+                tag = line[7:].split(")")[0]
                 tag_info = self.readtag(tag, directory = cwd)
-                print line[:-1], "=",  tag_info[0]
-            except (OSError, IOError, IndexError), detail:
-                print line[:-1], ":", str(detail)
+                print(line[:-1], "=",  tag_info[0])
+            except (OSError, IOError, IndexError) as detail:
+                print(line[:-1], ":", str(detail))
 
         #Print the bottom portion of the output.
         for line in data:
@@ -4076,16 +4153,16 @@ class Tag:
                 tag = self.readtag(intf.named_tag, intf.directory)
             else:
                 tag = self.readtag(intf.named_tag)
-            print tag[0]
+            print(tag[0])
             return 0
-        except (OSError, IOError, IndexError), detail:
+        except (OSError, IOError, IndexError) as detail:
             sys.stderr.write("%s\n" % (str(detail),))
             return 1
 
     def ptagecho(self, intf):
         try:
             self.writetag(intf.named_tag, intf.text)
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % (str(detail),))
             return 1
 
@@ -4102,7 +4179,7 @@ class Tag:
         else:
             try:
                 cwd = os.getcwd()
-            except OSError, msg:
+            except OSError as msg:
                 if msg.errno == errno.ENOENT:
                     msg_str = "%s: %s" % (os.strerror(errno.ENOENT),
                                           "No current working directory")
@@ -4123,7 +4200,7 @@ class Tag:
         #Determine if the tag file exists.
         try:
             pstat = file_utils.get_stat(fname, unstable_filesystem=True)
-        except OSError, msg:
+        except OSError as msg:
             sys.stderr.write("%s\n" % (str(msg),))
             return 1
 
@@ -4153,7 +4230,7 @@ class Tag:
         except ValueError:
             pass
 
-        if uid and type(uid) != types.IntType:
+        if uid and type(uid) != int:
             try:
                 uid = pwd.getpwnam(str(uid))[2]
             except KeyError:
@@ -4161,7 +4238,7 @@ class Tag:
                 sys.stderr.write("%s\n" % (msg_str,))
                 return 1
 
-        if gid and type(gid) != types.IntType:
+        if gid and type(gid) != int:
             try:
                 gid = grp.getgrnam(str(gid))[2]
             except KeyError:
@@ -4172,7 +4249,7 @@ class Tag:
         try:
             os.chown(fname, uid, gid)
             #os.utime(fname, None)
-        except OSError, detail:
+        except OSError as detail:
             sys.stderr.write("%s\n" % (str(detail),))
             return 1
 
@@ -4186,7 +4263,7 @@ class Tag:
         else:
             try:
                 cwd = os.getcwd()
-            except OSError, msg:
+            except OSError as msg:
                 if msg.errno == errno.ENOENT:
                     msg_str = "%s: %s" % (os.strerror(errno.ENOENT),
                                           "No current working directory")
@@ -4207,7 +4284,7 @@ class Tag:
         #Determine if the tag file exists.
         try:
             pstat = file_utils.get_stat(fname, unstable_filesystem=True)
-        except OSError, msg:
+        except OSError as msg:
             sys.stderr.write("%s\n" % (str(msg),))
             return 1
 
@@ -4230,7 +4307,7 @@ class Tag:
         try:
             os.chmod(fname, int(set_mode))
             #os.utime(fname, None)
-        except OSError, detail:
+        except OSError as detail:
             sys.stderr.write("%s\n" % (str(detail),))
             return 1
 
@@ -4244,7 +4321,7 @@ class Tag:
     def plibrary(self, intf):
         try:
             if intf.library == 1:
-                print self.get_library()
+                print(self.get_library())
             else:
                 if charset.is_string_in_character_set(intf.library,
                                                       charset.charset + ","):
@@ -4256,7 +4333,7 @@ class Tag:
                     sys.stderr.write("%s\n" % (msg_str,))
                     return 1
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % (str(detail),))
             return 1
 
@@ -4264,7 +4341,7 @@ class Tag:
     def pfile_family(self, intf):
         try:
             if intf.file_family == 1:
-                print self.get_file_family()
+                print(self.get_file_family())
             else:
                 #Restrict the characters allowed in the file_family.
                 if not charset.is_in_charset(intf.file_family):
@@ -4287,7 +4364,7 @@ class Tag:
                     self.set_file_family(intf.file_family)
 
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % (str(detail),))
             return 1
 
@@ -4295,7 +4372,7 @@ class Tag:
     def pfile_family_wrapper(self, intf):
         try:
             if intf.file_family_wrapper == 1:
-                print self.get_file_family_wrapper()
+                print(self.get_file_family_wrapper())
             else:
                 if charset.is_in_charset(intf.file_family_wrapper):
                     self.set_file_family_wrapper(intf.file_family_wrapper)
@@ -4304,7 +4381,7 @@ class Tag:
                     sys.stderr.write("%s\n" % (msg_str,))
                     return 1
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % (str(detail),))
             return 1
 
@@ -4312,9 +4389,9 @@ class Tag:
     def pfile_family_width(self, intf):
         try:
             if not intf.file_family_width:
-                print self.get_file_family_width()
+                print(self.get_file_family_width())
                 return 0
-            if isinstance(intf.file_family_width, (int, long)):
+            if isinstance(intf.file_family_width, (int, int)):
                 if intf.file_family_width > 0:
                     self.set_file_family_width(intf.file_family_width)
                     return 0
@@ -4326,7 +4403,7 @@ class Tag:
                 msg_str = "Pnfs tag, {}, has to be positive integer greater than 0.".format("file_family_width")
                 sys.stderr.write("%s\n" % (msg_str,))
                 return 1
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % (str(detail),))
             return 1
 
@@ -4334,7 +4411,7 @@ class Tag:
     def pstorage_group(self, intf):
         try:
             if intf.storage_group == 1:
-                print self.get_storage_group()
+                print(self.get_storage_group())
             else:
                 if charset.is_in_charset(intf.storage_group):
                     self.set_storage_group(intf.storage_group)
@@ -4343,7 +4420,7 @@ class Tag:
                     sys.stderr.write("%s\n" % (msg_str,))
                     return 1
             return 0
-        except (OSError, IOError), detail:
+        except (OSError, IOError) as detail:
             sys.stderr.write("%s\n" % (str(detail),))
             return 1
 
@@ -4496,9 +4573,9 @@ class Tag:
                                                     unstable_filesystem=True)
             finally:
                 f.close()
-            print "Enstore disabled:", self.enstore_state[0],
+            print("Enstore disabled:", self.enstore_state[0], end=' ')
         else:
-            print "Enstore enabled"
+            print("Enstore enabled")
 
     def ppnfs_state(self):
         fname = "%s/.(config)(flags)/.(id)(pnfs_state)" % self.dir
@@ -4508,13 +4585,13 @@ class Tag:
                 self.pnfs_state = file_utils.readlines(f, unstable_filesystem=True)
             finally:
                 f.close()
-            print "Pnfs:", self.pnfs_state[0],
+            print("Pnfs:", self.pnfs_state[0], end=' ')
         else:
-            print "Pnfs: unknown"
+            print("Pnfs: unknown")
 
 ##############################################################################
 
-class N:
+class N(object):
     def __init__(self, dbnum, directory = None):
         if directory:
             self.dir = directory
@@ -4558,7 +4635,7 @@ class N:
         finally:
             f.close()
         if len(self.databaseN) > 0:
-            self.databaseN = string.replace(self.databaseN, "\n", "")
+            self.databaseN = self.databaseN.replace("\n", "")
 
         return self.databaseN
 
@@ -4566,15 +4643,15 @@ class N:
         try:
             self.get_databaseN(intf.dbnum)
             print_results(self.databaseN)
-        except (OSError, IOError), detail:
-            print str(detail)
+        except (OSError, IOError) as detail:
+            print(str(detail))
 
     def pcountersN(self, intf):
         try:
             self.get_countersN(intf.dbnum)
             print_results(self.countersN)
-        except (OSError, IOError), detail:
-            print str(detail)
+        except (OSError, IOError) as detail:
+            print(str(detail))
 
 _mtab = None
 
@@ -4588,9 +4665,9 @@ def get_mtab():
             f = file_utils.open('/etc/mtab')
             l = f.readline()
             while l:
-                lc = string.split(l)
+                lc = l.split()
                 if lc[1][:5] == '/pnfs':
-                    c1 = string.split(lc[0], ':')
+                    c1 = lc[0].split(':')
                     if len(c1) > 1:
                         _mtab[lc[1]] = (c1[1], c1[0])
                     else:
@@ -4608,10 +4685,10 @@ LOCAL_PNFS_PREFIX = '/pnfs/fs/usr'
 
 def get_local_pnfs_path(p):
     mtab = get_mtab()
-    for i in mtab.keys():
-        if string.find(p, i) == 0 and \
-           string.split(os.uname()[1], '.')[0] == mtab[i][1]:
-            p1 = os.path.join(LOCAL_PNFS_PREFIX, string.replace(p, i, mtab[i][0][1:]))
+    for i in list(mtab.keys()):
+        if p.find(i) == 0 and \
+           os.uname()[1].split('.')[0] == mtab[i][1]:
+            p1 = os.path.join(LOCAL_PNFS_PREFIX, p.replace(i, mtab[i][0][1:]))
             if os.access(p1, os.F_OK):
                 return p1
             else:
@@ -4622,9 +4699,9 @@ def get_local_pnfs_path(p):
 
 def get_abs_pnfs_path(p):
     mtab = get_mtab()
-    for i in mtab.keys():
-        if string.find(p, i) == 0:
-            p1 = os.path.join(LOCAL_PNFS_PREFIX, string.replace(p, i, mtab[i][0][1:]))
+    for i in list(mtab.keys()):
+        if p.find(i) == 0:
+            p1 = os.path.join(LOCAL_PNFS_PREFIX, p.replace(i, mtab[i][0][1:]))
             if os.access(p1, os.F_OK):
                 return p1
             else:
@@ -4642,7 +4719,7 @@ def get_normal_pnfs_path(p):
 
     p1= p[12:]
     mtab = get_mtab()
-    for i in mtab.keys():
+    for i in list(mtab.keys()):
         if p1.find(mtab[i][0]) == 0:
             p2 = p1.replace(mtab[i][0], i)
             if os.access(p2, os.F_OK):
@@ -4654,322 +4731,321 @@ def get_normal_pnfs_path(p):
 # This is a cleaner interface to access the file, as well as its
 # metadata, in /pnfs
 
-class File:
-	# the file could be a simple name, or a dictionary of file attributes
-	def __init__(self, file):
-		if type(file) == types.DictionaryType:  # a dictionary
-			self.volume = file['external_label']
-			self.location_cookie = file['location_cookie']
-			self.size = str(file['size'])
-			if file.has_key('file_family'):
-				self.file_family = file['file_family']
-			else:
-				self.file_family = "unknown"
-                        if file.has_key('pnfs_mapname'):
-			    self.volmap = file['pnfs_mapname']
-                        else:
-                            self.volmap = ''
-			self.pnfs_id = file['pnfsid']
-                        if file.has_key('pnfsvid'):
-			    self.pnfs_vid = file['pnfsvid']
-                        else:
-			    self.pnfs_vid = ''
-			self.bfid = file['bfid']
-			if file.has_key('drive'):
-			    self.drive = file['drive']
-			else:
-			    self.drive = ''
-			if file.has_key('pnfs_name0'):
-			    self.path = file['pnfs_name0']
-			else:
-			    self.path = 'unknown'
-			if file.has_key('complete_crc'):
-			    self.complete_crc = str(file['complete_crc'])
-			else:
-			    self.complete_crc = ''
-			self.p_path = self.path
-		else:
-			self.path = os.path.abspath(file)
-			# does it exist?
-                        try:
-				f = file_utils.open(self.layer_file(4),
-                                                    unstable_filesystem=True)
-                                try:
-                                    finfo = map(string.strip,
-                                                file_utils.readlines(f,
-                                                    unstable_filesystem=True))
-                                finally:
-                                    f.close()
-				if len(finfo) == 11:
-					self.volume,\
-					self.location_cookie,\
-					self.size, self.file_family,\
-					self.p_path, self.volmap,\
-					self.pnfs_id, self.pnfs_vid,\
-					self.bfid, self.drive, \
-					self.complete_crc = finfo
-				elif len(finfo) == 10:
-					self.volume,\
-					self.location_cookie,\
-					self.size, self.file_family,\
-					self.p_path, self.volmap,\
-					self.pnfs_id, self.pnfs_vid,\
-					self.bfid, self.drive = finfo
-					self.complete_crc = ''
-				elif len(finfo) == 9:
-					self.volume,\
-					self.location_cookie,\
-					self.size, self.file_family,\
-					self.p_path, self.volmap,\
-					self.pnfs_id, self.pnfs_vid,\
-					self.bfid = finfo
-					self.drive = "unknown:unknown"
-					self.complete_crc = ''
-				else:	# corrupted L4
-					self.volume = "corrupted L4"
-					self.location_cookie = ""
-					self.size = None
-					self.file_family = ""
-					self.volmap = ""
-					self.pnfs_id = "corrputed L4"
-					self.pnfs_vid = ""
-					self.bfid = "corrupted L4"
-					self.drive = ""
-					self.complete_crc = ''
-					self.p_path = self.path
-
-				# if self.p_path != self.path:
-				#	raise 'DIFFERENT_PATH'
-				#	print 'different paths'
-				#	print '\t f>', self.path
-				#	print '\t 4>', p_path
-                        except IOError:
-				self.volume = ""
-				self.location_cookie = ""
-				self.size = None
-				self.file_family = ""
-				self.volmap = ""
-				self.pnfs_id = ""
-				self.pnfs_vid = ""
-				self.bfid = ""
-				self.drive = ""
-				self.complete_crc = ''
-				self.p_path = self.path
-			except:
-				exc_type, exc_value = sys.exc_info()[:2]
-				print exc_type, exc_value
-		return
-
-	# layer_file(i) -- compose the layer file name
-	def layer_file(self, i):
-		if self.file()[:9] == ".(access)":
-			return "%s(%d)"%(self.path, i)
-		else:
-			return os.path.join(self.dir(),
-                                    '.(use)(%d)(%s)'%(i, self.file()))
-
-	# id_file() -- compose the id file name
-	def id_file(self):
-		return os.path.join(self.dir(), '.(id)(%s)'%(self.file()))
-
-        # parent_file() -- compose the parent id file name
-        def parent_file(self):
-                try:
-                        #Try and avoid unecessary .(id)() (P)NFS quires.
-                        use_id = self.r_pnfs_id
-                except AttributeError:
-                        use_id = self.get_pnfs_id()
-
-                return os.path.join(self.dir(), '.(parent)(%s)' % (use_id))
-
-	# size_file -- compose the size file, except for the actual size
-	def size_file(self):
-		return os.path.join(self.dir(),
-                                    '.(fset)(%s)(size)'%(self.file()))
-
-	# dir() -- get the directory of this file
-	def dir(self):
-		return os.path.dirname(self.path)
-
-	# file() -- get the basename of this file
-	def file(self):
-		return os.path.basename(self.path)
-
-	# get_pnfs_id() -- get pnfs id from pnfs id file
-	def get_pnfs_id(self):
-		f = file_utils.open(self.id_file(), unstable_filesystem=True)
-                try:
-                    self.r_pnfs_id = file_utils.readline(
-                        f, unstable_filesystem=True)[:-1]
-                finally:
-                    f.close()
-		return self.r_pnfs_id
-
-        # get_parent_id() -- get parent pnfs id from pnfs id file
-        def get_parent_id(self):
-                f = file_utils.open(self.parent_file(),
+class File(object):
+        # the file could be a simple name, or a dictionary of file attributes
+    def __init__(self, file):
+        if type(file) == dict:  # a dictionary
+            self.volume = file['external_label']
+            self.location_cookie = file['location_cookie']
+            self.size = str(file['size'])
+            if 'file_family' in file:
+                self.file_family = file['file_family']
+            else:
+                self.file_family = "unknown"
+            if 'pnfs_mapname' in file:
+                self.volmap = file['pnfs_mapname']
+            else:
+                self.volmap = ''
+            self.pnfs_id = file['pnfsid']
+            if 'pnfsvid' in file:
+                self.pnfs_vid = file['pnfsvid']
+            else:
+                self.pnfs_vid = ''
+            self.bfid = file['bfid']
+            if 'drive' in file:
+                self.drive = file['drive']
+            else:
+                self.drive = ''
+            if 'pnfs_name0' in file:
+                self.path = file['pnfs_name0']
+            else:
+                self.path = 'unknown'
+            if 'complete_crc' in file:
+                self.complete_crc = str(file['complete_crc'])
+            else:
+                self.complete_crc = ''
+            self.p_path = self.path
+        else:
+            self.path = os.path.abspath(file)
+            # does it exist?
+            try:
+                f = file_utils.open(self.layer_file(4),
                                     unstable_filesystem=True)
                 try:
-                    self.parent_id = file_utils.readline(
-                        f, unstable_filesystem=True)[:-1]
+                    finfo = list([x.strip() for x in file_utils.readlines(f,
+                                    unstable_filesystem=True)])
                 finally:
                     f.close()
-                return self.parent_id
+                if len(finfo) == 11:
+                    self.volume,\
+                    self.location_cookie,\
+                    self.size, self.file_family,\
+                    self.p_path, self.volmap,\
+                    self.pnfs_id, self.pnfs_vid,\
+                    self.bfid, self.drive, \
+                    self.complete_crc = finfo
+                elif len(finfo) == 10:
+                    self.volume,\
+                    self.location_cookie,\
+                    self.size, self.file_family,\
+                    self.p_path, self.volmap,\
+                    self.pnfs_id, self.pnfs_vid,\
+                    self.bfid, self.drive = finfo
+                    self.complete_crc = ''
+                elif len(finfo) == 9:
+                    self.volume,\
+                    self.location_cookie,\
+                    self.size, self.file_family,\
+                    self.p_path, self.volmap,\
+                    self.pnfs_id, self.pnfs_vid,\
+                    self.bfid = finfo
+                    self.drive = "unknown:unknown"
+                    self.complete_crc = ''
+                else:   # corrupted L4
+                    self.volume = "corrupted L4"
+                    self.location_cookie = ""
+                    self.size = None
+                    self.file_family = ""
+                    self.volmap = ""
+                    self.pnfs_id = "corrputed L4"
+                    self.pnfs_vid = ""
+                    self.bfid = "corrupted L4"
+                    self.drive = ""
+                    self.complete_crc = ''
+                    self.p_path = self.path
 
-	def show(self):
-		print "           file =", self.path
-		print "         volume =", self.volume
-		print "location_cookie =", self.location_cookie
-		print "           size =", self.size
-		print "    file_family =", self.file_family
-		print "         volmap =", self.volmap
-		print "        pnfs_id =", self.pnfs_id
-		print "       pnfs_vid =", self.pnfs_vid
-		print "           bfid =", self.bfid
-		print "          drive =", self.drive
-		print "      meta-path =", self.p_path
-		print "   complete_crc =", self.complete_crc
-		return
+                # if self.p_path != self.path:
+                #       raise 'DIFFERENT_PATH'
+                #       print 'different paths'
+                #       print '\t f>', self.path
+                #       print '\t 4>', p_path
+            except IOError:
+                self.volume = ""
+                self.location_cookie = ""
+                self.size = None
+                self.file_family = ""
+                self.volmap = ""
+                self.pnfs_id = ""
+                self.pnfs_vid = ""
+                self.bfid = ""
+                self.drive = ""
+                self.complete_crc = ''
+                self.p_path = self.path
+            except:
+                exc_type, exc_value = sys.exc_info()[:2]
+                print(exc_type, exc_value)
+        return
 
-	# set_size() -- set size in pnfs
-	def set_size(self):
-		if not self.exists():
-			# do nothing if it doesn't exist
-			return
-		if long(self.size) > 2147483647L:
-			size2 = 1
-		else:
-			size2 = long(self.size)
-		real_size = file_utils.get_stat(
-                    self.path, unstable_filesystem=True)[stat.ST_SIZE]
-		if long(real_size) == long(size2):	# do nothing
-			return
-		size = str(size2)
-		if size[-1] == 'L':
-			size = size[:-1]
-		fname = self.size_file()+'('+size+')'
-		f = file_utils.open(fname, "w", unstable_filesystem=True)
-		f.close()
-		real_size = file_utils.get_stat(
-                    self.path, unstable_filesystem=True)[stat.ST_SIZE]
-		if long(real_size) != long(size2):
-			# oops, have to reset it again
-			f = file_utils.open(fname, "w",
-                                            unstable_filesystem=True)
-			f.close()
-		return
+    # layer_file(i) -- compose the layer file name
+    def layer_file(self, i):
+        if self.file()[:9] == ".(access)":
+            return "%s(%d)"%(self.path, i)
+        else:
+            return os.path.join(self.dir(),
+                        '.(use)(%d)(%s)'%(i, self.file()))
 
-	# update() -- write out to pnfs files
-	def update(self, pnfsid=None):
-		if not self.bfid:
-			return
-		if not self.consistent():
-			raise ValueError('INCONSISTENT')
-		if self.exists():
-			# writing layer 1
-			f = file_utils.open(self.layer_file(1), 'w',
-                                            unstable_filesystem=True)
-			f.write(self.bfid)
-			f.close()
-			# writing layer 4
-			f = file_utils.open(self.layer_file(4), 'w',
-                                            unstable_filesystem=True)
-			f.write(self.volume+'\n')
-			f.write(self.location_cookie+'\n')
-			f.write(str(self.size)+'\n')
-			f.write(self.file_family+'\n')
-			f.write(self.p_path+'\n')
-			f.write(self.volmap+'\n')
-			if not pnfsid:
-				# always use real pnfs id
-				f.write(self.get_pnfs_id()+'\n')
-			else:
-				f.write(self.pnfs_id+'\n')
-			f.write(self.pnfs_vid+'\n')
-			f.write(self.bfid+'\n')
-			f.write(self.drive+'\n')
-			if self.complete_crc:
-				f.write(str(self.complete_crc)+'\n')
-			f.close()
-			# set file size
-			self.set_size()
-		return
+    # id_file() -- compose the id file name
+    def id_file(self):
+        return os.path.join(self.dir(), '.(id)(%s)'%(self.file()))
 
-	# consistent() -- to see if data is consistent
-	def consistent(self):
-		# required field
-		if not self.bfid or not self.volume \
-                        or self.size == None  \
-			or not self.location_cookie \
-			or not self.file_family or not self.path \
-			or not self.pnfs_id or not self.bfid \
-			or not self.p_path:
-			return 0
-		return 1
+    # parent_file() -- compose the parent id file name
+    def parent_file(self):
+        try:
+            #Try and avoid unecessary .(id)() (P)NFS quires.
+            use_id = self.r_pnfs_id
+        except AttributeError:
+            use_id = self.get_pnfs_id()
+
+        return os.path.join(self.dir(), '.(parent)(%s)' % (use_id))
+
+    # size_file -- compose the size file, except for the actual size
+    def size_file(self):
+        return os.path.join(self.dir(),
+                            '.(fset)(%s)(size)'%(self.file()))
+
+    # dir() -- get the directory of this file
+    def dir(self):
+        return os.path.dirname(self.path)
+
+    # file() -- get the basename of this file
+    def file(self):
+        return os.path.basename(self.path)
+
+    # get_pnfs_id() -- get pnfs id from pnfs id file
+    def get_pnfs_id(self):
+        f = file_utils.open(self.id_file(), unstable_filesystem=True)
+        try:
+            self.r_pnfs_id = file_utils.readline(
+                f, unstable_filesystem=True)[:-1]
+        finally:
+            f.close()
+        return self.r_pnfs_id
+
+    # get_parent_id() -- get parent pnfs id from pnfs id file
+    def get_parent_id(self):
+        f = file_utils.open(self.parent_file(),
+                            unstable_filesystem=True)
+        try:
+            self.parent_id = file_utils.readline(
+                f, unstable_filesystem=True)[:-1]
+        finally:
+            f.close()
+        return self.parent_id
+
+    def show(self):
+        print("           file =", self.path)
+        print("         volume =", self.volume)
+        print("location_cookie =", self.location_cookie)
+        print("           size =", self.size)
+        print("    file_family =", self.file_family)
+        print("         volmap =", self.volmap)
+        print("        pnfs_id =", self.pnfs_id)
+        print("       pnfs_vid =", self.pnfs_vid)
+        print("           bfid =", self.bfid)
+        print("          drive =", self.drive)
+        print("      meta-path =", self.p_path)
+        print("   complete_crc =", self.complete_crc)
+        return
+
+    # set_size() -- set size in pnfs
+    def set_size(self):
+        if not self.exists():
+            # do nothing if it doesn't exist
+            return
+        if int(self.size) > 2147483647:
+            size2 = 1
+        else:
+            size2 = int(self.size)
+        real_size = file_utils.get_stat(
+            self.path, unstable_filesystem=True)[stat.ST_SIZE]
+        if int(real_size) == int(size2):      # do nothing
+            return
+        size = str(size2)
+        if size[-1] == 'L':
+            size = size[:-1]
+        fname = self.size_file()+'('+size+')'
+        f = file_utils.open(fname, "w", unstable_filesystem=True)
+        f.close()
+        real_size = file_utils.get_stat(
+            self.path, unstable_filesystem=True)[stat.ST_SIZE]
+        if int(real_size) != int(size2):
+            # oops, have to reset it again
+            f = file_utils.open(fname, "w",
+                                unstable_filesystem=True)
+            f.close()
+        return
+
+    # update() -- write out to pnfs files
+    def update(self, pnfsid=None):
+        if not self.bfid:
+            return
+        if not self.consistent():
+            raise ValueError('INCONSISTENT')
+        if self.exists():
+            # writing layer 1
+            f = file_utils.open(self.layer_file(1), 'w',
+                                unstable_filesystem=True)
+            f.write(self.bfid)
+            f.close()
+            # writing layer 4
+            f = file_utils.open(self.layer_file(4), 'w',
+                                unstable_filesystem=True)
+            f.write(self.volume+'\n')
+            f.write(self.location_cookie+'\n')
+            f.write(str(self.size)+'\n')
+            f.write(self.file_family+'\n')
+            f.write(self.p_path+'\n')
+            f.write(self.volmap+'\n')
+            if not pnfsid:
+                # always use real pnfs id
+                f.write(self.get_pnfs_id()+'\n')
+            else:
+                f.write(self.pnfs_id+'\n')
+            f.write(self.pnfs_vid+'\n')
+            f.write(self.bfid+'\n')
+            f.write(self.drive+'\n')
+            if self.complete_crc:
+                f.write(str(self.complete_crc)+'\n')
+            f.close()
+            # set file size
+            self.set_size()
+        return
+
+    # consistent() -- to see if data is consistent
+    def consistent(self):
+        # required field
+        if not self.bfid or not self.volume \
+                or self.size == None  \
+                or not self.location_cookie \
+                or not self.file_family or not self.path \
+                or not self.pnfs_id or not self.bfid \
+                or not self.p_path:
+            return 0
+        return 1
 
 
 
-	# exists() -- to see if the file exists in /pnfs area
-	def exists(self):
-		return os.access(self.path, os.F_OK)
+    # exists() -- to see if the file exists in /pnfs area
+    def exists(self):
+        return os.access(self.path, os.F_OK)
 
-	# create() -- create the file
-	def create(self, pnfsid=None):
-		# do not create if there is no BFID
-		if not self.bfid:
-			return
-		if not self.exists() and self.consistent():
-			f = file_utils.open(self.path, 'w',
-                                            unstable_filesystem=True)
-			f.close()
-			self.update(pnfsid)
+    # create() -- create the file
+    def create(self, pnfsid=None):
+        # do not create if there is no BFID
+        if not self.bfid:
+            return
+        if not self.exists() and self.consistent():
+            f = file_utils.open(self.path, 'w',
+                                unstable_filesystem=True)
+            f.close()
+            self.update(pnfsid)
 
-	# update_bfid(bfid) -- change the bfid
-	def update_bfid(self, bfid):
-		if bfid != self.bfid:
-			self.bfid = bfid
-			self.update()
+    # update_bfid(bfid) -- change the bfid
+    def update_bfid(self, bfid):
+        if bfid != self.bfid:
+            self.bfid = bfid
+            self.update()
 
-	# set() -- set values
-	def set(self, file):
-		changed = 0
-		res = None
-		if file.has_key('external_label'):
-			self.volume = file['external_label']
-			changed = 1
-		if file.has_key('location_cookie'):
-			self.location_cookie = file['location_cookie']
-			changed = 1
-		if file.has_key('size'):
-			self.size = file['size']
-			changed = 1
-		if file.has_key('file_family'):
-			self.file_family = file['file_family']
-			changed = 1
-		if file.has_key('pnfs_mapname'):
-			self.volmap = file['pnfs_mapname']
-			changed = 1
-		if file.has_key('pnfsid'):
-			self.pnfs_id = file['pnfsid']
-			changed = 1
-		if file.has_key('pnfsvid'):
-			self.pnfs_vid = file['pnfsvid']
-			changed = 1
-		if file.has_key('bfid'):
-			self.bfid = file['bfid']
-			changed = 1
-		if file.has_key('drive'):
-			self.drive = file['drive']
-			changed = 1
-		if file.has_key('pnfs_name0'):
-			self.path = file['pnfs_name0']
-			changed = 1
-		if file.has_key('complete_crc'):
-			self.complete_crc = file['complete_crc']
-			changed = 1
-		if changed:
-			res = self.update()
-		return res
+    # set() -- set values
+    def set(self, file):
+        changed = 0
+        res = None
+        if 'external_label' in file:
+            self.volume = file['external_label']
+            changed = 1
+        if 'location_cookie' in file:
+            self.location_cookie = file['location_cookie']
+            changed = 1
+        if 'size' in file:
+            self.size = file['size']
+            changed = 1
+        if 'file_family' in file:
+            self.file_family = file['file_family']
+            changed = 1
+        if 'pnfs_mapname' in file:
+            self.volmap = file['pnfs_mapname']
+            changed = 1
+        if 'pnfsid' in file:
+            self.pnfs_id = file['pnfsid']
+            changed = 1
+        if 'pnfsvid' in file:
+            self.pnfs_vid = file['pnfsvid']
+            changed = 1
+        if 'bfid' in file:
+            self.bfid = file['bfid']
+            changed = 1
+        if 'drive' in file:
+            self.drive = file['drive']
+            changed = 1
+        if 'pnfs_name0' in file:
+            self.path = file['pnfs_name0']
+            changed = 1
+        if 'complete_crc' in file:
+            self.complete_crc = file['complete_crc']
+            changed = 1
+        if changed:
+            res = self.update()
+        return res
 
 
 ##############################################################################
@@ -5001,23 +5077,23 @@ def do_work(intf):
             else:
                 t=Tag(os.getcwd())
             n=None
-    except OSError, msg:
-        print str(msg)
+    except OSError as msg:
+        print(str(msg))
         return 1
 
     for arg in intf.option_list:
-        if string.replace(arg, "_", "-") in intf.options.keys():
-            arg = string.replace(arg, "-", "_")
+        if arg.replace("_", "-") in list(intf.options.keys()):
+            arg = arg.replace("-", "_")
             for instance in [t, p, n]:
                 if getattr(instance, "p"+arg, None):
                     try:
-                        #Not all functions use/need intf passed in.
-                        rtn = apply(getattr(instance, "p" + arg), ())
+            #Not all functions use/need intf passed in.
+                        rtn = getattr(instance, "p" + arg)(*())
                     except TypeError:
-                        rtn = apply(getattr(instance, "p" + arg), (intf,))
+                        rtn = getattr(instance, "p" + arg)(*(intf,))
                     break
             else:
-                print "p%s not found" % arg
+                print("p%s not found" % arg)
                 rtn = 1
 
     return rtn

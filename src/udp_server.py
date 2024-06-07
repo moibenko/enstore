@@ -5,8 +5,15 @@ Enstore udp server. Enstore command - response commumnications are
 implemented using UDP protocol. This is the server part of enstore UDP
 communications.
 """
+from __future__ import print_function
 
 # system imports
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import range
+from builtins import object
+from future.utils import raise_
 import errno
 import time
 import os
@@ -16,7 +23,7 @@ import socket
 import fcntl
 import types
 import threading
-import cPickle
+import pickle
 
 # enstore imports
 
@@ -45,7 +52,8 @@ else:
     except ImportError:
         can_use_raw = False
 
-class UDPServer:
+
+class UDPServer(object):
     """
     Generic request response server class, for multiple connections.
     Note that the get_request actually reads the data from the socket.
@@ -66,20 +74,19 @@ class UDPServer:
         self.rcv_timeout = receive_timeout   # timeout for get_request in sec.
         self._lock = threading.Lock()
         self.current_id = None
-        self.queue_size = 0L
+        self.queue_size = 0
         self.use_raw = use_raw and can_use_raw
         if use_raw:
-            #self.server_address = server_address
+            # self.server_address = server_address
             if getattr(self, "server_socket", None):
                 self.server_address = server_address
-                pass
             else:
                 ip, port, self.server_socket = udp_common.get_callback(
                     server_address[0], server_address[1])
                 self.server_address = (ip, port)
         else:
             try:
-                #If we already have a server_socket...
+                # If we already have a server_socket...
                 if getattr(self, "server_socket", None):
                     if type(server_address) == type(()) \
                        and type(server_address[0]) == type("") \
@@ -96,23 +103,23 @@ class UDPServer:
                         ip, port, self.server_socket = \
                             udp_common.get_default_callback()
                         self.server_address = (ip, port)
-                #If an address was not specified.
+                # If an address was not specified.
                 elif type(server_address) != type(()) or \
                    (type(server_address) != type(()) and len(server_address) != 2):
-                    ip,port,self.server_socket = udp_common.get_default_callback()
+                    ip, port, self.server_socket = udp_common.get_default_callback()
                     self.server_address = (ip, port)
-                #If an address was specified.
+                # If an address was specified.
                 elif (type(server_address[0]) == type("")
                      and type(server_address[1]) == type(0)):
                     ip, port, self.server_socket = udp_common.get_callback(
                         server_address[0], server_address[1])
                     self.server_address = (ip, port)
-                #If an address was not specified.
+                # If an address was not specified.
                 else:
-                    ip,port,self.server_socket = udp_common.get_default_callback()
+                    ip, port, self.server_socket = udp_common.get_default_callback()
                     self.server_address = (ip, port)
 
-            except socket.error, msg:
+            except socket.error as msg:
                 self.server_address = ("", 0)
                 self.server_socket = None
                 Trace.log(e_errors.ERROR, str(msg))
@@ -122,7 +129,7 @@ class UDPServer:
             cf = host_config.find_config_file()
             if cf:
                 cc = host_config.read_config_file(cf)
-                for i in cc.get('interface', {}).keys():
+                for i in list(cc.get('interface', {}).keys()):
                     self.ipaddrlist.append(cc['interface'][i]['ip'])
         except (socket.error, socket.herror, socket.gaierror):
             self.node_name, self.aliaslist, self.ipaddrlist = \
@@ -131,7 +138,7 @@ class UDPServer:
         # used to recognize UDP retries
         self.request_dict = {}
         # keep requests in request dict for this many seconds
-        #self.request_dict_ttl = 1800
+        # self.request_dict_ttl = 1800
         self.request_dict_ttl = 1000
 
         # set this socket to be closed in case of an exec
@@ -149,7 +156,7 @@ class UDPServer:
         thread = threading.currentThread()
         thread_name = thread.getName()
 
-        print "UDP_SERVER starting in thread",thread_name
+        print("UDP_SERVER starting in thread", thread_name)
 
     def disable_reshuffle(self):
         """
@@ -167,33 +174,37 @@ class UDPServer:
         if self.use_raw:
             self.raw_requests.set_keyword(keyword)
 
-
     # cleanup if we are done with this unique id
+
     def _done_cleanup(self):
-        if self.current_id and self.request_dict.has_key(self.current_id):
+        if self.current_id and self.current_id in self.request_dict:
             try:
                 del self.request_dict[self.current_id]
             except KeyError:
                 pass
 
-
     def __del__(self):
-        self.server_socket.close()
+        try:
+            self.server_socket.close()
+        except AttributeError:
+            pass
         self.server_socket = None
 
     def purge_stale_entries(self):
         stale_time = time.time() - self.request_dict_ttl
         count = 0
-        for key, value in self.request_dict.items():
-            if  value[2] < stale_time:
+        for key, value in list(self.request_dict.items()):
+            if value[2] < stale_time:
                 try:
                     del self.request_dict[key]
-                    count = count+1
+                    count = count + 1
                 except KeyError:
                     exc, msg = sys.exc_info()[:2]
-                    Trace.trace(20, "purge_stale_entries: error %s %s"%(exc, msg))
+                    Trace.trace(
+    20, "purge_stale_entries: error %s %s" %
+     (exc, msg))
 
-        Trace.trace(20,"purge_stale_entries count=%d"%(count,))
+        Trace.trace(20, "purge_stale_entries count=%d" % (count,))
 
     def server_bind(self):
         """
@@ -202,7 +213,7 @@ class UDPServer:
         May be overridden.
         """
 
-        Trace.trace(16,"server_bind add %s"%(self.server_address,))
+        Trace.trace(16, "server_bind add %s" % (self.server_address,))
         self.server_socket.bind(self.server_address)
 
     def handle_timeout(self):
@@ -250,40 +261,40 @@ class UDPServer:
            3. Time out where there is no string or r.a.
         """
 
-        request, client_addr = '',()
+        request, client_addr = '', ()
         r = [self.server_socket]
 
         rcv_timeout = self.rcv_timeout
         r, w, x, remaining_time = cleanUDP.Select(r, [], [], rcv_timeout)
 
         if not r + w:
-            return ('',()) #timeout
+            return ('', ())  # timeout
 
         for fd in r:
             if fd == self.server_socket:
 
                 req, client_addr = self.server_socket.recvfrom(
                     self.max_packet_size, self.rcv_timeout)
-                #print "REQ", req
+                req = req.decode().strip()
                 try:
                     request, inCRC = udp_common.r_eval(req)
-                    Trace.trace(5,"_get_message: %s"%(request,))
-                except ValueError, detail:
-                    Trace.trace(5, "must be event_relay msg %s"%(detail,))
+                    #request = request.decode()
+                    Trace.trace(5, "_get_message: %s" % (request,))
+                except ValueError as detail:
+                    Trace.trace(5, "must be event_relay msg %s" % (detail,))
                     # must be an event relay message
                     # it has a different format
                     try:
                         request = udp_common.r_eval(req)
-                        raise NameError, request # dispatching_worker will take care of this
+                        raise_(NameError, request)  # dispatching_worker will take care of this
                     except:
                         exc, msg = sys.exc_info()[:2]
-                        # reraise exception
-                        raise exc, msg
+                        raise_(exc, msg)
 
                 except (SyntaxError, TypeError):
-                    #If TypeError occurs, keep retrying.  Most likely it is
+                    # If TypeError occurs, keep retrying.  Most likely it is
                     # an "expected string without null bytes".
-                    #If SyntaxError occurs, also keep trying, most likely
+                    # If SyntaxError occurs, also keep trying, most likely
                     # it is from and empty UDP datagram.
                     exc, msg = sys.exc_info()[:2]
                     try:
@@ -294,52 +305,53 @@ class UDPServer:
                                   (exc, msg, client_addr, request)
                     Trace.log(10, message)
 
-                    #Set these to something.
+                    # Set these to something.
                     request, inCRC = (None, None)
 
                 if request == None:
                     return (request, client_addr)
                 # calculate CRC
-                crc = checksum.adler32(0L, request, len(request))
-                if (crc != inCRC) :
+                crc = checksum.adler32(0, request, len(request))
+                
+                if (crc != inCRC):
                     Trace.log(e_errors.INFO,
                               "BAD CRC request: %s " % (request,))
                     Trace.log(e_errors.INFO,
                               "CRC: %s calculated CRC: %s" %
                               (repr(inCRC), repr(crc)))
 
-                    request=None
+                    request = None
 
         return (request, client_addr)
 
     def _get_raw_message(self):
-       """
-       Get message received by raw UDP module
+        """
+        Get message received by raw UDP module
 
-       :rtype: :obj:`tuple` - (:obj:`str` - stringified ticket, after CRC is removed,
-                              :obj:`tuple` (:obj:`str` - host IP, :obj:`int` - port number) - client address
+        :rtype: :obj:`tuple` - (:obj:`str` - stringified ticket, after CRC is removed,
+                               :obj:`tuple` (:obj:`str` - host IP, :obj:`int` - port number) - client address
 
-       There are three cases:
-           1. Read from socket where crc is stripped and return address is valid.
-           2. Read from pipe where there is no crc and no r.a.
-           3. Time out where there is no string or r.a.
+        There are three cases:
+            1. Read from socket where crc is stripped and return address is valid.
+            2. Read from pipe where there is no crc and no r.a.
+            3. Time out where there is no string or r.a.
 
-       """
+        """
 
-       request, client_addr = '',()
-       rc = self.raw_requests.get()
-       if rc:
-           self.queue_size = self.raw_requests.queue_size
-           #Trace.trace(5, "REQ %s %s %s"%(self.server_address, request,self.queue_size))
-           Trace.trace(5, "REQ %s %s"%(rc[1], self.queue_size))
-       else:
-           rc = ('',())
-           if self.queue_size != 0:
-               print "Nonsense rc=%s size=%s"%(rc, self.queue_size)
-               sys.exit(1)
+        request, client_addr = '',()
+        rc = self.raw_requests.get()
+        if rc:
+            self.queue_size = self.raw_requests.queue_size
+            #Trace.trace(5, "REQ %s %s %s"%(self.server_address, request,self.queue_size))
+            Trace.trace(5, "REQ %s %s"%(rc[1], self.queue_size))
+        else:
+            rc = ('',())
+            if self.queue_size != 0:
+                print("Nonsense rc=%s size=%s"%(rc, self.queue_size))
+                sys.exit(1)
 
-       Trace.trace(5,"_get_raw_message %s %s" % (rc[0], rc[1]))
-       return rc
+        Trace.trace(5,"_get_raw_message %s %s" % (rc[0], rc[1]))
+        return rc
 
     def get_message(self):
         """
@@ -383,11 +395,12 @@ class UDPServer:
         :rtype: :obj:`dict` - ticket
 
         """
-
         try:
+            if isinstance(request, bytes):
+                request = request.decode().strip()
             idn, number, ticket = udp_common.r_eval(request)
             #Trace.log(e_errors.INFO, "process_request idn %s number %s ticket %s"%(idn, number, ticket))
-        except (NameError, ValueError), detail:
+        except (NameError, ValueError) as detail:
             Trace.trace(5, "must be an event relay message %s"%(detail,))
             # must be an event relay message
             # it has a different format
@@ -400,8 +413,7 @@ class UDPServer:
             except:
                 exc, msg = sys.exc_info()[:2]
                 Trace.trace(5, "will reraise %s %s"%(exc, msg))
-                # reraise exception
-                raise exc, msg
+                raise_(exc, msg)
         except (SyntaxError, TypeError):
             #If TypeError occurs, keep retrying.  Most likely it is
             # an "expected string without null bytes".
@@ -420,11 +432,11 @@ class UDPServer:
             #Set these to something.
             idn, number, ticket = (None, None, None)
 
-        if idn == None or type(ticket) != types.DictType:
+        if idn == None or type(ticket) != dict:
             Trace.log(e_errors.ERROR,
                       "Malformed request from %s %s" %
                       (client_address, request,))
-            reply = (0L,{'status': (e_errors.MALFORMED, None)},None)
+            reply = (0,{'status': (e_errors.MALFORMED, None)},None)
             self.server_socket.sendto(repr(reply), client_address)
             return None
 
@@ -448,7 +460,7 @@ class UDPServer:
                              client_number,
                              current_id)
 
-        if self.request_dict.has_key(idn):
+        if idn in self.request_dict:
 
             # UDPClient resends messages if it doesn't get a response
             # from us, see it we've already handled this request earlier. We've
@@ -490,8 +502,7 @@ class UDPServer:
         :type ticket: :obj:`dict`
         :arg ticket: ticket to send back to client
         """
-
-        if type(ticket) == types.DictType and ticket.get("r_a", None):
+        if type(ticket) == dict and ticket.get("r_a", None):
             reply_address = ticket["r_a"][0]
             client_number = ticket["r_a"][1]
             current_id    = ticket["r_a"][2]
@@ -505,7 +516,7 @@ class UDPServer:
                 current_id    = self.current_id
             except AttributeError:
                 exc, msg = sys.exc_info()[:2]
-                print "reply_to_caller: error", exc, msg
+                print("reply_to_caller: error", exc, msg)
                 return
 
         reply = (client_number, ticket, time.time())
@@ -520,7 +531,7 @@ class UDPServer:
         :type interface_ip: :obj:`str`
         :arg interface_ip: client IP
         """
-        if type(ticket) == types.DictType and ticket.get("r_a", None):
+        if type(ticket) == dict and ticket.get("r_a", None):
             reply_address = ticket["r_a"][0]
             client_number = ticket["r_a"][1]
             current_id    = ticket["r_a"][2]
@@ -557,7 +568,7 @@ class UDPServer:
                 # I do not know the reason
                 # but this should help the code to proceed
                 #list_copy = copy.deepcopy(list)
-                list_copy = cPickle.loads(cPickle.dumps(list, -1)) # this about 5 times faster than deepcopy
+                list_copy = pickle.loads(pickle.dumps(list, -1)) # this about 5 times faster than deepcopy
             except:
                 list_copy = None
                 Trace.handle_error()
@@ -597,7 +608,7 @@ class UDPServer:
         except:
             ### A long message can now be handled by generic_client and
             ### dispatching_worker.  Don't log a traceback here.
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
     def reply_with_address(self, ticket):
         """
@@ -624,7 +635,7 @@ if __name__ == "__main__":   # pragma: no cover
     def monitor(udp_srv):
         import subprocess
         import os
-        print "udp_server monitor starting"
+        print("udp_server monitor starting")
         rqs1=0.
         t1=time.time()
         first = True
@@ -655,7 +666,7 @@ if __name__ == "__main__":   # pragma: no cover
             l=result
             l.strip(' ')
             if l.find('errors') != -1:
-                r_err = long(l.split(' ')[4])
+                r_err = int(l.split(' ')[4])
             t=time.time()
             if first:
                 first = False
@@ -687,10 +698,10 @@ if __name__ == "__main__":   # pragma: no cover
     if len(sys.argv) > 1:
         monitor_server = True
     else:
-       monitor_server = False
-    udpsrv = UDPServer(('', 7700), receive_timeout = 60.0, use_raw=1)
-    #udpsrv = UDPServer(('', 7700), receive_timeout = 60.0)
-
+        monitor_server = False
+    #udpsrv = UDPServer(('', 7700), receive_timeout = 60.0, use_raw=1)
+    udpsrv = UDPServer(('', 7700), receive_timeout = 60.0)
+    Trace.do_print([5, 6, 10])
     if udpsrv.use_raw:
         udpsrv.set_out_file()
         # start receiver thread or process
@@ -709,8 +720,8 @@ if __name__ == "__main__":   # pragma: no cover
         except KeyboardInterrupt:
             sys.exit(0)
         if ticket:
-            #print "Message %s"%(ticket,)
+            print("Message %s"%(ticket,))
             udpsrv.reply_to_caller(ticket)
             #break
     del(udpsrv)
-    print "finished"
+    print("finished")

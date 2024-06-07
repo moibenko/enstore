@@ -27,6 +27,7 @@ WEB_SUB_DIRECTORY = enstore_constants.FILES_RW_SEP_PLOTS_SUBDIR
 """Subdirectory in which to write plots. This constant is also referenced by
 the :mod:`enstore_make_plot_page` module."""
 
+
 class FilesRWSepPlotterModule(enstore_plotter_module.EnstorePlotterModule):
     """Plot number of files read and written per mount versus date, separately
     for each unique drive type and storage group combination."""
@@ -93,12 +94,11 @@ class FilesRWSepPlotterModule(enstore_plotter_module.EnstorePlotterModule):
         for row in res:
             row = row.get
             counts.setdefault(row('drive'), collections.OrderedDict()) \
-                  .setdefault(row('storage_group'), {}) \
-                   [row('date')] = {'reads': row('reads_per_dismount'),
-                                    'writes': row('writes_per_dismount'),
-                                    'reads+writes':
-                                        row('reads_and_writes_per_dismount')
-                                    }
+                  .setdefault(row('storage_group'), {})[row('date')] = {'reads': row('reads_per_dismount'),
+                                                                        'writes': row('writes_per_dismount'),
+                                                                        'reads+writes':
+                                                                        row('reads_and_writes_per_dismount')
+                                                                        }
 
         db.close()
         self.counts = counts
@@ -128,9 +128,9 @@ class FilesRWSepPlotterModule(enstore_plotter_module.EnstorePlotterModule):
                                                                 now_time_str))
 
         # Make plots
-        for action in ('reads', 'writes'): #, 'reads+writes'):
-            for drive, drive_dict in self.counts.iteritems():
-                for sg, sg_dict in drive_dict.iteritems():
+        for action in ('reads', 'writes'):  # , 'reads+writes'):
+            for drive, drive_dict in list(self.counts.items()):
+                for sg, sg_dict in list(drive_dict.items()):
                     self._write_plot(action, drive, sg, sg_dict)
 
     def _write_plot(self, action, drive, sg, sg_dict):
@@ -202,7 +202,7 @@ class FilesRWSepPlotterModule(enstore_plotter_module.EnstorePlotterModule):
 
             # Fill histogram
             if plot_type == 'basic':
-                for datetime_str, datetime_dict in sg_dict.iteritems():
+                for datetime_str, datetime_dict in sg_dict.items():
                     secs = time.mktime(time.strptime(datetime_str,
                                                      '%Y-%m-%d %H:%M:%S'))
                     secs -= enstore_constants.SECS_PER_HALF_DAY

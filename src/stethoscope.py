@@ -4,7 +4,6 @@ import select
 import time
 import sys
 import os
-import string
 
 import event_relay_client
 import event_relay_messages
@@ -13,7 +12,7 @@ import generic_client
 import option
 
 NINETY_SECONDS = 90
-    
+
 
 def do_real_work(intf):
 
@@ -25,7 +24,7 @@ def do_real_work(intf):
     # event loop - wait for events for 90 seconds, we should
     # receive at least 1 alive from all entered servers. if
     # not raise an alarm.
-    while 1:
+    while True:
         readable, junk, junk = select.select([erc.sock], [], [], 5)
         now = time.time()
         if readable:
@@ -33,7 +32,7 @@ def do_real_work(intf):
                 msg = enstore_erc_functions.read_erc(erc)
                 if msg and msg.type == event_relay_messages.ALIVE:
                     # get the server
-                    alive_server = string.split(msg.extra_info, " ")[2]
+                    alive_server = msg.extra_info.split(" ")[2]
                     if alive_server in intf.servers:
                         intf.servers.remove(alive_server)
         if now - start > NINETY_SECONDS or intf.servers == []:
@@ -43,15 +42,16 @@ def do_real_work(intf):
             if intf.servers:
                 # there are servers for which we did not get an
                 # alive.
-                os.system("%s %s"%(intf.filename, string.join(intf.servers)))
+                os.system("%s %s" % (intf.filename, ' '.join(intf.servers)))
             return
+
 
 class StethoscopeInterface(generic_client.GenericClientInterface):
 
     def __init__(self, args=sys.argv, user_mode=1):
         self.servers = None
         self.filename = None
-	generic_client.GenericClientInterface.__init__(self, args=args,
+        generic_client.GenericClientInterface.__init__(self, args=args,
                                                        user_mode=user_mode)
 
     stethoscope_options = {}
@@ -66,10 +66,10 @@ class StethoscopeInterface(generic_client.GenericClientInterface):
             self.print_usage("Expected filename and server list parameters")
         else:
             self.filename = self.args[0]
-            self.servers = string.split(self.args[1], " ")
+            self.servers = self.args[1].split()
 
     def valid_dictionaries(self):
-	return (self.help_options, self.stethoscope_options)
+        return (self.help_options, self.stethoscope_options)
 
 
 if __name__ == "__main__":   # pragma: no cover

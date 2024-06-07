@@ -6,26 +6,30 @@
 #
 ###############################################################################
 # system imports
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from future.utils import raise_
 import sys
 import string
 import time
 import errno
 import socket
 import re
-#import select
+# import select
 import pprint
 
 # enstore imports
-#import callback
+# import callback
 import hostaddr
 import option
 import generic_client
 import backup_client
-#import udp_client
+# import udp_client
 import Trace
 import e_errors
 import file_clerk_client
-import cPickle
+import pickle
 import info_client
 import enstore_constants
 from en_eval import en_eval
@@ -47,7 +51,7 @@ def timestamp2time(s):
         tt[-1] = -1
         return time.mktime(tuple(tt))
 
-#turn byte count into a nicely formatted string
+# turn byte count into a nicely formatted string
 
 
 def capacity_str(x, mode="GB"):
@@ -80,8 +84,8 @@ TB = 1000000000000
 
 
 def show_volume_header():
-    print "%-16s %9s   %-41s   %-16s %-36s %-12s" % (
-        "label", "avail.", "system_inhibit", "library", "volume_family", "comment")
+    print("%-16s %9s   %-41s   %-16s %-36s %-12s" % (
+        "label", "avail.", "system_inhibit", "library", "volume_family", "comment"))
 
 
 def show_volume(v):
@@ -95,17 +99,17 @@ def show_volume(v):
     if si_time[1] > 0:
         si1t = time.strftime("%m%d-%H%M",
                              time.localtime(si_time[1]))
-    print "%-16s %9s   (%-10s %9s %-8s %9s)   %-16s %-36s" % (
+    print("%-16s %9s   (%-10s %9s %-8s %9s)   %-16s %-36s" % (
         v['label'], capacity_str(v['remaining_bytes']),
         v['system_inhibit_0'], si0t,
         v['system_inhibit_1'], si1t,
         # v['user_inhibit_0'],v['user_inhibit_1'],
         v['library'],
-        v['storage_group'] + '.' + v['file_family'] + '.' + v['wrapper']),
+        v['storage_group'] + '.' + v['file_family'] + '.' + v['wrapper']), end=' ')
     if v['comment']:
-        print v['comment']
+        print(v['comment'])
     else:
-        print
+        print()
 
 
 re_split_string = re.compile("[a-zA-Z]+|[0-9]+")
@@ -117,13 +121,13 @@ mult_b = {'m': MiB, 'k': KiB, 'g': GiB, 't': TiB}
 def my_atol(s):
     s_orig = s
     if not s:
-        raise ValueError, s_orig
+        raise_(ValueError, s_orig)
     array = re_split_string.findall(s.lower())
     length = len(array)
     if length < 1 or length > 2:
-        raise ValueError, s_orig
+        raise_(ValueError, s_orig)
     if length == 1:
-        return long(float(array[0]))
+        return int(float(array[0]))
     value = array[0]
     unit = array[1]
     mult = 1
@@ -132,10 +136,10 @@ def my_atol(s):
     elif unit in ["l", "b", "k", "m", "g", "t", "lb", "kb", "mb", "gb", "tb"]:
         try:
             mult = mult_d[unit[0]]
-        except:
-            raise ValueError, s_orig
+        except BaseException:
+            raise_(ValueError, s_orig)
     else:
-        raise ValueError, s_orig
+        raise_(ValueError, s_orig)
     x = float(value) * mult
     return x
 
@@ -147,25 +151,25 @@ def my_atol(s):
 
 def sumup(a):
     # symple type?
-    if type(a) == type(1) or type(a) == type(1L) or \
-            type(a) == type(1.0):  # number
+    if isinstance(a, type(1)) or isinstance(a, type(1)) or \
+            isinstance(a, type(1.0)):  # number
         return a
-    elif type(a) == type("a"):  # string or character
-        if len(a) == 1:		# character
+    elif isinstance(a, type("a")):  # string or character
+        if len(a) == 1:         # character
             return ord(a)
-        else:			# string
+        else:                   # string
             sumation = 0
             for i in a:
                 sumation = sumation + ord(i)
             return sumation
-    elif type(a) == type([]):  # list
+    elif isinstance(a, type([])):  # list
         sumation = 0
         for i in a:
             sumation = sumation + sumup(i)
         return sumation
-    elif type(a) == type({}):  # dictionary
+    elif isinstance(a, type({})):  # dictionary
         sumation = 0
-        for i in a.keys():
+        for i in list(a.keys()):
             sumation = sumation + sumup(i) + sumup(a[i])
         return sumation
 
@@ -193,10 +197,10 @@ def check_label(label):
         return 1
 
     # now check the rest of the rules
-    if not label[0] in string.uppercase or \
-            not label[1] in string.uppercase or \
-            not label[2] in string.uppercase + string.digits or \
-            not label[3] in string.uppercase + string.digits or \
+    if not label[0] in string.ascii_uppercase or \
+            not label[1] in string.ascii_uppercase or \
+            not label[2] in string.ascii_uppercase + string.digits or \
+            not label[3] in string.ascii_uppercase + string.digits or \
             not label[4] in string.digits or \
             not label[5] in string.digits:
         return 1
@@ -209,18 +213,18 @@ def check_label(label):
 def extract_volume(v):    # v is a string
     system_inhibit = ["", ""]
     si_time = (0, 0)
-    t = string.split(v, '(')
+    t = v.split('(')
     t1 = t[0]
-    label, avail = string.split(t1)
-    tt = string.split(t[1], ')')
-    ttt = string.split(tt[1])
+    label, avail = t1.split()
+    tt = t[1].split(')')
+    ttt = tt[1].split()
     library = ttt[0]
     volume_family = ttt[1]
     if len(ttt) == 3:
         comment = ttt[2]
     else:
         comment = ""
-    t = string.split(tt[0])
+    t = tt[0].split()
     system_inhibit = [t[0], ""]
     if len(t) == 2:
         system_inhibit[1] = t[1]
@@ -251,7 +255,7 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
     def __init__(self, csc, server_address=None, flags=0, logc=None,
                  alarmc=None, rcv_timeout=RCV_TIMEOUT,
                  rcv_tries=RCV_TRIES):
-        #generic_client.GenericClient.__init__(self,csc,MY_NAME,server_address,
+        # generic_client.GenericClient.__init__(self,csc,MY_NAME,server_address,
         #                                      flags=flags, logc=logc,
         #                                      alarmc=alarmc,
         #                                      rcv_timeout=rcv_timeout,
@@ -264,7 +268,7 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
                                                rcv_timeout=rcv_timeout,
                                                rcv_tries=rcv_tries,
                                                server_name=MY_SERVER)
-        #if self.server_address == None:
+        # if self.server_address == None:
         #    self.server_address = self.get_server_address(
         #        MY_SERVER, rcv_timeout=rcv_timeout, tries=rcv_tries)
 
@@ -277,7 +281,8 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
             external_label,        # label as known to the system
             capacity_bytes,        #
             eod_cookie="none",  # code for seeking to eod
-            user_inhibit=["none", "none"],  # 0:"none" | "readonly" | "NOACCESS"
+            # 0:"none" | "readonly" | "NOACCESS"
+            user_inhibit=["none", "none"],
             error_inhibit="none",  # "none" | "readonly" | "NOACCESS" | "writing"
             # lesser access is specified as
             #       we find media errors,
@@ -294,7 +299,8 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
             wrapper="cpio_odc",  # kind of wrapper for volume
             blocksize=-1,        # blocksize (-1 =  media type specifies)
             non_del_files=0,     # non-deleted files
-            system_inhibit=["none", "none"],  # 0:"none" | "writing??" | "NOACCESS", "DELETED
+            # 0:"none" | "writing??" | "NOACCESS", "DELETED
+            system_inhibit=["none", "none"],
             # 1:"none" | "readonly" | "full"
             remaining_bytes=None,
             timeout=60, retry=1
@@ -328,16 +334,17 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
                   'non_del_files': non_del_files,
                   'system_inhibit': system_inhibit
                   }
-        if remaining_bytes != None:
+        if remaining_bytes is not None:
             ticket['remaining_bytes'] = remaining_bytes
         # no '.' are allowed in storage_group, file_family and wrapper
         for item in ('storage_group', 'file_family', 'wrapper'):
             if '.' in ticket[item]:
-                print "No '.' allowed in %s" % (item,)
+                print("No '.' allowed in %s" % (item,))
                 break
         else:
             return self.send(ticket, timeout, retry)
-        return {'status': (e_errors.NOTALLOWED, "No '.' allowed in %s" % (item,))}
+        return {'status': (e_errors.NOTALLOWED,
+                           "No '.' allowed in %s" % (item,))}
 
     def show_state(self):
         return self.send({'work': 'show_state'})
@@ -354,8 +361,10 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
 
     # delete a volume from the stockpile
     def restore(self, external_label, restore=0, timeout=300, retry=1):
-        if restore: restore_vm = "yes"
-        else: restore_vm = "no"
+        if restore:
+            restore_vm = "yes"
+        else:
+            restore_vm = "no"
         ticket = {'work': 'restorevol',
                   'external_label': external_label,
                   "restore": restore_vm}
@@ -363,7 +372,7 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
 
     # rebuild sg scounts
     def rebuild_sg_count(self, timeout=300, retry=1):
-        return(self.send({'work': 'rebuild_sg_count'}, timeout, retry))
+        return (self.send({'work': 'rebuild_sg_count'}, timeout, retry))
 
     # set sg count
     def set_sg_count(self, lib, sg, count=0, timeout=60, retry=5):
@@ -371,14 +380,14 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
                   'library': lib,
                   'storage_group': sg,
                   'count': count}
-        return(self.send(ticket, timeout, retry))
+        return (self.send(ticket, timeout, retry))
 
     # get sg count
     def get_sg_count(self, lib, sg, timeout=60, retry=10):
         ticket = {'work': 'get_sg_count',
                   'library': lib,
                   'storage_group': sg}
-        return(self.send(ticket, timeout, retry))
+        return (self.send(ticket, timeout, retry))
 
     # what is the current status of a specified volume?
     def inquire_vol(self, external_label, timeout=60, retry=10):
@@ -498,7 +507,8 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
         return self.send(ticket, timeout, retry)
 
     # clear any inhibits on the volume
-    def clr_system_inhibit(self, external_label, what=None, pos=0, timeout=60, retry=10):
+    def clr_system_inhibit(self, external_label, what=None,
+                           pos=0, timeout=60, retry=10):
         ticket = {'work': 'clr_system_inhibit',
                   'external_label': external_label,
                   'inhibit': what,
@@ -519,7 +529,8 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
         return self.send(ticket, timeout, retry)
 
     # this many bytes left - update database
-    def set_remaining_bytes(self, external_label, remaining_bytes, eod_cookie, bfid=None, timeout=0, retry=0):
+    def set_remaining_bytes(self, external_label, remaining_bytes,
+                            eod_cookie, bfid=None, timeout=0, retry=0):
         # Note - bfid should be set if we added a new file
         ticket = {'work': 'set_remaining_bytes',
                   'external_label': external_label,
@@ -529,7 +540,8 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
         return self.send(ticket, timeout, retry)
 
     # update the counts in the database
-    def update_counts(self, external_label, wr_err=0, rd_err=0, wr_access=0, rd_access=0, mounts=0, timeout=300, retry=1):
+    def update_counts(self, external_label, wr_err=0, rd_err=0,
+                      wr_access=0, rd_access=0, mounts=0, timeout=300, retry=1):
         ticket = {'work': 'update_counts',
                   'external_label': external_label,
                   'wr_err': wr_err,
@@ -541,7 +553,8 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
         return self.send(ticket, timeout, retry)
 
     # Check if volume is available
-    def is_vol_available(self, work, external_label, family=None, size=0, timeout=60, retry=10):
+    def is_vol_available(self, work, external_label,
+                         family=None, size=0, timeout=60, retry=10):
         ticket = {'work': 'is_vol_available',
                   'action': work,
                   'volume_family': family,
@@ -564,7 +577,7 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
                   'library': library,
                   'min_remaining_bytes': min_remaining_bytes,
                   'volume_family': volume_family,
-                  'vol_veto_list': `vol_veto_list`,
+                  'vol_veto_list': repr(vol_veto_list),
                   'first_found': first_found,
                   'mover': mover,
                   'use_exact_match': exact_match}
@@ -572,7 +585,7 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
         r = self.send(ticket, timeout, retry)
         Trace.trace(22, "next_write_volume:rc=%s" % (r,))
 
-        #return self.send(ticket,timeout,retry)
+        # return self.send(ticket,timeout,retry)
         return r
 
     # check if specific volume can be used for write
@@ -586,7 +599,8 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
 
         return self.send(ticket, timeout, retry)
 
-    # clear the pause flag for the LM and all LMs that relate to the Media Changer
+    # clear the pause flag for the LM and all LMs that relate to the Media
+    # Changer
     def clear_lm_pause(self, library_manager, timeout=60, retry=10):
         ticket = {'work': 'clear_lm_pause',
                   'library': library_manager
@@ -602,7 +616,7 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
     def delete_volume(self, vol, check_state=None, timeout=60, retry=10):
         ticket = {'work': 'delete_volume',
                   'external_label': vol}
-        if check_state != None:
+        if check_state is not None:
             ticket['check_state'] = check_state
         return self.send(ticket, timeout, retry)
 
@@ -616,7 +630,8 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
                   'external_label': vol}
         return self.send(ticket, timeout, retry)
 
-    def recycle_volume(self, vol, clear_sg=False, reset_declared=True, timeout=300, retry=1):
+    def recycle_volume(self, vol, clear_sg=False,
+                       reset_declared=True, timeout=300, retry=1):
         ticket = {'work': 'recycle_volume',
                   'external_label': vol,
                   'reset_declared': reset_declared}
@@ -660,7 +675,7 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
                        'src_vol': src_vol,
                        'dst_vol': dst_vol,
                        }, timeout, retry)
-        if r.has_key('work'):
+        if 'work' in r:
             del r['work']
         return r
 
@@ -670,7 +685,7 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
                        'src_vol': src_vol,
                        'dst_vol': dst_vol,
                        }, timeout, retry)
-        if r.has_key('work'):
+        if 'work' in r:
             del r['work']
         return r
 
@@ -679,7 +694,7 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
                        'src_vol': src_vol,
                        'dst_vol': dst_vol,
                        }, timeout, retry)
-        if r.has_key('work'):
+        if 'work' in r:
             del r['work']
         return r
 
@@ -689,7 +704,7 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
                        'src_vol': src_vol,
                        'dst_vol': dst_vol,
                        }, timeout, retry)
-        if r.has_key('work'):
+        if 'work' in r:
             del r['work']
         return r
 
@@ -697,8 +712,8 @@ class VolumeClerkClient(info_client.volumeInfoMethods,  # generic_client.Generic
 class VolumeClerkClientInterface(generic_client.GenericClientInterface):
 
     def __init__(self, args=sys.argv, user_mode=1):
-        #self.do_parse = flag
-        #self.restricted_opts = opts
+        # self.do_parse = flag
+        # self.restricted_opts = opts
         self.alive_rcv_timeout = 0
         self.alive_retries = 0
         self.clear = ""
@@ -1118,7 +1133,12 @@ class VolumeClerkClientInterface(generic_client.GenericClientInterface):
 
 def do_work(intf):
     # get a volume clerk client
-    vcc = VolumeClerkClient((intf.config_host, intf.config_port), None, intf.alive_rcv_timeout, intf.alive_retries)
+    vcc = VolumeClerkClient(
+        (intf.config_host,
+         intf.config_port),
+        None,
+        intf.alive_rcv_timeout,
+        intf.alive_retries)
     Trace.init(vcc.get_name(MY_NAME))
 
     ifc = info_client.infoClient(vcc.csc)
@@ -1134,12 +1154,12 @@ def do_work(intf):
     elif intf.show_state:
         ticket = vcc.show_state()
         w = 0
-        for i in ticket['state'].keys():
+        for i in list(ticket['state'].keys()):
             if len(i) > w:
                 w = len(i)
         fmt = "%%%ds = %%s" % (w)
-        for i in ticket['state'].keys():
-            print fmt % (i, ticket['state'][i])
+        for i in list(ticket['state'].keys()):
+            print(fmt % (i, ticket['state'][i]))
     elif intf.vols:
         # optional argument
         nargs = len(intf.args)
@@ -1156,11 +1176,11 @@ def do_work(intf):
                 key = None
                 in_state = intf.args[0]
             else:
-                print "Wrong number of arguments"
-                print "usage: --vols"
-                print "       --vols state (will match system_inhibit)"
-                print "       --vols key state"
-                print "       --vols key state not (not in state)"
+                print("Wrong number of arguments")
+                print("usage: --vols")
+                print("       --vols state (will match system_inhibit)")
+                print("       --vols key state")
+                print("       --vols key state not (not in state)")
                 return
         else:
             key = None
@@ -1171,16 +1191,16 @@ def do_work(intf):
             ticket = ifc.get_vols(key, in_state, not_cond)
 
         # print out the answer
-        if ticket.has_key("header"):		# full info
+        if "header" in ticket:            # full info
             show_volume_header()
-            print
+            print()
             for v in ticket["volumes"]:
                 show_volume(v)
         else:
             vlist = ''
             for v in ticket.get("volumes", []):
                 vlist = vlist + v['label'] + " "
-            print vlist
+            print(vlist)
 
     elif intf.pvols:
         if intf.force:
@@ -1190,12 +1210,12 @@ def do_work(intf):
         problem_vol = {}
         for i in ticket['volumes']:
             if i['system_inhibit_0'] != 'none':
-                if problem_vol.has_key(i['system_inhibit_0']):
+                if i['system_inhibit_0'] in problem_vol:
                     problem_vol[i['system_inhibit_0']].append(i)
                 else:
                     problem_vol[i['system_inhibit_0']] = [i]
             if i['system_inhibit_1'] != 'none':
-                if problem_vol.has_key(i['system_inhibit_1']):
+                if i['system_inhibit_1'] in problem_vol:
                     problem_vol[i['system_inhibit_1']].append(i)
                 else:
                     problem_vol[i['system_inhibit_1']] = [i]
@@ -1203,13 +1223,13 @@ def do_work(intf):
         if intf.just:
             interested = intf.args
         else:
-            interested = problem_vol.keys()
-        for k in problem_vol.keys():
+            interested = list(problem_vol.keys())
+        for k in list(problem_vol.keys()):
             if k in interested:
-                print '====', k
+                print('====', k)
                 for v in problem_vol[k]:
                     show_volume(v)
-                print
+                print()
     elif intf.labels:
         if intf.force:
             ticket = vcc.get_vol_list()
@@ -1217,10 +1237,11 @@ def do_work(intf):
             ticket = ifc.get_vol_list()
         if ticket['status'][0] == e_errors.OK:
             for i in ticket['volumes']:
-                print i
+                print(i)
     elif intf.next:
         ticket = vcc.next_write_volume(intf.args[0],  # library
-                                       long(intf.args[1]),  # min_remaining_byte
+                                       # min_remaining_byte
+                                       int(intf.args[1]),
                                        intf.args[2],  # volume_family
                                        [],  # vol_veto_list
                                        1)  # first_found
@@ -1235,23 +1256,33 @@ def do_work(intf):
             ticket = ifc.list_sg_count()
         if ticket['status'][0] == e_errors.OK:
             sgcnt = ticket['sgcnt']
-            sk = sgcnt.keys()
-            sk.sort()
-            print "%12s %16s %10s" % ('library', 'storage group', 'allocated')
-            print '=' * 40
+            sk = sorted(sgcnt.keys())
+            print("%12s %16s %10s" % ('library', 'storage group', 'allocated'))
+            print('=' * 40)
             for i in sk:
-                lib, sg = string.split(i, ".")
-                print "%12s %16s %10d" % (lib, sg, sgcnt[i])
+                lib, sg = i.split(".")
+                print("%12s %16s %10d" % (lib, sg, sgcnt[i]))
     elif intf.get_sg_count:
         if intf.force:
             ticket = vcc.get_sg_count(intf.get_sg_count, intf.storage_group)
         else:
             ticket = ifc.get_sg_count(intf.get_sg_count, intf.storage_group)
-        print "%12s %16s %10d" % (ticket['library'], ticket['storage_group'], ticket['count'])
+        print(
+            "%12s %16s %10d" %
+            (ticket['library'],
+             ticket['storage_group'],
+                ticket['count']))
     elif intf.set_sg_count:
-        ticket = vcc.set_sg_count(intf.set_sg_count, intf.storage_group, intf.count)
+        ticket = vcc.set_sg_count(
+            intf.set_sg_count,
+            intf.storage_group,
+            intf.count)
         if ticket['status'][0] == e_errors.OK:
-            print "%12s %16s %10d" % (ticket['library'], ticket['storage_group'], ticket['count'])
+            print(
+                "%12s %16s %10d" %
+                (ticket['library'],
+                 ticket['storage_group'],
+                    ticket['count']))
 
     elif intf.touch:
         ticket = vcc.touch(intf.touch)
@@ -1285,12 +1316,13 @@ def do_work(intf):
             ticket['declared'] = time.ctime(ticket['declared'])
             ticket['first_access'] = time.ctime(ticket['first_access'])
             ticket['last_access'] = time.ctime(ticket['last_access'])
-            if ticket.has_key('si_time'):
+            if 'si_time' in ticket:
                 ticket['si_time'] = (time.ctime(ticket['si_time'][0]),
                                      time.ctime(ticket['si_time'][1]))
-            if ticket.has_key('modification_time'):
+            if 'modification_time' in ticket:
                 if ticket['modification_time'] != -1:
-                    ticket['modification_time'] = time.ctime(ticket['modification_time'])
+                    ticket['modification_time'] = time.ctime(
+                        ticket['modification_time'])
             pprint.pprint(ticket)
             ticket['status'] = status
     elif intf.check:
@@ -1298,13 +1330,13 @@ def do_work(intf):
             ticket = vcc.inquire_vol(intf.check)
         else:
             ticket = ifc.inquire_vol(intf.check)
-        ##pprint.pprint(ticket)
+        # pprint.pprint(ticket)
         # guard against error
         if ticket['status'][0] == e_errors.OK:
-            print "%-10s  %s %s %s" % (ticket['external_label'],
+            print("%-10s  %s %s %s" % (ticket['external_label'],
                                        capacity_str(ticket['remaining_bytes']),
                                        ticket['system_inhibit'],
-                                       ticket['user_inhibit'])
+                                       ticket['user_inhibit']))
     elif intf.history:
         if intf.force:
             ticket = vcc.show_history(intf.history)
@@ -1321,7 +1353,9 @@ def do_work(intf):
                     stype = 'user_inhibit[0]'
                 elif state['type'] == 'user_inhibit_1':
                     stype = 'user_inhibit[1]'
-                print "%-28s %-20s %s" % (state['time'], stype, state['value'])
+                print(
+                    "%-28s %-20s %s" %
+                    (state['time'], stype, state['value']))
     elif intf.write_protect_on:
         ticket = vcc.write_protect_on(intf.write_protect_on)
     elif intf.write_protect_off:
@@ -1332,16 +1366,21 @@ def do_work(intf):
         else:
             ticket = ifc.write_protect_status(intf.write_protect_status)
         if ticket['status'][0] == e_errors.OK:
-            print intf.write_protect_status, "write-protect", ticket['status'][1]
+            print(
+                intf.write_protect_status,
+                "write-protect",
+                ticket['status'][1])
     elif intf.set_comment:  # set comment of vol
         if len(intf.argv) != 4:
-            print "Error! usage: enstore %s --set-comment=<comment> <vol>" % (sys.argv[0])
+            print(
+                "Error! usage: enstore %s --set-comment=<comment> <vol>" %
+                (sys.argv[0]))
             sys.exit(1)
         ticket = vcc.set_comment(intf.volume, intf.set_comment)
     elif intf.export:  # volume export
         # check for correct syntax
         if len(sys.argv) != 3:  # wrong number of arguments
-            print "Error! usage: enstore %s --export <vol>" % (sys.argv[0])
+            print("Error! usage: enstore %s --export <vol>" % (sys.argv[0]))
             sys.exit(1)
         # get volume info first
         volume = {}
@@ -1363,9 +1402,9 @@ def do_work(intf):
                         status = ticket['status']
                         del ticket['status']
                         # deal with brain damaged backward compatibility
-                        if ticket.has_key('fc'):
+                        if 'fc' in ticket:
                             del ticket['fc']
-                        if ticket.has_key('vc'):
+                        if 'vc' in ticket:
                             del ticket['vc']
                         volume['files'][i] = ticket
                     else:
@@ -1377,11 +1416,17 @@ def do_work(intf):
                     volume['key'] = 0
                     volume['key'] = sumup(volume) * -1
                     f = open('vol.' + intf.export + '.obj', 'w')
-                    cPickle.dump(volume, f)
+                    pickle.dump(volume, f)
                     f.close()
-                    Trace.log(e_errors.INFO, "volume %s exported" % (intf.export))
+                    Trace.log(
+                        e_errors.INFO,
+                        "volume %s exported" %
+                        (intf.export))
                 else:
-                    Trace.log(e_errors.ERROR, "failed to export volume " + intf.export)
+                    Trace.log(
+                        e_errors.ERROR,
+                        "failed to export volume " +
+                        intf.export)
                 ticket = {'status': status}
     elif intf._import:  # volume import
 
@@ -1389,13 +1434,15 @@ def do_work(intf):
 
         # check for correct syntax
         if len(sys.argv) != 3:  # wrong number of arguments
-            print "Error! usage: enstore %s --import vol.<vol>.obj" % (sys.argv[0])
+            print(
+                "Error! usage: enstore %s --import vol.<vol>.obj" %
+                (sys.argv[0]))
             sys.exit(1)
 
         # the import file name must be vol.<vol>.obj
-        fname = string.split(intf._import, '.')
+        fname = intf._import.split('.')
         if len(fname) < 3 or fname[0] != 'vol' or fname[-1] != 'obj':
-            print "Error!", intf._import, "is of wrong type of name"
+            print("Error!", intf._import, "is of wrong type of name")
             sys.exit(1)
 
         vname = fname[1]
@@ -1403,36 +1450,36 @@ def do_work(intf):
         # load it up
         try:
             f = open(intf._import, 'r')
-        except:
-            print "Error! can not open", intf._import
+        except BaseException:
+            print("Error! can not open", intf._import)
             sys.exit(1)
         try:
-            volume = cPickle.load(f)
-        except:
-            print "Error! can not load", intf._import
+            volume = pickle.load(f)
+        except BaseException:
+            print("Error! can not load", intf._import)
             sys.exit(1)
 
         # check if it is a real exported volume object
-        #if sumup(volume) != 0:
+        # if sumup(volume) != 0:
         #    print "Error!", intf._import, "is a counterfeit"
         #    sys.exit(1)
 
         # check if volume contains all necessary information
         for i in ['vol', 'files', 'vol_name', 'key']:
-            if not volume.has_key(i):
-                print 'Error! missing key "' + i + '"'
+            if i not in volume:
+                print('Error! missing key "' + i + '"')
                 sys.exit(1)
         # check if file name match the volume name
         if volume['vol']['external_label'] != vname:
-            print "Error!", intf._import, "does not match external_label"
+            print("Error!", intf._import, "does not match external_label")
             sys.exit(1)
 
         # check if all files match the external_label
         bfids = []
-        for i in volume['files'].keys():
+        for i in list(volume['files'].keys()):
             f = volume['files'][i]
             if f['external_label'] != vname:
-                print "Error!", intf._import, "is corrupted"
+                print("Error!", intf._import, "is corrupted")
                 sys.exit(1)
             bfids.append(f['bfid'])    # collect all bfids
 
@@ -1445,7 +1492,9 @@ def do_work(intf):
         j = 0
         for i in result:
             if i:
-                print "Error! file %s exists" % (volume['files'].values()[j]['bfid'])
+                print(
+                    "Error! file %s exists" %
+                    (list(volume['files'].values())[j]['bfid']))
                 err = 1
             j = j + 1
         if err:
@@ -1454,25 +1503,29 @@ def do_work(intf):
         # check if volume exists
         v = vcc.inquire_vol(volume['vol']['external_label'])
         if v['status'][0] == e_errors.OK:  # it exists
-            print "Error! volume %s exists" % (volume['vol']['external_label'])
+            print(
+                "Error! volume %s exists" %
+                (volume['vol']['external_label']))
             sys.exit(1)
 
         # now we are getting serious
 
         # get the file family from volume record
         try:
-            sg, ff, wr = string.split(volume['vol']['volume_family'], '.')
-        except:
-            print "Invalid volume_family:", `volume['vol']['volume_family']`
+            sg, ff, wr = volume['vol']['volume_family'].split('.')
+        except BaseException:
+            print(
+                "Invalid volume_family:", repr(
+                    volume['vol']['volume_family']))
             sys.exit(1)
 
         # insert the file records first
-        for i in volume['files'].keys():
+        for i in list(volume['files'].keys()):
             f = volume['files'][i]
             ticket = fcc.add(f)
             # handle errors
             if ticket['status'][0] != e_errors.OK:
-                print "Error! failed to insert file record:", `f`
+                print("Error! failed to insert file record:", repr(f))
                 # ignore the error, if serious, make it up later
                 # sys.exit(1)
 
@@ -1519,16 +1572,18 @@ def do_work(intf):
     elif intf.add:
         if not intf.bypass_label_check:
             if check_label(intf.add):
-                print 'Error: "%s" is not a valid label of format "AAXX99{L1|L2}" ' % (intf.add)
+                print(
+                    'Error: "%s" is not a valid label of format "AAXX99{L1|L2}" ' %
+                    (intf.add))
                 sys.exit(1)
 
-        #print intf.add, repr(intf.args)
+        # print intf.add, repr(intf.args)
         cookie = 'none'
         if intf.vol1ok:
             cookie = '0000_000000000_0000001'
-        #library, storage_group, file_family, wrapper, media_type, capacity = intf.args[:6]
+        # library, storage_group, file_family, wrapper, media_type, capacity = intf.args[:6]
         capacity = my_atol(intf.volume_byte_capacity)
-        if intf.remaining_bytes != None:
+        if intf.remaining_bytes is not None:
             remaining = my_atol(intf.remaining_bytes)
         else:
             remaining = None
@@ -1550,10 +1605,10 @@ def do_work(intf):
     elif intf.modify:
         d = {}
         for s in intf.args:
-            k, v = string.split(s, '=')
+            k, v = s.split('=')
             try:
                 v = en_eval(v)  # numeric args
-            except:
+            except BaseException:
                 pass  # yuk...
             d[k] = v
         d['external_label'] = intf.modify  # name of this volume
@@ -1573,28 +1628,33 @@ def do_work(intf):
     elif intf.recycle:
         reset_declared = not intf.keep_declaration_time
         if intf.clear_sg:
-            ticket = vcc.recycle_volume(intf.recycle, reset_declared=reset_declared, clear_sg=True)
+            ticket = vcc.recycle_volume(
+                intf.recycle,
+                reset_declared=reset_declared,
+                clear_sg=True)
         else:
-            ticket = vcc.recycle_volume(intf.recycle, reset_declared=reset_declared)
+            ticket = vcc.recycle_volume(
+                intf.recycle, reset_declared=reset_declared)
     elif intf.clear_sg:    # This is wrong
-        print "Error: --clear-sg must be used with --recycle"
+        print("Error: --clear-sg must be used with --recycle")
     elif intf.clear:
         nargs = len(intf.args)
         try:
             ipos = int(intf.args[1]) - 1
-        except:
+        except BaseException:
             ipos = -1
         if nargs == 0:
             ticket = vcc.clr_system_inhibit(intf.clear)
         elif nargs == 2 and (intf.args[0] in ["system_inhibit",
                                               "system-inhibit", "user_inhibit", "user-inhibit"]) and \
                 (ipos == 0 or ipos == 1):
-            ticket = vcc.clr_system_inhibit(intf.clear, string.replace(intf.args[0], '-', '_'), ipos)
+            ticket = vcc.clr_system_inhibit(
+                intf.clear, intf.args[0].replace('-', '_'), ipos)
         else:
-            print "usage: enstore vol --clear <vol> system_inhibit|user_inhibit 1|2"
+            print("usage: enstore vol --clear <vol> system_inhibit|user_inhibit 1|2")
             ticket = {'status': (e_errors.OK, None)}
     elif intf.decr_file_count:
-        print `type(intf.decr_file_count)`
+        print(repr(type(intf.decr_file_count)))
         ticket = vcc.decr_file_count(intf.args[0], int(intf.decr_file_count))
         Trace.trace(12, repr(ticket))
     elif intf.read_only:
@@ -1604,29 +1664,32 @@ def do_work(intf):
     elif intf.migrated:
         ticket = vcc.set_system_migrated(intf.migrated)  # name of this volume
     elif intf.duplicated:
-        ticket = vcc.set_system_duplicated(intf.duplicated)  # name of this volume
+        ticket = vcc.set_system_duplicated(
+            intf.duplicated)  # name of this volume
     elif intf.no_access:
-        ticket = vcc.set_system_notallowed(intf.no_access)  # name of this volume
+        ticket = vcc.set_system_notallowed(
+            intf.no_access)  # name of this volume
     elif intf.not_allowed:
-        ticket = vcc.set_system_notallowed(intf.not_allowed)  # name of this volume
+        ticket = vcc.set_system_notallowed(
+            intf.not_allowed)  # name of this volume
     elif intf.lm_to_clear:
         ticket = vcc.clear_lm_pause(intf.lm_to_clear)
     elif intf.list:
         if intf.force:
-            #ticket = vcc.tape_list(intf.list)
+            # ticket = vcc.tape_list(intf.list)
             ticket = {'status': "--force not supported"}
         else:
             ticket = ifc.tape_list(intf.list, all_files=(not intf.package))
         ifc.print_volume_files(intf.list, ticket, intf.package, intf.pkginfo)
     elif intf.ls_active:
         if intf.force:
-            #ticket = vcc.list_active(intf.ls_active)
+            # ticket = vcc.list_active(intf.ls_active)
             ticket = {'status': "--force not supported"}
         else:
             ticket = ifc.list_active(intf.ls_active)
         active_list = ticket['active_list']
         for i in active_list:
-            print i
+            print(i)
     else:
         intf.print_help()
         sys.exit(0)

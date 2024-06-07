@@ -8,33 +8,36 @@
 '''
 client.py - Enstore qpid messaging client
 '''
+from __future__ import print_function
+from future.utils import raise_
 import logging
 import sys
 import time
-import exceptions
 
 import qpid.messaging
 import qpid.util
-#from qpid.util import URL
-#from qpid.log import enable, DEBUG, WARN
+# from qpid.util import URL
+# from qpid.log import enable, DEBUG, WARN
 import cache.messaging.constants as cmsc
 
 # qpid Connection reconnect_timeout in seconds
 TO_RECONNECT_INTERVAL = 10
-TO_RECONNECT_INTERVAL_MIN  = 10
+TO_RECONNECT_INTERVAL_MIN = 10
 TO_RECONNECT_INTERVAL_MAX = 60
-TO_CON_CLOSE=5 # Connection Close timeout in sec
+TO_CON_CLOSE = 5  # Connection Close timeout in sec
 
-ALLOWED_SASL_MECHANISM=('ANONYMOUS', 'PLAIN', 'GSSAPI')
+ALLOWED_SASL_MECHANISM = ('ANONYMOUS', 'PLAIN', 'GSSAPI')
 debug = False
 
-class EnQpidError(exceptions.Exception):
+
+class EnQpidError(Exception):
     """
     Needed to raise EnQpid specific exceptions.
 
     """
+
     def __init__(self, arg):
-        exceptions.Exception.__init__(self,arg)
+        Exception.__init__(self, arg)
 
 
 class EnQpidClient:
@@ -67,7 +70,9 @@ class EnQpidClient:
         self.password = password
         self.authentication = authentication
         if self.authentication not in ALLOWED_SASL_MECHANISM:
-            raise EnQpidError('Declared authentication mechanism %s is not in the list of allowed: %s'%(self.authentication, ALLOWED_SASL_MECHANISM,))
+            raise EnQpidError(
+    'Declared authentication mechanism %s is not in the list of allowed: %s' %
+     (self.authentication, ALLOWED_SASL_MECHANISM,))
         if self.authentication == 'PLAIN' and self.user is None:
             self.user = 'guest'
             self.password = 'guest'
@@ -86,13 +91,16 @@ class EnQpidClient:
         # show all variables in sorted order
         showList = sorted(set(self.__dict__))
 
-        return ("<%s instance at 0x%x>:\n" % (self.__class__.__name__,id(self))) + "\n".join(["  %s: %s"
+        return ("<%s instance at 0x%x>:\n" % (self.__class__.__name__, id(self))) + "\n".join(["  %s: %s"
                 % (key.rjust(8), self.__dict__[key]) for key in showList])
 
     def start(self):
         # @todo
         # print "DEBUG EnQpidClient URL start:" + self.url
-        self.trace.debug("EnQpidClient broker host, port: %s %s", self.host, self.port )
+        self.trace.debug(
+    "EnQpidClient broker host, port: %s %s",
+    self.host,
+     self.port)
 
         self.conn = qpid.messaging.Connection(host=self.host,
                                               port=self.port,
@@ -106,28 +114,35 @@ class EnQpidClient:
         self.ssn = self.conn.session()
 
         try:
-            self.snd_default = self.ssn.sender(self.target)    # default sender sends messages to target
+            # default sender sends messages to target
+            self.snd_default = self.ssn.sender(self.target)
         except qpid.messaging.MessagingError:
-            self.log.error("EnQpidClient - MessagingError, exception %s %s", sys.exc_info()[0], sys.exc_info()[1] )
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            self.log.error("EnQpidClient - MessagingError, exception %s %s",
+                           sys.exc_info()[0],
+                           sys.exc_info()[1])
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except AttributeError:
             self.trace.debug("EnQpidClient - no 'target' defined")
         except:
             self.trace.exception("EnQpidClient - getting sender")
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
         try:
             if not self.myaddr:
                 # set reply queue
-                #create exclusive queue with unique name for replies
+                # create exclusive queue with unique name for replies
                 self.myaddr = "reply_to:" + self.ssn.name
                 self.ssn.queue_declare(queue=self.myaddr, exclusive=True)
                 # @todo fix exchange name
-                self.ssn.exchange_bind(exchange="enstore.fcache", queue=self.myaddr, binding_key=self.myaddr)
-            #else:
-            # do nothing - assume queue exists and bound, or the address contain option to create queue
+                self.ssn.exchange_bind(exchange="enstore.fcache",
+                                       queue=self.myaddr,
+                                       binding_key=self.myaddr)
+            # else:
+            # do nothing - assume queue exists and bound, or the address
+            # contain option to create queue
 
-            self.rcv_default = self.ssn.receiver(self.myaddr) # default receiver receives messages sent to us at myaddr
+            # default receiver receives messages sent to us at myaddr
+            self.rcv_default = self.ssn.receiver(self.myaddr)
 
         except AttributeError:
             self.trace.debug("EnQpidClient - no 'myaddr' defined")
@@ -147,7 +162,7 @@ class EnQpidClient:
             self.snd_default.send(msg, *args, **kwargs )
         except:
             self.log.exception("qpid client send()")
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
     def fetch(self, *args, **kwargs ):
         try:
@@ -156,7 +171,7 @@ class EnQpidClient:
             self.log.exception("qpid client fetch - LinkClosed" )
         except:
             self.log.exception("qpid client fetch()")
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
     # this will work only after client is started (session must be set prior this call)
     def add_receiver(self,name,source,**options):
@@ -190,7 +205,7 @@ if __name__ == "__main__":   # pragma: no cover
     else:
         auth = opts.sasl_mechanism
     if auth not in ALLOWED_SASL_MECHANISM:
-        print "only %s is allowed"%(ALLOWED_SASL_MECHANISM)
+        print("only %s is allowed"%(ALLOWED_SASL_MECHANISM))
         sys.exit(1)
     if auth in ('ANONYMOUS', 'PLAIN'):
         user = 'guest'
@@ -225,15 +240,15 @@ if __name__ == "__main__":   # pragma: no cover
     #c = EnQpidClient(amq_broker, myaddr=myaddr, target=None)
     #c = EnQpidClient(amq_broker, None, target=target)
 
-    print c
+    print(c)
     c.start()
-    print c
+    print(c)
 
     r = c.add_receiver("from_md",qr)
     s = c.add_sender("to_mg",qm, durable=True) # some existing queue
-    print r
-    print s
-    print c
+    print(r)
+    print(s)
+    print(c)
 
     do_fetch = False
     do_send = True
@@ -242,13 +257,13 @@ if __name__ == "__main__":   # pragma: no cover
     if do_fetch:
         m = c.fetch()
         if m :
-            print m
+            print(m)
             # ack message, one way of tree below:
             #c.ssn.acknowledge()                # ack all messages in the session
             c.ssn.acknowledge(m)                # ack this message
             #c.ssn.acknowledge(m,sync=False)    # ack this message, do not wait till ack is consumed
 
-    print "To interrupt press ^C"
+    print("To interrupt press ^C")
     while 1:
         try:
             if do_send:
@@ -260,10 +275,10 @@ if __name__ == "__main__":   # pragma: no cover
 
             mr=c.drain.fetch()
             c.ssn.acknowledge(mr)
-            print time.ctime()
-            print mr
+            print(time.ctime())
+            print(mr)
         except (SystemExit, KeyboardInterrupt):
             break
-        except Exception, detail:
-            print detail
+        except Exception as detail:
+            print(detail)
             break

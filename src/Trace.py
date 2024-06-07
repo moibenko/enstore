@@ -15,12 +15,17 @@
 # set_alarm_func, set_log_func
 
 # system imports
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from future.utils import raise_
 import sys
 import traceback
 import os
 import pwd
 import time
-#import socket
+# import socket
 import types
 import threading
 try:
@@ -28,9 +33,10 @@ try:
     have_multiprocessing = True
 except ImportError:
     have_multiprocessing = False
+#import inspect
 
 # enstore modules
-#import enstore_constants
+# import enstore_constants
 import event_relay_messages
 import event_relay_client
 import e_errors
@@ -177,10 +183,13 @@ def notify(msg):
     global erc
     if not erc:
         erc = event_relay_client.EventRelayClient()
-    if isinstance(msg, types.StringType):
+    if isinstance(msg, (bytes, str)):
         # we must convert the message into a message instance
-        msg = event_relay_messages.decode(msg)
-    erc.send(msg)
+        msg_to_send = event_relay_messages.decode(msg)
+    if msg_to_send:
+        erc.send(msg_to_send)
+    else:
+        raise ValueError("no event relay messages for {}".format(msg))
 
 # end of stuff added by efb
 
@@ -256,7 +265,7 @@ def write_trace_message(message, out_fp, append_newline=True):
         out_fp.flush()
     except (KeyboardInterrupt, SystemExit):
         print_lock.release()
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
     except BaseException:
         pass
     print_lock.release()
@@ -283,7 +292,7 @@ def flush_and_sync(out_fp):
             os.fsync(out_fp.fileno())
     except (KeyboardInterrupt, SystemExit):
         print_lock.release()
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
     except BaseException:
         pass
     print_lock.release()
@@ -542,7 +551,7 @@ def log(severity, message, msg_type=MSG_DEFAULT, doprint=1, force_print=False):
             # Format the log text to include some standard information.
             new_msg = format_log_message(message, msg_type)
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except BaseException:
             exc, detail = sys.exc_info()[:2]
             write_trace_message("Failed to make log message %s: %s\n" %
@@ -553,7 +562,7 @@ def log(severity, message, msg_type=MSG_DEFAULT, doprint=1, force_print=False):
             local_log_func(time.time(), os.getpid(),
                            get_logname(), (severity, new_msg))
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except BaseException:
             exc, detail = sys.exc_info()[:2]
             write_trace_message("Failure writing message to log %s: %s\n" %
@@ -591,7 +600,7 @@ def alarm(severity, root_error, rest={},
     Returns:
         None
     """
-    #log(severity, root_error, MSG_ALARM)
+    # log(severity, root_error, MSG_ALARM)
     if alarm_func:
         alarm_func(time.time(), os.getpid(), get_logname(), root_error,
                    severity, condition, remedy_type, rest)
@@ -629,6 +638,9 @@ def trace(severity, message, dolog=1, doalarm=1, out_fp=sys.stdout,
     # There is no need to waste time on creating a message, if it will not
     # be sent.  Truncate all messages sent over the network, but not the
     # messages to be printed to standard out.
+    #print("TRACE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    #print("MSG", message)
+    #print("STACK>>>>>>>>>>>>>>>>>>", inspect.stack())
     if (severity in log_levels or severity in alarm_levels):
         msg_truncated = trunc(message)
     else:
@@ -644,7 +656,7 @@ def trace(severity, message, dolog=1, doalarm=1, out_fp=sys.stdout,
             # Format the trace text to include the standard information.
             new_msg = format_trace_message(severity, message)
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except BaseException:
             exc, detail = sys.exc_info()[:2]
             write_trace_message("Failed to make trace message %s: %s\n" %
@@ -657,9 +669,9 @@ def trace(severity, message, dolog=1, doalarm=1, out_fp=sys.stdout,
         """
         #print_lock.acquire()
         try:
-	    # the following line will output the memory usage of the process
-	    #os.system("a=`ps -ef |grep '/inq'|grep -v grep|xargs echo|cut -f2 -d' '`;ps -el|grep $a|grep python")
-	    #print "================================="  # a usefull divider
+            # the following line will output the memory usage of the process
+            #os.system("a=`ps -ef |grep '/inq'|grep -v grep|xargs echo|cut -f2 -d' '`;ps -el|grep $a|grep python")
+            #print "================================="  # a usefull divider
             #sys.stdout.flush()
         except (KeyboardInterrupt, SystemExit):
             #print_lock.release()
@@ -668,7 +680,7 @@ def trace(severity, message, dolog=1, doalarm=1, out_fp=sys.stdout,
             pass
         #print_lock.release()
         """
-
+    #print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
     if dolog and severity in log_levels:
         log(severity, msg_truncated, doprint=0, force_print=force_print)
     if doalarm and severity in alarm_levels:
@@ -745,15 +757,15 @@ def default_alarm_func(timestamp, pid, name, root_error, severity,
     """
     __pychecker__ = "unusednames=timestamp,pid,name,root_error,severity," \
                     "condition,remedy_type,args"
-    print "default_alarm_func:", args
-    #lvl = args[0]
-    #msg = args[1]
+    print("default_alarm_func:", args)
+    # lvl = args[0]
+    # msg = args[1]
     return None
 
 
 set_alarm_func(default_alarm_func)
 
-#pid = os.getpid()
+# pid = os.getpid()
 try:
     usr = pwd.getpwuid(os.getuid())[0]
 except BaseException:
@@ -763,7 +775,7 @@ except BaseException:
 def default_log_func(timestamp, pid, name, args):
     """Default alarm function
 
-    This is the default log function. 
+    This is the default log function.
     It formats and prints the arguments to the console.
 
     Args:
@@ -783,8 +795,8 @@ def default_log_func(timestamp, pid, name, args):
     msg = args[1]
     if severity > e_errors.MISC:
         severity = e_errors.MISC
-    print '%s %.6d %.8s %s %s  %s' % (time.ctime(
-        timestamp), pid, usr, e_errors.sevdict[severity], name, msg)
+    print('%s %.6d %.8s %s %s  %s' % (time.ctime(
+        timestamp), pid, usr, e_errors.sevdict[severity], name, msg))
     return None
 
 

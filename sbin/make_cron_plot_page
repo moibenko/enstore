@@ -14,4 +14,4 @@ then
 	in_dir=`enstore config --show crons | grep html_dir | cut -d"'" -f 4`/CRONS
 fi
 
-python $ENSTORE_DIR/src/enstore_make_plot_page.py --html-file $html_file --input_dir $in_dir --plot cron --outofdate
+$ENSTORE_DIR/sbin/enstore_make_plot_page --html-file $html_file --input_dir $in_dir --plot cron --outofdate

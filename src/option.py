@@ -78,9 +78,13 @@ To set multiple values without having any arguments
     }
 
 """
+from __future__ import print_function
 ############################################################################
 
 # system imports
+from builtins import str
+from builtins import range
+from builtins import object
 import os
 import sys
 import string
@@ -628,7 +632,7 @@ def list2(value):
 
 ############################################################################
 
-class Interface:
+class Interface(object):
 
     def check_host(self, host):
         self.config_host = hostaddr.name_to_address(host)
@@ -658,7 +662,7 @@ class Interface:
         # Remember to set the thread names to something meaningful, too.
         self.include_thread_name = 0
 
-        apply(self.compile_options_dict, self.valid_dictionaries())
+        self.compile_options_dict(*self.valid_dictionaries())
 
         self.check_option_names()
 
@@ -667,7 +671,7 @@ class Interface:
         try:
             self.config_host = enstore_functions2.default_host()
             self.config_port = enstore_functions2.default_port()
-        except ValueError, msg:
+        except ValueError as msg:
             sys.stderr.write("%s\n" % str(msg))
             sys.exit(1)
 
@@ -681,7 +685,7 @@ class Interface:
         if hasattr(self, "usage") and self.usage:
             self.print_usage()
 
-    ############################################################################
+    ##########################################################################
 
     parameters = []  # Don't put this in __init__().  It would clobber values.
 
@@ -785,7 +789,7 @@ class Interface:
                 }
     }
 
-    ############################################################################
+    ##########################################################################
 
     # lines_of_text: list of strings where each item in the list is a line of
     #               text that will be used to output the help string.
@@ -819,8 +823,8 @@ class Interface:
                 if (len(text_string) - index) < value_line_length:
                     new_index = len(text_string)
                 else:
-                    new_index = string.rfind(text_string, " ", index,
-                                             index + value_line_length)
+                    new_index = text_string.rfind(" ", index,
+                                                  index + value_line_length)
 
                 if use_existing_line:  # use existing line
                     try:
@@ -846,18 +850,18 @@ class Interface:
 
     def print_help(self):
         # First print the usage line.
-        print self.get_usage_line() + "\n"
+        print(self.get_usage_line() + "\n")
 
         # num_of_cols - width of the terminal
         # comm_cols - length of option_names (aka "       --%-20s")
         num_of_cols = 80  # Assume this until python 2.1
         comm_cols = 29
 
-        list_of_options = self.options.keys()
-        list_of_options.sort()
+        list_of_options = sorted(self.options.keys())
         for opts in list_of_options:
 
-            # Don't even print out options that the user doesn't have access to.
+            # Don't even print out options that the user doesn't have access
+            # to.
             option_level = self.options[opts].get(USER_LEVEL, USER)
             if self.user_level in [USER] and \
                     option_level in [ADMIN, USER2]:
@@ -904,8 +908,8 @@ class Interface:
             #     <WRAPPER> <MEDIA_TYPE> <VOLUME_BYTE_CAPACITY>"
             has_value = ""
             for opt_arg in extra_args:
-                arg_str = string.upper(opt_arg.get(VALUE_LABEL,
-                                                   opt_arg.get(VALUE_NAME, BLANK)))
+                arg_str = opt_arg.get(VALUE_LABEL,
+                                      opt_arg.get(VALUE_NAME, BLANK)).upper()
                 arg_str = arg_str.replace("-", "_")
                 value = opt_arg.get(VALUE_USAGE, IGNORED)
 
@@ -948,10 +952,11 @@ class Interface:
                                    comm_cols, num_of_cols)
 
             for line in lines_of_text:
-                print line
+                print(line)
         sys.exit(0)
 
-    def get_usage_line(self):  # , opts=None): #The opts is legacy from interface.py.
+    # , opts=None): #The opts is legacy from interface.py.
+    def get_usage_line(self):
 
         short_opts = self.getopt_short_options()
         if short_opts:
@@ -963,8 +968,7 @@ class Interface:
         usage_string = "       " + os.path.basename(sys.argv[0])
         usage_line = ""
 
-        list_of_options = self.options.keys()
-        list_of_options.sort()
+        list_of_options = sorted(self.options.keys())
         for key in list_of_options:
             # Ignore admin options if in user mode.
             option_level = self.options[key].get(USER_LEVEL, USER)
@@ -1004,7 +1008,7 @@ class Interface:
         full_usage_string = ""
         for parameter_set in self.parameters:
             full_usage_string = full_usage_string + usage_string + \
-                                switch_string + parameter_set + "\n"
+                switch_string + parameter_set + "\n"
         if not full_usage_string:
             full_usage_string = usage_string + switch_string
 
@@ -1014,7 +1018,7 @@ class Interface:
         param_string = ""
         param_list = []
         for parameter in self.parameters:
-            if isinstance(parameter, types.ListType):
+            if isinstance(parameter, list):
                 param_string = ""
                 for parameter2 in parameter:
                     param_string = param_string + " " + parameter2
@@ -1025,9 +1029,9 @@ class Interface:
 
     def print_usage(self, message=None):
         if message:
-            print message
+            print(message)
 
-        print self.get_usage_line()
+        print(self.get_usage_line())
 
         if message is None:
             sys.exit(0)  # No error message was passed in.
@@ -1042,7 +1046,7 @@ class Interface:
         except IOError:
             pass
 
-    ############################################################################
+    ##########################################################################
 
     # This function returns the tuple containing the valid dictionaries used
     # in compile_options_dict().  Simply overload this function to
@@ -1053,17 +1057,17 @@ class Interface:
     # Compiles the dictionary groups into one massive dictionary named options.
     def compile_options_dict(self, *dictionaries):
         for i in range(0, len(dictionaries)):
-            if not isinstance(dictionaries[i], types.DictionaryType):
+            if not isinstance(dictionaries[i], dict):
                 raise TypeError("Dictionary required, not %s." %
                                 type(dictionaries[i]))
-            for key in dictionaries[i].keys():
+            for key in list(dictionaries[i].keys()):
                 if key not in self.options:
                     self.options[key] = dictionaries[i][key]
 
     # Verifies that the options used are in the list of options.  This is to
     # help cut down on the different combinations of spellings.
     def check_option_names(self):
-        for opt in self.options.keys():
+        for opt in list(self.options.keys()):
             if opt not in valid_option_list:
                 msg = "Developer error.  Option '%s' not in valid option list."
                 try:
@@ -1078,7 +1082,7 @@ class Interface:
     def check_correct_count(self, num=0):
         length = len(self.args)
         if length > num:
-            extras = string.join(self.args[-(length - num):], " ")
+            extras = " ".join(self.args[-(length - num):])
             msg = "%d extra arguments specified: %s\n" % (length - num, extras)
             try:
                 sys.stderr.write(msg)
@@ -1086,13 +1090,13 @@ class Interface:
             except IOError:
                 pass
 
-    ############################################################################
+    ##########################################################################
 
     # Goes through the compiled option dictionary looking for short options
     # to format in the getopt.getopt() format.
     def getopt_short_options(self):
         temp = ""
-        for opt in self.options.keys():
+        for opt in list(self.options.keys()):
             short_opt = self.options[opt].get(SHORT_OPTION, None)
             # If there is a (valid) short option.
             if short_opt and len(short_opt) == 1:
@@ -1119,7 +1123,7 @@ class Interface:
     # can't let go of VAX conventions.
     def getopt_long_options(self):
         temp = []
-        for opt in self.options.keys():
+        for opt in list(self.options.keys()):
             if self.options[opt].get(VALUE_USAGE, None) in [REQUIRED]:
                 temp.append(opt + "=")
             else:
@@ -1135,7 +1139,7 @@ class Interface:
 
         return temp
 
-    ############################################################################
+    ##########################################################################
 
     # Parse the command line.
     def parse_options(self):
@@ -1157,7 +1161,8 @@ class Interface:
         self.convert_underscores(argv)
 
         while argv:
-            self.some_args = argv  # This is a second copy for next arg finding.
+            # This is a second copy for next arg finding.
+            self.some_args = argv
 
             # If the first thing is not an option (switch) place it with the
             # non-processed arguments and remove it from the list of args.
@@ -1172,7 +1177,7 @@ class Interface:
             optlist = []
             try:
                 optlist, argv = getopt.getopt(argv, short_opts, long_opts)
-            except getopt.GetoptError, detail:
+            except getopt.GetoptError as detail:
                 self.print_usage(detail.msg)
 
             # copy in this way, to keep self.args out of a dir() listing.
@@ -1206,7 +1211,7 @@ class Interface:
                     # of the option group.
                     self.short_option(opt[1:], value)
 
-    ############################################################################
+    ##########################################################################
 
     # The option is a long option with value possible VALUE_USAGE.  Determine
     # if the option has been used in the correct manner.  If so, set the
@@ -1291,7 +1296,7 @@ class Interface:
         else:  # IGNORED
             self.set_value(long_opt, None)  # Uses 'default'
 
-    ############################################################################
+    ##########################################################################
 
     # Options can be entered like "--option value" or "--option=value".
     # Parse the argv passed in and split the "=" values into spaced value.
@@ -1305,7 +1310,7 @@ class Interface:
             # Note: the replace operation is necessary to support _s.
             if self.is_option(argv[i].split("=", 1)[0].replace("_", "-")) and \
                     self.is_switch_option(argv[i]):
-                split_option = string.split(argv[i], "=", 1)
+                split_option = argv[i].split("=", 1)
                 args[i + offset:i + offset + 1] = split_option
                 offset = offset + 1
             else:
@@ -1331,15 +1336,15 @@ class Interface:
     @staticmethod
     def parse_range(s):
         if ',' in s:
-            s = string.split(s, ',')
+            s = s.split(',')
         else:
             s = [s]
         r = []
         for t in s:
             if '-' in t:
-                lo, hi = string.split(t, '-')
+                lo, hi = t.split('-')
                 lo, hi = int(lo), int(hi)
-                r.extend(range(lo, hi + 1))
+                r.extend(list(range(lo, hi + 1)))
             else:
                 r.append(int(t))
         return r
@@ -1348,7 +1353,7 @@ class Interface:
     def short_to_long(self, short_opt):
         if not self.is_short_option(short_opt):
             return None
-        for key in self.options.keys():
+        for key in list(self.options.keys()):
             if self.trim_short_option(short_opt) == \
                     self.options[key].get(SHORT_OPTION, None):
                 return key  # in other words return the long opt.
@@ -1361,7 +1366,7 @@ class Interface:
             rtn = self.some_args[1]
         return rtn
 
-    ############################################################################
+    ##########################################################################
     # These options remove leading "-" or "--" as appropriate from opt
     # and return.
 
@@ -1377,7 +1382,7 @@ class Interface:
     def trim_long_option(opt):
         # There must be at least 3 characters.  Two from "--" and one
         # alphanumeric character.
-        if len(opt) >= 3 and opt[:2] == "--" and (opt[2] in string.letters or
+        if len(opt) >= 3 and opt[:2] == "--" and (opt[2] in string.ascii_letters or
                                                   opt[2] in string.digits):
             return opt[2:]
         else:
@@ -1385,13 +1390,13 @@ class Interface:
 
     @staticmethod
     def trim_short_option(opt):
-        if len(opt) and opt[0] == "-" and (opt[1] in string.letters or
+        if len(opt) and opt[0] == "-" and (opt[1] in string.ascii_letters or
                                            opt[1] in string.digits):
             return opt[1:]
         else:
             return opt
 
-    ############################################################################
+    ##########################################################################
     # These options return 1 if opt is the correct type of option,
     # otherwise it return 0.
 
@@ -1401,7 +1406,7 @@ class Interface:
     def is_long_option(self, opt):
         opt_check = self.trim_long_option(opt)
         try:
-            for key in self.options.keys():
+            for key in list(self.options.keys()):
                 opt_length = len(opt_check)
                 # If the option (switch) matches in part return true.
                 # Uniqueness will be tested by getopt.getopt().
@@ -1414,7 +1419,7 @@ class Interface:
     def is_short_option(self, opt):
         opt_check = self.trim_short_option(opt)
         try:
-            for key in self.options.keys():
+            for key in list(self.options.keys()):
                 if self.options[key].get(SHORT_OPTION, None) == opt_check:
                     return 1
             return 0
@@ -1430,7 +1435,7 @@ class Interface:
         else:
             return 0
 
-    ############################################################################
+    ##########################################################################
     # Returns whether the option is a user or admin command.  A return
     # value of one means it is that type, 0 otherwise.
 
@@ -1482,7 +1487,7 @@ class Interface:
                 return 1
         return 0
 
-    ############################################################################
+    ##########################################################################
     # These option return the correct value from the options dictionary
     # for a given long option long_opt and its dictionary opt_dict.  If
     # the dictionary doesn't have that particular value at hand, then
@@ -1495,7 +1500,7 @@ class Interface:
         opt_name = opt_dict.get(VALUE_NAME, long_opt)
 
         # Convert command dashes to variable name underscores.
-        opt_name = string.replace(opt_name, "-", "_")
+        opt_name = opt_name.replace("-", "_")
 
         return opt_name
 
@@ -1509,7 +1514,7 @@ class Interface:
             opt_name = opt_dict.get(DEFAULT_NAME, long_opt)
 
         # Convert command dashes to variable name underscores.
-        opt_name = string.replace(opt_name, "-", "_")
+        opt_name = opt_name.replace("-", "_")
 
         return opt_name
 
@@ -1540,7 +1545,7 @@ class Interface:
             if opt_dict.get(VALUE_TYPE, STRING) == INTEGER:
                 return int  # int(value)
             elif opt_dict.get(VALUE_TYPE, STRING) == LONG:
-                return long
+                return int
             elif opt_dict.get(VALUE_TYPE, STRING) == FLOAT:
                 return float  # float(value)
             elif opt_dict.get(VALUE_TYPE, STRING) == RANGE:
@@ -1562,8 +1567,8 @@ class Interface:
         try:
             if opt_dict.get(DEFAULT_TYPE, STRING) == INTEGER:
                 return int  # int(value)
-            elif opt_dict.get(DEFAULT_TYPE, STRING) == LONG:
-                return long
+            elif opt_dict.get(DEFAULT_TYPE, STRING) == INTEGER:
+                return int
             elif opt_dict.get(DEFAULT_TYPE, STRING) == FLOAT:
                 return float  # float(value)
             elif opt_dict.get(DEFAULT_TYPE, STRING) == RANGE:
@@ -1581,7 +1586,7 @@ class Interface:
 
         return None
 
-    ############################################################################
+    ##########################################################################
     # These options set the values in the interface class.  set_value() is
     # the function that calls the others.  set_from_dictionary() takes the
     # specific dictionary (which is important when multiple arguments for
@@ -1616,11 +1621,11 @@ class Interface:
     def __set_value(self, opt_name, opt_typed_value):
 
         # Handle the LIST case specially.
-        if isinstance(opt_typed_value, types.ListType):
+        if isinstance(opt_typed_value, list):
             this_list = getattr(self, opt_name, [])
-            if not isinstance(this_list, types.ListType):
-                print "Developer Error: type of this_list is %s" \
-                      % (type(this_list),)
+            if not isinstance(this_list, list):
+                print("Developer Error: type of this_list is %s"
+                      % (type(this_list),))
                 sys.exit(1)
             # Append the value to the list.
             use_opt_typed_value = this_list + opt_typed_value
@@ -1647,7 +1652,7 @@ class Interface:
                 # Get the value in the correct type to set.
                 opt_type = self.get_value_type(opt_dict)  # , value)
                 if opt_type is not None:
-                    opt_typed_value = apply(opt_type, (value,))
+                    opt_typed_value = opt_type(*(value,))
                 else:
                     opt_typed_value = value
             except SystemExit as msg:
@@ -1688,10 +1693,10 @@ class Interface:
                 if value is None:
                     opt_typed_value = value
                 elif opt_type is not None:
-                    opt_typed_value = apply(opt_type, (value,))
+                    opt_typed_value = opt_type(*(value,))
                 else:
                     opt_typed_value = value
-            except SystemExit, msg:
+            except SystemExit as msg:
                 raise msg
             except SystemError:
                 msg = sys.exc_info()[1]
@@ -1715,10 +1720,10 @@ class Interface:
                 # Get the value in the correct type to set.
                 opt_type = self.get_default_type(opt_dict)  # , opt_value)
                 if opt_type is not None:
-                    opt_typed_value = apply(opt_type, (opt_value,))
+                    opt_typed_value = opt_type(*(opt_value,))
                 else:
                     opt_typed_value = opt_value
-            except SystemExit, msg:
+            except SystemExit as msg:
                 raise msg
             except SystemError:
                 msg = sys.exc_info()[1]
@@ -1741,10 +1746,10 @@ class Interface:
                 # Get the value in the correct type to set.
                 opt_type = self.get_default_type(opt_dict)  # , opt_value)
                 if opt_type is not None:
-                    opt_typed_value = apply(opt_type, (opt_value,))
+                    opt_typed_value = opt_type(*(opt_value,))
                 else:
                     opt_typed_value = opt_value
-            except SystemExit, msg:
+            except SystemExit as msg:
                 raise msg
             except SystemError:
                 msg = sys.exc_info()[1]
@@ -1807,22 +1812,22 @@ if __name__ == "__main__":   # pragma: no cover
 
     # print the options value
     for arg in dir(intf):
-        if string.replace(arg, "_", "-") in intf.options.keys():
-            print arg, type(getattr(intf, arg)), ": ",
+        if string.replace(arg, "_", "-") in list(intf.options.keys()):
+            print(arg, type(getattr(intf, arg)), ": ", end=' ')
             pprint.pprint(getattr(intf, arg))
 
-    print
+    print()
 
     # every other matched value
     for arg in dir(intf):
-        if string.replace(arg, "_", "-") not in intf.options.keys():
-            print arg, type(getattr(intf, arg)), ": ",
+        if string.replace(arg, "_", "-") not in list(intf.options.keys()):
+            print(arg, type(getattr(intf, arg)), ": ", end=' ')
             pprint.pprint(getattr(intf, arg))
 
-    print
+    print()
 
     if intf.args:
-        print "unprocessed args:", intf.args
+        print("unprocessed args:", intf.args)
 
     if getattr(intf, "help", None):
         intf.print_help()

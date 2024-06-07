@@ -7,14 +7,17 @@
 ###############################################################################
 
 # system imports
+from __future__ import print_function
+from builtins import map
+from builtins import str
+from future.utils import raise_
 import sys
 import time
-import string
 import os
-#import exceptions
-#import tempfile
+# import exceptions
+# import tempfile
 import types
-#import pwd
+# import pwd
 import signal
 import stat
 import re
@@ -131,7 +134,8 @@ def _get_bits(pmode, read_bit, write_bit, execute_bit):
 
 def numeric_to_bits(numeric_mode):
     # Make sure that the correct type was passed in.
-    if type(numeric_mode) != type("") and type(numeric_mode) != type(1):
+    if not isinstance(numeric_mode, type(
+            "")) and not isinstance(numeric_mode, type(1)):
         raise TypeError("Expected octal string or integer instead of %s." %
                         (type(numeric_mode),))
 
@@ -160,7 +164,7 @@ def numeric_to_bits(numeric_mode):
 # returned from os.stat().
 def symbolic_to_bits(symbolic_mode, st_mode=0):
     # Make sure that the correct type was passed in.
-    if type(symbolic_mode) != type(""):
+    if not isinstance(symbolic_mode, type("")):
         raise TypeError("Expected string, recieved %s instead." %
                         (type(symbolic_mode),))
 
@@ -185,7 +189,7 @@ def symbolic_to_bits(symbolic_mode, st_mode=0):
         return 1
 
     # Translate the all - "a" - possible user entry with ugo.
-    user_mod = string.replace(user_mod, "a", "ugo")
+    user_mod = user_mod.replace("a", "ugo")
 
     set_mode = 0
     for user in user_mod:
@@ -213,7 +217,7 @@ def symbolic_to_bits(symbolic_mode, st_mode=0):
             elif mode == "t":
                 name = "S_ISVTX"
             else:
-                name = "S_I" + string.upper(mode) + user_name
+                name = "S_I" + mode.upper() + user_name
 
             # This needs to be ored not added.
             change_mode = change_mode | getattr(stat, name)
@@ -263,7 +267,7 @@ def get_migrator_status_filename():
 
 def override_to_status(override):
     # translate the override value to a real status
-    if type(override) == types.ListType:
+    if isinstance(override, list):
         # this is the new format
         override = override[0]
     index = enstore_constants.SAAG_STATUS.index(override)
@@ -272,7 +276,7 @@ def override_to_status(override):
 
 def get_days_ago(date, days_ago):
     # return the date that is days_ago before date
-    seconds_ago = float(days_ago*86400)
+    seconds_ago = float(days_ago * 86400)
     return date - seconds_ago
 
 
@@ -280,14 +284,14 @@ def ping(node):
     # ping the node to see if it is up.
     times_to_ping = 4
     # the timeout parameter does not work on d0ensrv2.
-    #timeout = 5
-    #cmd = "ping -c %s -w %s %s"%(times_to_ping, timeout, node)
+    # timeout = 5
+    # cmd = "ping -c %s -w %s %s"%(times_to_ping, timeout, node)
     cmd = "ping -c %s %s" % (times_to_ping, node)
     p = os.popen(cmd, 'r').readlines()
     for line in p:
-        if not string.find(line, "transmitted") == -1:
+        if not line.find("transmitted") == -1:
             # this is the statistics line
-            stats = string.split(line)
+            stats = line.split()
             if stats[0] == stats[3]:
                 # transmitted packets = received packets
                 return enstore_constants.IS_ALIVE
@@ -301,7 +305,8 @@ def ping(node):
 def get_remote_file(node, file, newfile):
     __pychecker__ = "unusednames=i"
 
-    # we have to make sure that the rcp does not hang in case the remote node is goofy
+    # we have to make sure that the rcp does not hang in case the remote node
+    # is goofy
     pid = os.fork()
     if pid == 0:
         # this is the child
@@ -318,7 +323,7 @@ def get_remote_file(node, file, newfile):
             time.sleep(5)
         else:
             # the child has not finished, be brutal. it may be hung
-            print "killing the rcp - %s" % (pid,)
+            print("killing the rcp - %s" % (pid,))
             os.kill(pid, signal.SIGKILL)
             return 1
 
@@ -330,7 +335,8 @@ TIMEFMT = "%H:%M:%S"
 
 
 def format_time(theTime, sep=" "):
-    return time.strftime("%s%s%s" % (YEARFMT, sep, TIMEFMT), time.localtime(theTime))
+    return time.strftime("%s%s%s" %
+                         (YEARFMT, sep, TIMEFMT), time.localtime(theTime))
 
 
 PLOTYEARFMT = "%Y-%m-%d"
@@ -358,27 +364,27 @@ def get_dir(str):
 # strip off anything before the '/'
 
 
-def strip_file_dir(str):
-    ind = string.rfind(str, "/")
+def strip_file_dir(st):
+    ind = st.rfind("/")
     if not ind == -1:
-        str2 = str[(ind+1):]
+        str2 = st[(ind + 1):]
     else:
-        str2 = str
+        str2 = st
     return str2
 
 # remove the string .fnal.gov if it is in the input string
 
 
-def strip_node(str):
-    if type(str) == types.StringType:
-        return string.replace(str, ".fnal.gov", "")
+def strip_node(st):
+    if isinstance(str, bytes):
+        return st.replace(".fnal.gov", "")
     else:
-        return str
+        return st
 
 
 def is_this(server, suffix):
-    stype = string.split(server, ".")
-    if stype[len(stype)-1] == suffix:
+    stype = server.split(".")
+    if stype[len(stype) - 1] == suffix:
         return 1
     return 0
 
@@ -416,7 +422,7 @@ def is_media_changer(server):
 
 
 def get_name(server):
-    return string.split(server, ".")[0]
+    return server.split(".")[0]
 
 
 def get_bpd_subdir(dir):
@@ -439,7 +445,7 @@ def is_generic_server(server):
 
 def get_status(dict):
     status = dict.get('status', None)
-    if status is None or type(status) != type(()):
+    if status is None or not isinstance(status, type(())):
         return None
     else:
         return status[0]
@@ -463,12 +469,18 @@ def shell_command(command):
                                stderr=subprocess.PIPE,
                                shell=True,
                                close_fds=True)
-    if pipeObj == None:
+    if pipeObj is None:
         return None
     # get stdout and stderr
     result = pipeObj.communicate()
-    del(pipeObj)
-    return result
+    del (pipeObj)
+    if result and isinstance(result, (tuple, list)):
+        result = list(result)
+        if isinstance(result[0], bytes):
+            result[0] = result[0].decode()
+        if isinstance(result[1], bytes):
+            result[1] = result[1].decode()
+    return tuple(result)
 
 # same as shell command, but
 # returns
@@ -484,13 +496,15 @@ def shell_command2(command):
                                stderr=subprocess.PIPE,
                                shell=True,
                                close_fds=True)
-    if pipeObj == None:
+    if pipeObj is None:
         return None
     # get stdout and stderr
     result = pipeObj.communicate()
     rc = [pipeObj.returncode]
-    del(pipeObj)
+    del (pipeObj)
     for r in result:
+        if isinstance(r, bytes):
+            r = r.decode()
         rc.append(r)
     return tuple(rc)
 
@@ -512,11 +526,11 @@ def __get_wormhole(lname):
             mtab_data = fp.readlines()
             fp.close()
             break
-        except (OSError, IOError), msg:
+        except (OSError, IOError) as msg:
             if msg.args[0] in [errno.ENOENT]:
                 continue
             else:
-                raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+                raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
     else:
         # Should this raise an error?
         mtab_data = []
@@ -558,7 +572,7 @@ def __get_wormhole(lname):
 def __find_config_file():
     config_host = os.environ.get("ENSTORE_CONFIG_HOST", None)
     if config_host:
-        filename = '/etc/'+config_host+'.enstore.conf'
+        filename = '/etc/' + config_host + '.enstore.conf'
         if not os.path.exists(filename):
             filename = '/etc/enstore.conf'
     else:
@@ -634,8 +648,8 @@ def __read_enstore_conf(filename, line_target):
 
     return None
 
-#DEFAULT_HOST = 'localhost'
-#DEFAULT_PORT = 7500
+# DEFAULT_HOST = 'localhost'
+# DEFAULT_PORT = 7500
 
 
 used_default_config_host = None
@@ -672,7 +686,7 @@ def default_value(requested_val):
 
 def used_default_host():
     global used_default_config_host
-    if used_default_config_host == None:
+    if used_default_config_host is None:
         # If we haven't called default_host() yet, we need to call _get_env()
         # directly to return the correct info.
         unsued, used_default_config_host = _get_value(
@@ -694,7 +708,7 @@ def default_host():
 
 def used_default_port():
     global used_default_config_port
-    if used_default_config_port == None:
+    if used_default_config_port is None:
         # If we haven't called default_port() yet, we need to call _get_env()
         # directly to return the correct info.
         unsued, used_default_config_port = _get_value(
@@ -716,7 +730,7 @@ def default_port():
 
 def used_default_file():
     global used_default_config_file
-    if used_default_config_file == None:
+    if used_default_config_file is None:
         # If we haven't called default_FILE() yet, we need to call _get_env()
         # directly to return the correct info.
         unsued, used_default_config_file = _get_value(
@@ -778,12 +792,12 @@ def expand_path(filename):
 def fullpath(filename):
     if not filename:
         return None, None, None, None
-    elif type(filename) != types.StringType:
+    elif not isinstance(filename, (bytes, str)):
         return None, None, None, None
 
     # Detemine if a host and port have been specifed on the command line.
     host_and_port = re.search("^[a-z0-9.]*:[0-9]*/", filename)
-    if host_and_port != None:
+    if host_and_port is not None:
         filename = filename[len(host_and_port.group()):]
 
     try_count = 0
@@ -791,17 +805,17 @@ def fullpath(filename):
         try:
             machine = socket.getfqdn(socket.gethostname())
             break
-        except (socket.error), msg:
+        except (socket.error) as msg:
             # One known way to get here is to run out of file
             # descriptors.  I'm sure there are others.
             this_errno = msg.args[0]
-            if this_errno == errno.EAGAIN or this_errno == errno.EINTR:
+            if this_errno in (errno.EAGAIN, errno.EINTR):
                 try_count = try_count + 1
                 time.sleep(1)
             else:
                 machine = None
                 break
-        except (socket.gaierror, socket.herror), msg:
+        except (socket.gaierror, socket.herror) as msg:
             this_herrno = msg.args[0]
             if this_herrno == socket.EAI_AGAIN:
                 try_count = try_count + 1
@@ -831,11 +845,11 @@ def fullpath(filename):
 def fullpath2(filename, no_split=None):
     if not filename:
         return None, None, None, None, None, None
-    elif type(filename) != types.StringType:
+    elif not isinstance(filename, (bytes, str)):
         return None, None, None, None, None, None
 
     # Split off a protocol.
-    #en_protocol = re.search("^[a-zA-Z-0-9]+://", filename)
+    # en_protocol = re.search("^[a-zA-Z-0-9]+://", filename)
     # if en_protocol:
     #    protocol = en_protocol.group()[:-3]
     #
@@ -845,7 +859,7 @@ def fullpath2(filename, no_split=None):
 
     # Detemine if a host and port have been specifed on the command line.
     host_and_port = re.search("^[a-z0-9.]*:[0-9]*/", filename)
-    if host_and_port != None:
+    if host_and_port is not None:
         hostname = host_and_port.group().split(":")[0]
         try:
             portnumber = int(host_and_port.group()[:-1].split(":")[1])
@@ -869,13 +883,13 @@ def fullpath2(filename, no_split=None):
         try:
             machine = socket.getfqdn(hostname)
             break
-        except (socket.error), msg:
+        except (socket.error) as msg:
             this_errno = msg.args[0]
-            if this_errno == errno.EAGAIN or this_errno == errno.EINTR:
+            if this_errno in (errno.EAGAIN, errno.EINTR):
                 try_count = try_count + 1
                 time.sleep(1)
             else:
-                raise socket.error, msg, sys.exc_info()[2]
+                raise_(socket.error, msg, sys.exc_info()[2])
         except (socket.gaierror, socket.herror):  # , msg:
             msg = sys.exc_info()[1]  # msg set here to appease pychecker.
             this_herrno = msg.args[0]
@@ -883,7 +897,7 @@ def fullpath2(filename, no_split=None):
                 try_count = try_count + 1
                 time.sleep(1)
             else:
-                raise sys.exc_info()[0], msg, sys.exc_info()[2]
+                raise_(sys.exc_info()[0], msg, sys.exc_info()[2])
     else:
         # If finding the full name fails, go with what we know.
         machine = hostname
@@ -891,7 +905,8 @@ def fullpath2(filename, no_split=None):
     # Expand the path to the complete absolute path.
     filepath = expand_path(filename)
 
-    # If the user doesn't want the path split into directories and the filename.
+    # If the user doesn't want the path split into directories and the
+    # filename.
     if no_split:
         dirname, basename = (None, None)
     # If the target was a directory, handle it slightly differently.
@@ -920,12 +935,12 @@ host_names_and_ips = None
 def this_host():
     global host_names_and_ips  # global cache variable
 
-    if host_names_and_ips == None:
+    if host_names_and_ips is None:
         try:
-            #rtn = socket.gethostbyname_ex(socket.getfqdn())
+            # rtn = socket.gethostbyname_ex(socket.getfqdn())
             hostname = socket.getfqdn()
             rtn = socket.getaddrinfo(hostname, None)
-        except (socket.error, socket.herror, socket.gaierror), msg:
+        except (socket.error, socket.herror, socket.gaierror) as msg:
             try:
                 message = "unable to obtain hostname information: %s\n" \
                           % (str(msg),)
@@ -937,13 +952,13 @@ def this_host():
         rtn_formated = [hostname, hostname.split('.')[0], rtn[0][4][0]]
 
         interfaces_list = Interfaces.interfacesGet()
-        for interface in interfaces_list.keys():
+        for interface in list(interfaces_list.keys()):
             ip = interfaces_list[interface]['ip']
             if ip == "127.0.0.1":
                 continue
             try:
                 rc = socket.gethostbyaddr(ip)
-            except (socket.error, socket.herror, socket.gaierror), msg:
+            except (socket.error, socket.herror, socket.gaierror) as msg:
                 try:
                     message = "unable to obtain hostname information: %s\n" \
                               % (str(msg),)
@@ -1075,5 +1090,5 @@ def convert_version(version):
     # comparisions; use the fact that there are only two levels deep
     # possible after the second regular expression return to skip uncecessary
     # checks.
-    return [map(__int_convert, item) for item in map(re_split_version.findall,
+    return [list(map(__int_convert, item)) for item in map(re_split_version.findall,
                                                      re_split_components.findall(version))]

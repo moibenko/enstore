@@ -1,7 +1,7 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 """Executable. Given module, prints all imported modules and import chains."""
+from __future__ import print_function
 import sys
-import string
 import pprint
 import os
 
@@ -9,55 +9,57 @@ mtable = {}
 
 rm_table = {}
 
+
 def get_module_file(m):
     """Takes module name, returns path to the implementation file."""
     for i in sys.path:
-        p = os.path.join(i, m+'.py')
+        p = os.path.join(i, m + '.py')
         if os.access(p, os.R_OK):
             return p
-        p = os.path.join(i, m+'.so')
+        p = os.path.join(i, m + '.so')
         if os.access(p, os.R_OK):
             return p
-        p = os.path.join(i, m+'module.c')
+        p = os.path.join(i, m + 'module.c')
         if os.access(p, os.R_OK):
             return p
     return None
 
+
 def mtrace(m):
     """Takes module name, adds imported modules recursively to mtable."""
-    if mtable.has_key(m):
+    if m in mtable:
         return
     mtable[m] = []
     mf = get_module_file(m)
-    if mf == None:
+    if mf is None:
         return
     f = open(mf)
     l = f.readline()
     while l:
         # Skipping doc strings at beginning of file
-        idx = string.find(l, '"""')
-        if idx != -1 and idx == string.rfind(l, '"""'):
+        idx = l.find('"""')
+        if idx != -1 and idx == l.rfind('"""'):
             l = f.readline()
-            while l and string.find(l, '"""') == -1:
+            while l and l.find('"""') == -1:
                 l = f.readline()
         # If there are no more lines, exit
         if not l:
             break
         # Sanitize line and split into tokens
-        l = string.strip(l)
-        l = string.replace(l, ',', ' ')
-        token = string.split(l)
+        l = l.strip()
+        l = l.replace(',', ' ')
+        token = l.split()
         tl = len(token)
         i = 0
         # Iterate over tokens
         while i < tl:
             # Skip to next line if we hit a commnet
-            if token[i][0] == '#': # comment
+            if token[i][0] == '#':  # comment
                 break
             # If line is `from <mod> import *`
             if (token[i] == 'from' or token[i] == '"from') \
-                and i +2 < tl and token[i+2] == 'import':
-                module = token[i+1]
+                    and i + 2 < tl and token[i + 2] == 'import':
+                module = token[i + 1]
                 # Add mod to mtable and recurse
                 if not module in mtable[m]:
                     mtable[m].append(module)
@@ -67,9 +69,9 @@ def mtrace(m):
             # If line is `import <mod>[,<mod>]*`
             elif token[i] == 'import':
                 # Iterate over further tokens
-                for j in token[i+1:]:
+                for j in token[i + 1:]:
                     # Exit if we hit a commnet
-                    if j[0] == '#': # comment
+                    if j[0] == '#':  # comment
                         break
                     module = j
                     if module[-1] == ',':
@@ -85,18 +87,21 @@ def mtrace(m):
         # Go to next line
         l = f.readline()
 
+
 counter = 0
+
 
 def log_trace(t):
     """Stores the impot path (t) to a module (t[-1]) rm_table[t[-1]]"""
-    if not rm_table.has_key(t[-1]) or len(t) < len(rm_table[t[-1]]):
+    if t[-1] not in rm_table or len(t) < len(rm_table[t[-1]]):
         rm_table[t[-1]] = t
+
 
 def trace_path(history, module):
     """Explore module tree imported by a module.
 
     Given a module, explores the module tree imported by that module according to mtable, and adds the route to each module to rm_table.
-  
+
     Args:
     module: The name of the module who's import tree should be explored.
       This module should already be in mtable.
@@ -109,31 +114,30 @@ def trace_path(history, module):
     # if counter > 100:
     #  return
     if module in history:
-        log_trace(history+[module])
+        log_trace(history + [module])
         return
 
-    if mtable.has_key(module):
+    if module in mtable:
         a = history + [module]
         for i in mtable[module]:
             trace_path(a, i)
         log_trace(a)
 
-   
+
 if __name__ == "__main__":   # pragma: no cover
-    m = string.split(sys.argv[1], '.')[0]
+    m = sys.argv[1].split('.')[0]
     mtrace(m)
     # pprint.pprint(mtable)
     trace_path([], m)
     kl = 0
-    for k in rm_table.keys():
+    for k in list(rm_table.keys()):
         if len(k) > kl:
             kl = len(k)
 
-    output = rm_table.values()
-    output.sort()
+    output = sorted(rm_table.values())
     for i in output:
-        cs = '%-'+`kl`+'s :'
-        print cs%(i[-1]),
+        cs = '%-' + repr(kl) + 's :'
+        print(cs % (i[-1]), end=' ')
         for j in i[:-1]:
-            print j, '->',
-        print i[-1]
+            print(j, '->', end=' ')
+        print(i[-1])

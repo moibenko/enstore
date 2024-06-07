@@ -1,4 +1,4 @@
-#'$Id$'
+# '$Id$'
 
 # COPYRIGHT (C) 1998  ROBIN FRIEDRICH  email:Robin.Friedrich@pdq.net
 # Permission to use, copy, modify, and distribute this software and
@@ -13,7 +13,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 # CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-try: #Following switcheroo ensures that if PIL is installed it's used instead
+try:  # Following switcheroo ensures that if PIL is installed it's used instead
     # of the HTMLgen-bundled copies.
     import Image
 except ImportError:
@@ -21,11 +21,11 @@ except ImportError:
     Image = ImageH
     del ImageH
 
+
 def imgsize(path):
     """Returns the (width, height) in pixels of the given image file.
     Understands GIF, JPEG, and PNG formats.
     """
-    pict = Image.open(path)  #Too easy.  Thanks Fredrik!
+    pict = Image.open(path)  # Too easy.  Thanks Fredrik!
     width, height = pict.size
     return width, height
-

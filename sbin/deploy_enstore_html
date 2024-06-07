@@ -8,32 +8,15 @@ fi
 
 PATH=/usr/sbin:$PATH
 
-export ENSTORE_DIR=`rpm -ql enstore | head -1`
-export PYTHON_DIR=$ENSTORE_DIR/Python
-export PYTHONINC=`ls -d ${PYTHON_DIR}/include/python*`
-export PYTHONLIB=`ls -d ${PYTHON_DIR}/lib/python*`
-export PATH=${PYTHON_DIR}/bin:${PATH}
-set PYTHONPATH="./"
-for p in ${ENSTORE_DIR}/src \
-	 ${ENSTORE_DIR}/modules \
-	 ${ENSTORE_DIR}/HTMLgen 	
-do	
-	PYTHONPATH=${PYTHONPATH}:${p}
-done
-
-export PYTHONPATH
-
-chmod +x web_server.py
-chmod +x make_enstore_system.py
-
-./web_server.py --install
+chmod +x web_server
+chmod +x make_enstore_system
+./web_server --install
 
 if [ $? != 0 ];
 then
 	exit 1 
 fi
-
-./make_enstore_system.py 
+./make_enstore_system
 
 rc=$?
 

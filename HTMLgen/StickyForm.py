@@ -27,7 +27,7 @@ Intended to work with HTMLgen.
     StickyForm works like a Form with the addition of a state
     attribute, a save method and a restore method.
 
-        state -- is a FormState instance which holds the default values 
+        state -- is a FormState instance which holds the default values
                  for all form elements.
         save -- tells the FormState instance to save itself to a file.
         restore -- tells the FormState instance to restore itself from a file.
@@ -41,7 +41,7 @@ Intended to work with HTMLgen.
     There are three ways to indicate a StickyForm's state upon initialization:
 
         filename -- this loads the state of the form from a file
-        FieldStorage -- this sets the state of the form from the 
+        FieldStorage -- this sets the state of the form from the
                         information in the FieldStorage
         FormState -- this sets the state to the FormState instance
 
@@ -76,31 +76,38 @@ Intended to work with HTMLgen.
 """
 # copyright 1998 by  amos latteier, amos@aracnet.com
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 from HTMLgen import *
-from types import ListType, StringType
 import UserDict
-#'$Id$'
+# '$Id$'
 __version__ = '1.0.1'
-__author__  = 'Amos Latteier, amos@aracnet.com'
+__author__ = 'Amos Latteier, amos@aracnet.com'
+StringType = type('s')
+ListType = type([1])
+
 
 # RKF - Trying out cPickle as a faster mechanism for the persistant
 #       storage.
 try:
-    import cPickle
+    import pickle
+
     def dump(data, filename):
-        file = open(filename,'wb')
-        cPickle.dump(data, file, 1)
+        file = open(filename, 'wb')
+        pickle.dump(data, file, 1)
         file.close()
 
     def load(filename):
         file = open(filename, 'rb')
-        unpickled_object = cPickle.load(file)
+        unpickled_object = pickle.load(file)
         file.close()
         return unpickled_object
 except ImportError:
     import pickle
+
     def dump(data, filename):
-        file = open(filename,'w')
+        file = open(filename, 'w')
         pickle.dump(data, file)
         file.close()
 
@@ -110,36 +117,37 @@ except ImportError:
         file.close()
         return unpickled_object
 
+
 class FormState(UserDict.UserDict):
     """This is a Dictionary which holds the state of a form.
 
     It is like a simplified FieldStorage class.
     Each key is the name of a form element.
-    Each value is either a string or a list of strings which 
+    Each value is either a string or a list of strings which
     define that value.
 
     You can create a FormState from a FieldStorage.
     You can save and restore FormStates from text files"""
 
     def __init__(self, field_storage=None):
-        self.data={}
+        self.data = {}
         if not field_storage:
-            field_storage={}
+            field_storage = {}
 
-        for key in field_storage.keys():
-            item=field_storage[key]
-            if type(item) == ListType:
-                value=[]
+        for key in list(field_storage.keys()):
+            item = field_storage[key]
+            if isinstance(item, ListType):
+                value = []
                 for sub_item in item:
                     value.append(sub_item.value)
             else:
-                value=item.value
-            self.data[key]=value
+                value = item.value
+            self.data[key] = value
 
-    def save(self,filename):
+    def save(self, filename):
         dump(self.data, filename)
 
-    def restore(self,filename):
+    def restore(self, filename):
         self.data = load(filename)
 
 
@@ -170,33 +178,38 @@ class StickyForm(Form):
        form=StickyForm(state=fs)
 """
 
-    def __init__(self, cgi = None, state=None,**kw):
-        apply(Form.__init__, (self,cgi), kw)
-        if type(state) == StringType:
-            self.state=FormState()
+    def __init__(self, cgi=None, state=None, **kw):
+        Form.__init__(*(self, cgi), **kw)
+        if isinstance(state, StringType):
+            self.state = FormState()
             self.state.restore(state)
         elif state is None:
-            self.state=FormState()
+            self.state = FormState()
         elif state.__class__.__name__ == "FieldStorage":
-            self.state=FormState(state)
+            self.state = FormState(state)
         else:
-            self.state=state
+            self.state = state
 
     def __str__(self):
         if not self.submit:
             self.contents.append(Input(type='submit',
-                          name='SubmitButton',value='Send'))
+                                       name='SubmitButton', value='Send'))
         else:
             self.contents.append(self.submit)
         if self.reset:
             self.contents.append(self.reset)
 
         s = ['\n<FORM METHOD="POST"']
-        if self.cgi: s.append(' ACTION="%s"' % self.cgi)
-        if self.enctype: s.append(' ENCTYPE="%s"' % self.enctype)
-        if self.target: s.append(' TARGET="%s"' % self.target)
-        if self.name: s.append(' NAME="%s"' % self.name)
-        if self.onSubmit: s.append(' onSubmit="%s"' % self.onSubmit)
+        if self.cgi:
+            s.append(' ACTION="%s"' % self.cgi)
+        if self.enctype:
+            s.append(' ENCTYPE="%s"' % self.enctype)
+        if self.target:
+            s.append(' TARGET="%s"' % self.target)
+        if self.name:
+            s.append(' NAME="%s"' % self.name)
+        if self.onSubmit:
+            s.append(' onSubmit="%s"' % self.onSubmit)
         s.append('>\n')
         for item in self.contents:
             if self.state is not None:
@@ -204,46 +217,46 @@ class StickyForm(Form):
             else:
                 s.append(str(item))
         s.append('\n</FORM>\n')
-        return string.join(s, '')
+        return ''.join('')
 
-    def with_state(self,input):
+    def with_state(self, input):
         """Here's where the actual work gets done. Each Input, Select
         and Textarea object in the form is modified to reflect it's
         value as defined in the form's state.  """
         try:
-            input_class=input.__class__.__name__
-            if input_class not in ("Input","Select","Textarea"):
+            input_class = input.__class__.__name__
+            if input_class not in ("Input", "Select", "Textarea"):
                 return str(input)
-        except:
+        except BaseException:
             return str(input)
 
-        if self.state.has_key(input.name):
-            input_state=self.state[input.name]
+        if input.name in self.state:
+            input_state = self.state[input.name]
         else:
             return str(input)
 
-        if type(input_state) == ListType:
-            input_state_list=input_state
+        if isinstance(input_state, ListType):
+            input_state_list = input_state
         else:
-            input_state_list=[input_state]
+            input_state_list = [input_state]
 
         if input_class == "Input":
-            if input.type in ('checkbox','radio'):
+            if input.type in ('checkbox', 'radio'):
                 if input.value in input_state_list:
-                    input.checked=1
+                    input.checked = 1
             else:
-                input.value=input_state
+                input.value = input_state
 
         elif input_class == "Select":
-            input.selected=input_state_list
+            input.selected = input_state_list
 
         elif input_class == "Textarea":
-            input.text=input_state
+            input.text = input_state
 
         return str(input)
 
-    def save(self,filename):
+    def save(self, filename):
         self.state.save(filename)
 
-    def restore(self,filename):
+    def restore(self, filename):
         self.state.restore(filename)

@@ -166,7 +166,7 @@ class SteadyDBConnection:
 			raise TypeError("%r is not a connection provider." % (creator,))
 		if maxusage is None:
 			maxusage = 0
-		if not isinstance(maxusage, (int, long)):
+		if not isinstance(maxusage, int):
 			raise TypeError("'maxusage' must be an integer value.")
 		self._maxusage = maxusage
 		self._setsession_sql = setsession
@@ -255,7 +255,7 @@ class SteadyDBConnection:
 			else:
 				self._failure = self._failures
 			self._setsession(con)
-		except Exception, error:
+		except Exception as error:
 			# the database module could not be determined
 			# or the session could not be prepared
 			try: # close the connection first
@@ -343,7 +343,7 @@ class SteadyDBConnection:
 					# the connection was used too often
 					raise self._failure
 			cursor = self._con.cursor(*args, **kwargs) # try to get a cursor
-		except self._failures, error: # error in getting cursor
+		except self._failures: # error in getting cursor
 			try: # try to reopen the connection
 				con2 = self._create()
 			except Exception:
@@ -450,7 +450,7 @@ class SteadyDBCursor:
 				result = method(*args, **kwargs) # try to execute
 				if execute:
 					self._clearsizes()
-			except self._con._failures, error: # execution error
+			except self._con._failures: # execution error
 				try:
 					cursor2 = self._con._cursor(
 						*self._args, **self._kwargs) # open new cursor

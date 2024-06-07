@@ -2,7 +2,6 @@
 ######################################################################
 ######################################################################
 
-import string
 import os
 import time
 import signal
@@ -14,8 +13,8 @@ import e_errors
 # since this is being run from a cron job on hppc, i do not want to import from
 # enstore.  we would normally use get_remote_file & ping from enstore_functions and
 # VQFORMATED from enstore_constants.  instead define them here
-#import enstore_functions
-#import enstore_constants
+# import enstore_functions
+# import enstore_constants
 VQFORMATED = "VOLUME_QUOTAS_FORMATED"
 DEAD = 0
 ALIVE = 1
@@ -26,13 +25,13 @@ def ping(node):
     times_to_ping = 4
     # the timeout parameter does not work on d0ensrv2.
     timeout = 5
-    #cmd = "ping -c %s -w %s %s"%(times_to_ping, timeout, node)
+    # cmd = "ping -c %s -w %s %s"%(times_to_ping, timeout, node)
     cmd = "ping -c %s %s" % (times_to_ping, node)
     p = os.popen(cmd, 'r').readlines()
     for line in p:
-        if not string.find(line, "transmitted") == -1:
+        if not line.find("transmitted") == -1:
             # this is the statistics line
-            stats = string.split(line)
+            stats = line.split()
             if stats[0] == stats[3]:
                 # transmitted packets = received packets
                 return ALIVE
@@ -44,7 +43,8 @@ def ping(node):
 
 
 def get_remote_file(node, file, newfile):
-    # we have to make sure that the rcp does not hang in case the remote node is goofy
+    # we have to make sure that the rcp does not hang in case the remote node
+    # is goofy
     pid = os.fork()
     if pid == 0:
         # this is the child
@@ -125,12 +125,12 @@ if __name__ == "__main__":   # pragma: no cover
                 for line in lines:
                     # translate total bytes into terabytes
                     parts = line.split()
-                    bytes = float(string.strip(parts[0]))
-                    total += bytes/TB
+                    bytes = float(parts[0].strip())
+                    total += bytes / TB
                     total_bytes += bytes
                     if len(parts) > 1:
-                        bytes = float(string.strip(parts[1]))
-                        active += bytes/TB
+                        bytes = float(parts[1].strip())
+                        active += bytes / TB
                         active_bytes += bytes
                     else:
                         active = total
@@ -148,7 +148,7 @@ if __name__ == "__main__":   # pragma: no cover
             str = "(does not include "
             dead_nodes.sort()
             for server in dead_nodes:
-                str = str + server+","
+                str = str + server + ","
             str = str[0:-1] + ")"
         else:
             str = ""

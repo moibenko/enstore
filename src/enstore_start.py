@@ -8,10 +8,15 @@
 #
 #
 
-# Notes: Various functions return 0 for the server is not running an 1 if it is.
+# Notes: Various functions return 0 for the server is not running an 1 if
+# it is.
 
 # system imports
 #
+from __future__ import print_function
+from builtins import str
+from builtins import range
+from future.utils import raise_
 import sys
 import os
 import string
@@ -39,7 +44,7 @@ import configuration_client
 import event_relay_client
 
 # Less hidden side effects to call this?  Also, pychecker perfers it.
-### What does this give us?
+# What does this give us?
 setpath.set_enstore_paths()
 
 MY_NAME = "ENSTORE_START"
@@ -73,12 +78,12 @@ def get_csc():
 def this_host():
     global host_names_and_ips  # global cache variable
 
-    if host_names_and_ips == None:
+    if host_names_and_ips is None:
         try:
             # rtn = socket.gethostbyname_ex(socket.getfqdn())
             hostname = socket.getfqdn()
             rtn = socket.getaddrinfo(hostname, None)
-        except (socket.error, socket.herror, socket.gaierror), msg:
+        except (socket.error, socket.herror, socket.gaierror) as msg:
             try:
                 message = "unable to obtain hostname information: %s\n" \
                           % (str(msg),)
@@ -91,13 +96,13 @@ def this_host():
         rtn_formatted = [hostname, hostname.split('.')[0], rtn[0][4][0]]
 
         interfaces_list = Interfaces.interfacesGet()
-        for interface in interfaces_list.keys():
+        for interface in list(interfaces_list.keys()):
             ip = interfaces_list[interface]['ip']
             if ip == "127.0.0.1":
                 continue
             try:
                 rc = socket.gethostbyaddr(ip)
-            except (socket.error, socket.herror, socket.gaierror), msg:
+            except (socket.error, socket.herror, socket.gaierror) as msg:
                 try:
                     message = "unable to obtain hostname information: %s\n" \
                               % (str(msg),)
@@ -128,14 +133,14 @@ def output(server_name):
     # Determine where to redirect the output.
 
     tmp_dir = os.environ.get('ENSTORE_OUT', None)
-    if tmp_dir == None:
+    if tmp_dir is None:
         tmp_dir = os.environ.get('ENSTORE_HOME', None)
-        if tmp_dir == None:
+        if tmp_dir is None:
             tmp_dir = os.environ.get('ENSTORE_DIR', '')
 
     try:
         output_dir_base = os.path.join(tmp_dir, "tmp")
-    except:
+    except BaseException:
         output_dir_base = "/tmp/enstore/"
         try:
             sys.stderr.write("Unable to determine temp. directory.  Using %s." %
@@ -151,10 +156,10 @@ def output(server_name):
         output_dir = os.path.join(output_dir_base, username)
         try:
             os.makedirs(output_dir)
-        except OSError, msg:
+        except OSError as msg:
             # If the file already exists, this really is not an error.
             if msg.errno != errno.EEXIST:
-                raise OSError, msg
+                raise_(OSError, msg)
     except OSError:
         output_dir = None
         try:
@@ -182,8 +187,10 @@ def save(server_name):
     of = os.path.join(directory, of)
     # Determine where to redirect the output.
     try:
-        os.system("mv %s %s > /dev/null 2>/dev/null" % (inf, of))
-    except:
+        cmd = "mv %s %s > /dev/null 2>/dev/null" % (inf, of)
+        #os.system("mv %s %s > /dev/null 2>/dev/null" % (inf, of))
+        stat = subprocess.Popen(cmd, shell=True).wait()
+    except BaseException:
         pass
 
 
@@ -200,7 +207,7 @@ def write_pid_file(servername):
     try:
         # Make the pid dir.
         os.makedirs(pid_dir)
-    except OSError, msg:
+    except OSError as msg:
         if hasattr(msg, 'errno') and msg.errno == errno.EEXIST:
             pass
         else:
@@ -213,12 +220,13 @@ def write_pid_file(servername):
 
     # Make the pid file.
     try:
-        f = open(pid_file, "wr")
-        msg = "%s %s" % (os.getpid(), time.strftime("%b%d %H:%M", time.localtime(time.time())))
+        f = open(pid_file, "w")
+        msg = "%s %s" % (os.getpid(), time.strftime(
+            "%b%d %H:%M", time.localtime(time.time())))
         # f.write(str(os.getpid()))
         f.write(msg)
         f.close()
-    except OSError, msg:
+    except OSError as msg:
         try:
             sys.stderr.write(
                 "Error writing pid file: %s\n", str(msg))
@@ -246,7 +254,7 @@ def is_in_cluster():
         return 0
 
     # Simple loop to determine if the system is a production system.
-    for cluster in kcs.keys():
+    for cluster in list(kcs.keys()):
         if cluster == socket.gethostname()[:len(cluster)]:
             return 1
 
@@ -263,7 +271,10 @@ def start_server(cmd, servername):
         save(servername)
         os.dup(1)
         os.close(1)
-        os.open(output(servername), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0664)
+        fd = os.open(output(servername), os.O_WRONLY |
+                os.O_CREAT | os.O_TRUNC, 0o664)
+        os.get_inheritable(fd)
+        os.set_inheritable(fd, True)
         os.close(2)
         os.dup(1)
 
@@ -275,10 +286,16 @@ def start_server(cmd, servername):
             cmd_list[i] = os.path.expanduser(cmd_list[i])
             cmd_list[i] = os.path.expandvars(cmd_list[i])
 
-        print "Will execute", cmd_list
+        print("Will execute", cmd_list)
+        #print("Will execute", cmd_list)
         # Execute the new server.
-        os.execvp(cmd_list[0], cmd_list)
-
+        if any (s in cmd for s in ('media_changer', 'mover')):
+            subprocess.Popen(cmd_list, stdout=fd, stderr=subprocess.STDOUT, close_fds=False).wait()
+            #    #subprocess.Popen(cmd, stdout=fd, stderr=subprocess.STDOUT, close_fds=False, shell=True).wait()
+            #    #subprocess.Popen(cmd_list, stdout=fd)
+        else:
+            os.execvp(cmd_list[0], cmd_list)
+        
 
 # If the system is in a production cluster make in run as user enstore
 # if possible.
@@ -291,15 +308,15 @@ def check_user():
                 enstore_gid = grp.getgrnam("enstore")[2]
                 os.setegid(enstore_gid)
             except (OSError, KeyError, IndexError):
-                print "Should be running as group enstore, " \
-                      "but the enstore group is not found."
+                print("Should be running as group enstore, "
+                      "but the enstore group is not found.")
                 sys.exit(1)
             try:
                 enstore_uid = pwd.getpwnam("enstore")[2]
                 os.seteuid(enstore_uid)
             except (OSError, KeyError, IndexError):
-                print "Should be running as user enstore, " \
-                      "but the enstore user is not found."
+                print("Should be running as user enstore, "
+                      "but the enstore user is not found.")
                 sys.exit(1)
 
         # Extract the user name.
@@ -309,7 +326,7 @@ def check_user():
             name = ""
         # Check if running as user enstore.
         if name != "enstore":
-            print "You should run this as user enstore."
+            print("You should run this as user enstore.")
             sys.exit(1)
 
 
@@ -349,11 +366,11 @@ def check_event_relay(csc, intf, cmd):
     if intf.nocheck:
         rtn = 1
     else:
-        print "Checking %s." % name
+        print("Checking %s." % name)
         rtn = erc.alive()
 
     if rtn:
-        print "Starting %s." % name
+        print("Starting %s." % name)
 
         # Start the event relay.
         start_server(cmd, name)
@@ -366,22 +383,25 @@ def check_event_relay(csc, intf, cmd):
             try:
                 # rtn = 0 implies alive, rtn = 1 implies dead.
                 rtn = erc.alive()
-            except (socket.error, select.error, e_errors.EnstoreError), msg:
+            except (socket.error, select.error, e_errors.EnstoreError) as msg:
                 if msg.errno == errno.ETIMEDOUT:
-                    rtn = {'status': (e_errors.TIMEDOUT, enstore_constants.EVENT_RELAY)}
+                    rtn = {
+                        'status': (
+                            e_errors.TIMEDOUT,
+                            enstore_constants.EVENT_RELAY)}
                 else:
                     rtn = {'status': (e_errors.NET_ERROR, str(msg))}
-            except errno.errorcode[errno.ETIMEDOUT]:
+            except Exception as e:
                 rtn = {'status': (e_errors.TIMEDOUT,
                                   errno.errorcode[errno.ETIMEDOUT])}
             if rtn == 0:
                 break
 
         if rtn == 1:
-            print "Server %s not started." % (name,)
+            print("Server %s not started." % (name,))
             sys.exit(1)
     else:
-        print "Found event_relay."
+        print("Found event_relay.")
 
 
 # lets start fixing thisngs at least from configuration server
@@ -389,7 +409,7 @@ def check_config_server(intf, name='configuration_server', start_cmd=None):
     # host = socket.gethostname()
     config_host = os.environ.get('ENSTORE_CONFIG_HOST')
     if not config_host:
-        print "ENSTORE_CONFIG_HOST is not set. Exiting"
+        print("ENSTORE_CONFIG_HOST is not set. Exiting")
         sys.exit(1)
 
     # host_ips = socket.gethostbyname_ex(host)[2]
@@ -417,10 +437,16 @@ def check_config_server(intf, name='configuration_server', start_cmd=None):
     if intf.nocheck:
         rtn = {'status': ("nocheck", "nocheck")}
     else:
-        print "Checking %s." % name
+        print("Checking %s." % name)
         # see if EPS returns config_server"
-        cmd = 'EPS | egrep "%s" | egrep -v "%s|%s|%s"' % (name, "enstore start", "enstore stop", "enstore restart")
-        pipeObj = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True, close_fds=True)
+        cmd = 'EPS | egrep "%s" | egrep -v "%s|%s|%s"' % (
+            name, "enstore start", "enstore stop", "enstore restart")
+        pipeObj = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            shell=True,
+            close_fds=True)
         if pipeObj:
             result = pipeObj.communicate()[0]
             if len(result) >= 1:
@@ -430,7 +456,7 @@ def check_config_server(intf, name='configuration_server', start_cmd=None):
                 rtn = {'status': ("e_errors.SERVERDIED", "not running")}
 
     if not e_errors.is_ok(rtn):
-        print "Starting %s" % (name,)
+        print("Starting %s" % (name,))
 
         # Start the server.
         start_server(start_cmd, name)
@@ -441,7 +467,12 @@ def check_config_server(intf, name='configuration_server', start_cmd=None):
         for unused in (0, 1, 2, 3, 4, 5):
             time.sleep(2)
             cmd = 'EPS | egrep %s' % (name,)
-            pipeObj = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True, close_fds=True)
+            pipeObj = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                shell=True,
+                close_fds=True)
             if pipeObj:
                 result = pipeObj.communicate()[0]
                 if len(result) >= 1:
@@ -450,16 +481,16 @@ def check_config_server(intf, name='configuration_server', start_cmd=None):
 
         else:
             rtn = {'status': ("e_errors.SERVERDIED", "not running")}
-            print "Server %s not started." % (name,)
+            print("Server %s not started." % (name,))
             sys.exit(1)
     else:
-        print "Found %s" % (name,)
+        print("Found %s" % (name,))
 
 
 def check_server(csc, name, intf, cmd):
     # Check if this server is supposed to run on this machine.
     info = csc.get(name, SEND_TO, SEND_TM)
-    ##HACK:
+    # HACK:
     # Do a hack for the monitor server.  Since, it runs on all enstore
     # machines we need to add this information before continuing.
     if e_errors.is_ok(info) and name == enstore_constants.MONITOR_SERVER:
@@ -467,7 +498,7 @@ def check_server(csc, name, intf, cmd):
         # info['hostip'] = socket.gethostbyname(info['host'])
         info['hostip'] = hostaddr.name_to_address(info['host'])
         info['port'] = enstore_constants.MONITOR_PORT
-    ##END HACK.
+    # END HACK.
     if not is_on_host(info.get('host', None)) and \
             not is_on_host(info.get('hostip', None)):
         return
@@ -477,31 +508,31 @@ def check_server(csc, name, intf, cmd):
         gc = generic_client.GenericClient(csc, MY_NAME, server_name=name,
                                           rcv_timeout=SEND_TO, rcv_tries=SEND_TM)
 
-        print "Checking %s." % name
+        print("Checking %s." % name)
 
         try:
             # Determine if the host is alive.
             rtn = gc.alive(name, SEND_TO, SEND_TM)
-        except (socket.error, select.error, e_errors.EnstoreError), msg:
+        except (socket.error, select.error, e_errors.EnstoreError) as msg:
             if hasattr(msg, "errno") and msg.errno == errno.ETIMEDOUT:
                 rtn = {'status': (e_errors.TIMEDOUT, name)}
             else:
                 rtn = {'status': (e_errors.NET_ERROR, str(msg))}
 
-        except errno.errorcode[errno.ETIMEDOUT]:
+        except Exception as e:
             rtn = {'status': (e_errors.TIMEDOUT,
                               errno.errorcode[errno.ETIMEDOUT])}
 
         if not e_errors.is_ok(rtn):
             # check if python process with this name is still running
             ch_cmd = 'EPS | egrep "%s" | egrep python | egrep -v "%s|%s|%s"' % (
-            name, "enstore start", "enstore stop", "enstore restart")
+                name, "enstore start", "enstore stop", "enstore restart")
             pipeObj = subprocess.Popen(ch_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=True,
                                        close_fds=True)
             if pipeObj:
                 rc = pipeObj.communicate()[0]
                 if rc:
-                    result = rc.split("\n")
+                    result = str(rc).split("\n")
                 else:
                     result = rc
                 if len(result) > 1:
@@ -523,13 +554,15 @@ def check_server(csc, name, intf, cmd):
                     # running, don't start
                     if dont_start:
                         rtn = {'status': (e_errors.OK, "running")}
-                        print "Server %s does not respond but is running as \n %s" % (name, result)
+                        print(
+                            "Server %s does not respond but is running as \n %s" %
+                            (name, result))
                 else:
                     rtn = {'status': ("e_errors.SERVERDIED", "not running")}
 
     # Process response.
     if not e_errors.is_ok(rtn):
-        print "Starting %s: %s:%s" % (name, info['hostip'], info['port'])
+        print("Starting %s: %s:%s" % (name, info['hostip'], info['port']))
 
         # Start the server.
         start_server(cmd, name)
@@ -545,11 +578,11 @@ def check_server(csc, name, intf, cmd):
             if rtn['status'][0] == e_errors.TIMEDOUT:
                 continue
             if not e_errors.is_ok(rtn):
-                print "Server %s not started." % (name,)
+                print("Server %s not started." % (name,))
                 sys.exit(1)
     else:
-        print "Found %s: %s:%s" % (name, info.get('hostip', None),
-                                   info.get('port', None))
+        print("Found %s: %s:%s" % (name, info.get('hostip', None),
+                                   info.get('port', None)))
 
 
 class EnstoreStartInterface(generic_client.GenericClientInterface):
@@ -589,7 +622,7 @@ class EnstoreStartInterface(generic_client.GenericClientInterface):
             return 1
         if self.just == server_name:
             return 1
-        if self.just == None and server_name not in self.non_default_names:
+        if self.just is None and server_name not in self.non_default_names:
             return 1
 
         return 0
@@ -662,14 +695,14 @@ def do_work(intf):
     # Start the configuration server.
     if intf.should_start(enstore_constants.CONFIGURATION_SERVER):
         check_config_server(intf, name='configuration_server',
-                            start_cmd="$ENSTORE_DIR/sbin/configuration_server " \
+                            start_cmd="$ENSTORE_DIR/sbin/configuration_server "
                                       "--config-file $ENSTORE_CONFIG_FILE")
 
     csc = get_csc()
     rtn = csc.alive(configuration_client.MY_SERVER, 3, 3)
     if not e_errors.is_ok(rtn):
         # If the configuration server was not specifically specified.
-        print "Configuration server not running:", rtn['status']
+        print("Configuration server not running:", rtn['status'])
         sys.exit(1)
 
     config_dict = csc.dump_and_save()
@@ -677,12 +710,13 @@ def do_work(intf):
     # db_dir = csc.get('database', {}).get('db_dir', None)
     db_dir = config_dict.get('database', {}).get('db_dir', None)
     if not db_dir:
-        print "Unable to determine database directory."
+        print("Unable to determine database directory.")
         sys.exit(1)
 
     # The movers and migrators need to run as root, check for sudo.
     if sudo is None:
-        if os.system("sudo -V > /dev/null 2> /dev/null"):  # if true sudo not found.
+        # if true sudo not found.
+        if os.system("sudo -V > /dev/null 2> /dev/null"):
             sudo = str("")
         else:
             sudo = str("sudo")  # found
@@ -777,6 +811,7 @@ def do_work(intf):
                          "$ENSTORE_DIR/sbin/udp_proxy_server %s" %
                          (proxy_server_name,))
     sys.exit(0)
+
 
 if __name__ == "__main__":   # pragma: no cover
     intf = EnstoreStartInterface(user_mode=0)

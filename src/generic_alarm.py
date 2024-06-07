@@ -2,18 +2,20 @@
 # system import
 
 # enstore imports
+from builtins import object
 import Trace
 import e_errors
 
-# alarm state 
+# alarm state
 CLEARED = 0
 SET = 1
 RAISED = 2
 
-class GenericAlarm:
+
+class GenericAlarm(object):
 
     def __init__(self):
-	self.clear()
+        self.clear()
 
     def set(self, error_code, severity, info):
         self.error_code = error_code

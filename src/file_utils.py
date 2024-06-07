@@ -15,6 +15,7 @@
 ###############################################################################
 
 # system imports
+from future.utils import raise_
 import sys
 import os
 import stat
@@ -26,13 +27,13 @@ import traceback
 
 try:
     import multiprocessing
-except ImportError, msg:
+except ImportError as msg:
     # sys.stderr.write("Failed to import multiprocessing: %s\n" % (str(msg),))
     pass
 try:
     # To fully enable this, sem_lock must also be changed later in this file.
     pass  # import posix_ipc
-except ImportError, msg:
+except ImportError as msg:
     # sys.stderr.write("Failed to import posix_ipc: %s\n" % (str(msg),))
     pass
 
@@ -42,8 +43,8 @@ import atomic
 import e_errors
 
 
-## mode is one of os.F_OK, os.W_OK, os.R_OK or os.X_OK.
-## file_stats is the return from os.stat()
+# mode is one of os.F_OK, os.W_OK, os.R_OK or os.X_OK.
+# file_stats is the return from os.stat()
 
 # The os.access() and the access(2) C library routine use the real id when
 # testing for access.  This function does the same thing but for the
@@ -191,8 +192,8 @@ def get_mount_point(path):
 
 #############################################################################
 
-## This section of code contains wrapper functions around os module functions
-## in a thread safe manner with respect to seteuid().
+# This section of code contains wrapper functions around os module functions
+# in a thread safe manner with respect to seteuid().
 
 # arg can be: filename, file descriptor, file object, a stat object
 def get_stat(arg, use_lstat=False, unstable_filesystem=False):
@@ -208,18 +209,19 @@ def get_stat(arg, use_lstat=False, unstable_filesystem=False):
     Returns:
         bits: Stats object of supplied file
     """
-    if isinstance(arg, types.StringType):
+
+    if isinstance(arg, (bytes, str)):
         if use_lstat:
             f_stat = wrapper(os.lstat, (arg,),
                              unstable_filesystem)
         else:
             f_stat = wrapper(os.stat, (arg,),
                              unstable_filesystem)
-    elif isinstance(arg, types.IntType):
+    elif isinstance(arg, int):
         f_stat = wrapper(os.fstat, (arg,))
-    elif isinstance(arg, types.FileType):
+    elif hasattr(arg, 'fileno'):
         f_stat = wrapper(os.fstat, (arg.fileno(),))
-    elif isinstance(arg, types.TupleType) or isinstance(arg, os.stat_result):
+    elif isinstance(arg, (tuple, os.stat_result)):
         f_stat = arg
     else:
         raise TypeError("Expected path, file descriptor or file object; "
@@ -255,7 +257,7 @@ def open(fname, mode="r", unstable_filesystem=False):
 
 # Open the file fname.  This is a wrapper for os.open() (atomic.open() is
 # another level of wrapper for os.open()).
-def open_fd(fname, flags, mode=0777, unstable_filesystem=False):
+def open_fd(fname, flags, mode=0o777, unstable_filesystem=False):
     """
     Wrap os.open, accepting flags
 
@@ -417,10 +419,14 @@ def acquire_lock_euid_egid():
     """
     Acquire lock for updating current euid/egid on this thread
     """
-    if euid_lock._RLock__count > 0 and \
-            euid_lock._RLock__owner == threading.currentThread():
-        Trace.log(67, "lock count: %s" % (euid_lock._RLock__count,))
-        Trace.log_stack_trace(severity=67)
+    # this was in python 2
+    #if euid_lock._RLock__count > 0 and \
+    #        euid_lock._RLock__owner == threading.currentThread():
+    #    Trace.log(67, "lock count: %s" % (euid_lock._RLock__count,))
+    #    Trace.log_stack_trace(severity=67)
+    # looks as only this is needed as acquire returns rigth away if
+    # the lock is requested by thread - owner
+    # and blocks if not
     euid_lock.acquire()
 
 
@@ -455,9 +461,9 @@ def match_euid_egid(arg):
 
         try:
             set_euid_egid(f_stat[stat.ST_UID], f_stat[stat.ST_GID])
-        except:
+        except BaseException:
             release_lock_euid_egid()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
 
 # Set the effective uid/gid.
@@ -565,13 +571,14 @@ try:
 except NameError:
     CPU_COUNT = 1
 
-## unstable_filesystem comment
+# unstable_filesystem comment
 # In __wrapper() and __readline(), for unstable filesystems (aka PNFS)
 # only allow a small number of simultaneous file system accesses.
 # (REN): This is done through a sem_lock but... that is ALWAYS NONE. WAT
 try:
     # posix_ipc is an extension module.  If available, use it.
-    # sem_lock = posix_ipc.Semaphore("/encp", posix_ipc.O_CREAT, 0777, CPU_COUNT)
+    # sem_lock = posix_ipc.Semaphore("/encp", posix_ipc.O_CREAT, 0777,
+    # CPU_COUNT)
     sem_lock = None  # WAT. THIS CAN NOT THROW NameError
     # It has been like this since code was committed!
 except NameError:
@@ -658,13 +665,13 @@ def __readline(fp, func="readline", unstable_filesystem=False):
                     # __wrapper().
                     try:
                         fp1 = wrapper(__builtins__['open'], (fp.name, fp.mode))
-                    except (OSError, IOError), msg2:
+                    except (OSError, IOError) as msg2:
                         if msg2.args[0] in retry_list:
                             time.sleep(i)
                             continue
                         else:
-                            raise sys.exc_info()[0], sys.exc_info()[1], \
-                                sys.exc_info()[2]
+                            raise_(sys.exc_info()[0], sys.exc_info()[1],
+                                sys.exc_info()[2])
 
                     if unstable_filesystem and sem_lock:
                         sem_lock.acquire()
@@ -678,13 +685,13 @@ def __readline(fp, func="readline", unstable_filesystem=False):
                             fp1.close()
                             if unstable_filesystem and sem_lock:
                                 sem_lock.release()
-                    except (OSError, IOError), msg2:
+                    except (OSError, IOError) as msg2:
                         if msg2.args[0] in retry_list:
                             time.sleep(i)
                             continue
                         else:
-                            raise sys.exc_info()[0], sys.exc_info()[1], \
-                                sys.exc_info()[2]
+                            raise_(sys.exc_info()[0], sys.exc_info()[1],
+                                sys.exc_info()[2])
 
                     # We got the file, now stop looping.
                     break
@@ -694,17 +701,17 @@ def __readline(fp, func="readline", unstable_filesystem=False):
                                   % (sys.exc_info()[1],)
                         Trace.log(e_errors.INFO, message)
 
-                    raise sys.exc_info()[0], sys.exc_info()[1], \
-                        sys.exc_info()[2]
+                    raise_(sys.exc_info()[0], sys.exc_info()[1],
+                        sys.exc_info()[2])
             else:
-                raise sys.exc_info()[0], sys.exc_info()[1], \
-                    sys.exc_info()[2]
-        except:
+                raise_(sys.exc_info()[0], sys.exc_info()[1],
+                    sys.exc_info()[2])
+        except BaseException:
             # For these exceptions, sem_lock should already be released.
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
-    except:
-        raise sys.exc_info()[0], sys.exc_info()[1], \
-            sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+    except BaseException:
+        raise_(sys.exc_info()[0], sys.exc_info()[1],
+            sys.exc_info()[2])
 
     return file_content
 
@@ -755,11 +762,11 @@ def __wrapper(function, args=(), unstable_filesystem=None):
                             time.sleep(1)
                         continue
                     else:
-                        raise sys.exc_info()[0], sys.exc_info()[1], \
-                            sys.exc_info()[2]
+                        raise_(sys.exc_info()[0], sys.exc_info()[1],
+                            sys.exc_info()[2])
                 else:
-                    raise sys.exc_info()[0], sys.exc_info()[1], \
-                        sys.exc_info()[2]
+                    raise_(sys.exc_info()[0], sys.exc_info()[1],
+                        sys.exc_info()[2])
 
             if unstable_filesystem and sem_lock:
                 sem_lock.release()
@@ -767,10 +774,10 @@ def __wrapper(function, args=(), unstable_filesystem=None):
 
         exception_object = OSError(errno.EIO, "Unknown error")
         raise exception_object
-    except:
+    except BaseException:
         if unstable_filesystem and sem_lock:
             sem_lock.release()
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
 
 #
@@ -795,7 +802,7 @@ def wrapper(function, args=(), unstable_filesystem=None):
     Returns:
         (Any): function return value
     """
-    if not isinstance(args, types.TupleType):
+    if not isinstance(args, tuple):
         use_args = (args,)
     else:
         use_args = args
@@ -817,14 +824,14 @@ def wrapper(function, args=(), unstable_filesystem=None):
                     os.seteuid(0)
                 if current_egid != 0:
                     os.setegid(0)
-            except:
+            except BaseException:
                 release_lock_euid_egid()
-                raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+                raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
             # The next thing to try is doing it again while being root.
             try:
                 rtn = __wrapper(function, use_args)
-            except (OSError, IOError), msg2:  # Anticipated errors.
+            except (OSError, IOError) as msg2:  # Anticipated errors.
                 if msg2.errno in [errno.EACCES, errno.EPERM] and \
                         len(args) > 0:
                     # Root does not have modify permissions for
@@ -839,7 +846,7 @@ def wrapper(function, args=(), unstable_filesystem=None):
                             use_function = os.fstat
                         elif function == os.lstat:
                             use_function = os.lstat
-                        elif len(args) and isinstance(args[0], types.IntType):
+                        elif len(args) and isinstance(args[0], int):
                             use_function = os.fstat
                         else:
                             # Are there situations that this is not correct?
@@ -851,10 +858,10 @@ def wrapper(function, args=(), unstable_filesystem=None):
                             os.setegid(fstat[stat.ST_GID])
                         if fstat[stat.ST_UID] != 0:
                             os.seteuid(fstat[stat.ST_UID])
-                    except:
+                    except BaseException:
                         release_lock_euid_egid()
-                        raise sys.exc_info()[0], sys.exc_info()[1], \
-                            sys.exc_info()[2]
+                        raise_(sys.exc_info()[0], sys.exc_info()[1],
+                               sys.exc_info()[2])
 
                     # Perform the requested function, this time as the
                     # correct UID and GID.  This can still fail with
@@ -866,20 +873,20 @@ def wrapper(function, args=(), unstable_filesystem=None):
                         rtn = __wrapper(function, use_args)
                     except (OSError, IOError):  # Anticipated errors.
                         release_lock_euid_egid()
-                        raise sys.exc_info()[0], sys.exc_info()[1], \
-                            sys.exc_info()[2]
-                    except:  # Un-anticipated errors.
+                        raise_(sys.exc_info()[0], sys.exc_info()[1],
+                               sys.exc_info()[2])
+                    except BaseException:  # Un-anticipated errors.
                         release_lock_euid_egid()
-                        raise sys.exc_info()[0], sys.exc_info()[1], \
-                            sys.exc_info()[2]
+                        raise_(sys.exc_info()[0], sys.exc_info()[1],
+                               sys.exc_info()[2])
                 else:
                     release_lock_euid_egid()
-                    raise sys.exc_info()[0], sys.exc_info()[1], \
-                        sys.exc_info()[2]
-            except:  # Un-anticipated errors.
+                    raise_(sys.exc_info()[0], sys.exc_info()[1],
+                           sys.exc_info()[2])
+            except BaseException:  # Un-anticipated errors.
                 release_lock_euid_egid()
-                raise sys.exc_info()[0], sys.exc_info()[1], \
-                    sys.exc_info()[2]
+                raise_(sys.exc_info()[0], sys.exc_info()[1],
+                       sys.exc_info()[2])
 
             try:
                 # First, set things back to root.
@@ -893,18 +900,18 @@ def wrapper(function, args=(), unstable_filesystem=None):
                     os.setegid(current_egid)
                 if current_euid != os.geteuid():
                     os.seteuid(current_euid)
-            except:
+            except BaseException:
                 release_lock_euid_egid()
-                raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+                raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
             release_lock_euid_egid()
             return rtn
         else:
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
-    except:
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+    except BaseException:
         if Trace.log_func != Trace.default_log_func:
             # Only send this to the log file, not to standard out/err.
             Trace.log_stack_trace()
-        raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+        raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
     return rtn

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 
-from   DBUtils import PooledDB
-import  psycopg2
+from DBUtils import PooledDB
+import psycopg2
 
 
 import e_errors
@@ -12,7 +12,7 @@ import alarm_client
 import configuration_client
 
 
-Q9="""
+Q9 = """
 SELECT CASE
          WHEN pg_last_xlog_receive_location() = pg_last_xlog_replay_location() THEN 0
          ELSE EXTRACT (EPOCH
@@ -20,7 +20,7 @@ SELECT CASE
        END AS log_delay
 """
 
-Q10="""
+Q10 = """
 SELECT CASE
          WHEN pg_last_wal_receive_lsn() = pg_last_wal_replay_lsn() THEN 0
          ELSE EXTRACT (EPOCH
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     alarm_client.Trace.init("REPLICA_CHECK")
     connectionPool = None
     cursor = None
-    db     = None
+    db = None
     try:
 
         csc = configuration_client.ConfigurationClient((enstore_functions2.default_host(),
@@ -56,18 +56,17 @@ if __name__ == "__main__":
             # try Postgresql9 supported query
             cursor.execute(Q9)
 
-        res=cursor.fetchall()
+        res = cursor.fetchall()
         delay = 0
         if res[0][0]:
             delay = int(res[0][0])
         if delay > 18000:
-            Trace.alarm(e_errors.ALARM, "Replica is behind by %d seconds"%(delay,))
+            Trace.alarm(
+                e_errors.ALARM, "Replica is behind by %d seconds" %
+                (delay,))
     except Exception as e:
-        Trace.alarm(e_errors.ALARM, "Replica check failed :",e.message)
+        Trace.alarm(e_errors.ALARM, "Replica check failed :", e)
     finally:
         for item in [cursor, db, connectionPool]:
-            if item :
+            if item:
                 item.close()
-
-
-

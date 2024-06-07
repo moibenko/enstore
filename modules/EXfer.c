@@ -241,6 +241,14 @@ const char unknown_mandatory_file_locking[] =
 #define ZERO ((size_t)0ULL) /* For filling struct buffer "stored" values
 			     * in a 32bit/64bit safe way. */
 
+/* Make python 3 compatible defines */
+/* See, for instance https://py3c.readthedocs.io/en/v1.4/reference.html */
+
+#if PY_MAJOR_VERSION >= 3
+    #define PyInt_AsLong PyLong_AsLong
+    #define PyInt_Check PyLong_Check
+#endif
+
 /***************************************************************************
  * definitions
  **************************************************************************/
@@ -385,11 +393,11 @@ struct t_monitor
 unsigned int adler32(unsigned int, char *, unsigned int);
 
 #ifndef STAND_ALONE
-void initEXfer(void);
 static PyObject * raise_exception(char *msg);
 static PyObject * EXfd_xfer(PyObject *self, PyObject *args);
 static PyObject * EXfd_ecrc(PyObject *self, PyObject *args);
 static PyObject * EXfd_quotas(PyObject *self, PyObject *args);
+PyMODINIT_FUNC PyInit_EXfer(void);  //void initEXfer(void);
 #endif
 
 /*
@@ -5605,13 +5613,26 @@ EXfd_xfer(PyObject *self, PyObject *args)
  *   Fourth & Fifth - see Python/modsupport.c
  */
 
-void
-initEXfer()
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef moduledef = {
+PyModuleDef_HEAD_INIT,
+"EXfer",     /* m_name */
+NULL,  /* m_doc */
+-1,                  /* m_size */
+EXfer_Methods,    /* m_methods */
+};
+#endif
+
+PyMODINIT_FUNC PyInit_EXfer()
 {
     PyObject	*m, *d;
 
+    #if PY_MAJOR_VERSION >= 3
+    m = PyModule_Create(&moduledef);
+    #else
     m = Py_InitModule4("EXfer", EXfer_Methods, EXfer_Doc,
 		       (PyObject*)NULL, PYTHON_API_VERSION);
+    #endif
     d = PyModule_GetDict(m);
     EXErrObject = PyErr_NewException("EXfer.error", NULL, NULL);
     if (EXErrObject != NULL)
@@ -5635,6 +5656,7 @@ initEXfer()
 		       PyLong_FromUnsignedLong(BLOCK_TIME_LIMIT));
     PyModule_AddObject(m, "FILE_TIME_LIMIT",
 		       PyLong_FromUnsignedLong(FILE_TIME_LIMIT));
+    return m;
 }
 
 #else

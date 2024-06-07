@@ -44,7 +44,7 @@ typedef char * cptr;
 typedef char * cptr;
 
 %typemap(in) cptr{
-        $1 = PyString_AsString($input);
+        $1 = PyBytes_AS_STRING($input);
 }
 
 #else

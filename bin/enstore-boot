@@ -36,7 +36,7 @@ case "$1" in
 	echo "`date`: Configuring service IPs" 2>&1 | tee /dev/console >>$output
 	$ENSTORE_DIR/tools/service_ips 2>&1 | tee /dev/console >>$output
 
-	validate_host.py $ENSTORE_CONFIG_HOST
+	validate_host $ENSTORE_CONFIG_HOST
 	if [ $? -eq 1 ]; then
 		runs_on=1
 		echo "config server runs on this host"
@@ -77,7 +77,7 @@ case "$1" in
 	if [ -e  /var/run/postgresql ]; then
 	    chown -R enstore:enstore /var/run/postgresql
 	fi
-	$ENSTORE_DIR/bin/enstore_database_server.py start
+	$ENSTORE_DIR/bin/enstore_database_server start
 
         if [ $estat -eq 0 ]; then
           # we should be enstore when we start this up (at least not root) if we are a server

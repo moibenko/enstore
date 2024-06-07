@@ -8,7 +8,8 @@
 #
 ###############################################################################
 
-#system imports
+# system imports
+from builtins import str
 import sys
 import string
 import socket
@@ -72,17 +73,17 @@ class GenericServer(generic_client.GenericClient):
         try:
             hostaddr.update_domains(self.csc)
         except AttributeError:
-            #The configuration server itself will fall here.
+            # The configuration server itself will fall here.
             # It can't create a client to itself.  However, the
             # configuration server should never call this function
             # either.
             pass
 
-        #Individually defined actions for each Enstore server.
+        # Individually defined actions for each Enstore server.
         self.reinit()
 
     def reinit(self):
-        #Need to override.
+        # Need to override.
         pass
 
     def __init__(self, csc, name, function=None, flags=0,
@@ -98,22 +99,22 @@ class GenericServer(generic_client.GenericClient):
                                               flags=use_flags,
                                               logc=logc, alarmc=alarmc)
 
-        #Servers need to communicate with the event relay.  Instantiate the
+        # Servers need to communicate with the event relay.  Instantiate the
         # event relay client class to facilitate that communication.
         self.erc = event_relay_client.EventRelayClient(self, function)
 
-        #We want the servers to cache the config file contents, because
+        # We want the servers to cache the config file contents, because
         # they can wait for the NEWCONFIGFILE message from the event relay.
         try:
             self.csc.new_config_obj.enable_caching()
         except (KeyboardInterrupt, SystemExit):
             raise sys.exc_info()
         except NameError:
-            #When 'self' is the configuration server, self.csc does not exist.
+            # When 'self' is the configuration server, self.csc does not exist.
             # However, the configuration server does not use this __init__
             # function, so it should never happen...
             Trace.log(e_errors.WARNING, "Configuration server calling itself.")
-        except:
+        except BaseException:
             Trace.log(e_errors.WARNING, "Unable to cache configuration.")
 
     __pychecker__ = "no-override"
@@ -138,13 +139,13 @@ class GenericServer(generic_client.GenericClient):
     # part1 to only be 8 characters.  also if there is an alternate part2
     # specified in the instance, use it.
     def get_log_name(self, name):
-        parts = string.split(name, '.')
+        parts = name.split('.')
         if len(parts) == 2:
-            new_name = "%s.%s" % (string.upper(parts[0][0:8]),
-                                  string.upper(self.__dict__.get("name_ext",
-                                                                 parts[1])))
+            part_1 = parts[0][0:8].upper()
+            part_2 = self.__dict__.get("name_ext", parts[1]).upper()
+            new_name = "%s.%s" % (part_1, part_2)
         else:
-            new_name = string.upper(name)
+            new_name = name.upper()
         return new_name
 
     # return the server name
@@ -163,33 +164,33 @@ class GenericServer(generic_client.GenericClient):
 
     # we got an uncaught error while in serve_forever
     def serve_forever_error(self, id):
-        #Get the traceback information.
+        # Get the traceback information.
         exc, msg, tb = sys.exc_info()
-        #Extract filename and line number information.
+        # Extract filename and line number information.
         try:
             filename = tb.tb_frame.f_code.co_filename
-            if not filename or type(filename) != type(""):
+            if not filename or not isinstance(filename, type("")):
                 filename = "???"
-        except:
+        except BaseException:
             filename = "???"
         try:
             lineno = tb.tb_lineno
-        except:
+        except BaseException:
             lineno = -1
 
-        #Format the error message.
+        # Format the error message.
         message = "Exception in file %s at line %s: (%s, %s)." \
                   "  See system log for details." % \
                   (filename, lineno, exc, msg)
 
-        #Log the error to stdout and to the log server.
+        # Log the error to stdout and to the log server.
         Trace.trace(e_errors.ERROR, str(message))
         Trace.alarm(e_errors.ALARM, str(message))
 
         message2 = "%s argv: %s" % (id, sys.argv)
         Trace.log(e_errors.INFO, message2)
 
-        #Be sure to include a traceback in the log file.
+        # Be sure to include a traceback in the log file.
         Trace.handle_error(exc, msg, tb)
 
         del tb  # Avoid resource leak.

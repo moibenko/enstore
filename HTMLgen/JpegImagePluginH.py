@@ -8,13 +8,13 @@
 # Part 1, Requirements and Guidelines" (CCITT T.81 / ISO 10918-1)
 #
 # History:
-#	95-09-09 fl	Created
-#	95-09-13 fl	Added full parser
-#	96-03-25 fl	Added hack to use the IJG command line utilities
-#	96-05-05 fl	Workaround Photoshop 2.5 CMYK polarity bug
-# 0.1	96-05-28 fl	Added draft support, JFIF version
-# 0.2	96-12-30 fl	Added encoder options, added progression property
-# 0.3	97-08-27 fl	Save mode 1 images as BW
+#       95-09-09 fl     Created
+#       95-09-13 fl     Added full parser
+#       96-03-25 fl     Added hack to use the IJG command line utilities
+#       96-05-05 fl     Workaround Photoshop 2.5 CMYK polarity bug
+# 0.1   96-05-28 fl     Added draft support, JFIF version
+# 0.2   96-12-30 fl     Added encoder options, added progression property
+# 0.3   97-08-27 fl     Save mode 1 images as BW
 #
 # Copyright (c) Secret Labs AB 1997.
 # Copyright (c) Fredrik Lundh 1995-96.
@@ -22,37 +22,45 @@
 # See the README file for information on usage and redistribution.
 #
 
+from builtins import range
+from future.utils import raise_
 __version__ = "0.3"
 
-import array, string
-import ImageH, ImageFileH
+import array
+import string
+import ImageH
+import ImageFileH
 
 
 def i16(c):
-    return ord(c[1]) + (ord(c[0])<<8)
+    return ord(c[1]) + (ord(c[0]) << 8)
+
 
 def i32(c):
-    return ord(c[3]) + (ord(c[2])<<8) + (ord(c[1])<<16) + (ord(c[0])<<24)
+    return ord(c[3]) + (ord(c[2]) << 8) + (ord(c[1]) << 16) + (ord(c[0]) << 24)
 
 #
 # Parser
 
+
 def Skip(self, marker):
-    self.fp.read(i16(self.fp.read(2))-2)
+    self.fp.read(i16(self.fp.read(2)) - 2)
+
 
 def APP(self, marker):
     #
     # Application marker.  Store these in the APP dictionary.
     # Also look for well-known application markers.
 
-    s = self.fp.read(i16(self.fp.read(2))-2)
-    self.app["APP%d" % (marker&15)] = s
+    s = self.fp.read(i16(self.fp.read(2)) - 2)
+    self.app["APP%d" % (marker & 15)] = s
 
     if marker == 0xFFE0 and s[:4] == "JFIF":
         self.info["jfif"] = i16(s[5:])
     if marker == 0xFFEE and s[:5] == "Adobe":
         self.info["adobe"] = i16(s[5:])
-	self.info["adobe_transform"] = ord(s[11])
+        self.info["adobe_transform"] = ord(s[11])
+
 
 def SOF(self, marker):
     #
@@ -62,30 +70,31 @@ def SOF(self, marker):
     # mode.  Note that this could be made a bit brighter, by
     # looking for JFIF and Adobe APP markers.
 
-    s = self.fp.read(i16(self.fp.read(2))-2)
+    s = self.fp.read(i16(self.fp.read(2)) - 2)
     self.size = i16(s[3:]), i16(s[1:])
 
     self.bits = ord(s[0])
     if self.bits != 8:
-	raise SyntaxError, "cannot handle %d-bit layers" % self.bits
+        raise_(SyntaxError, "cannot handle %d-bit layers" % self.bits)
 
     self.layers = ord(s[5])
     if self.layers == 1:
-	self.mode = "L"
+        self.mode = "L"
     elif self.layers == 3:
-	self.mode = "RGB"
+        self.mode = "RGB"
     elif self.layers == 4:
-	self.mode = "CMYK"
+        self.mode = "CMYK"
     else:
-	raise SyntaxError, "cannot handle %d-layer images" % self.layers
+        raise_(SyntaxError, "cannot handle %d-layer images" % self.layers)
 
     if marker in [0xFFC2, 0xFFC6, 0xFFCA, 0xFFCE]:
-	self.info["progression"] = 1
+        self.info["progression"] = 1
 
     for i in range(6, len(s), 3):
-	t = s[i:i+3]
-	# 4-tuples: id, vsamp, hsamp, qtable
-	self.layer.append(t[0], ord(t[1])/16, ord(t[1])&15, ord(t[2]))
+        t = s[i:i + 3]
+        # 4-tuples: id, vsamp, hsamp, qtable
+        self.layer.append(t[0], ord(t[1]) / 16, ord(t[1]) & 15, ord(t[2]))
+
 
 def DQT(self, marker):
     #
@@ -96,17 +105,17 @@ def DQT(self, marker):
     # FIXME: The quantization tables can be used to estimate the
     # compression quality.
 
-    s = self.fp.read(i16(self.fp.read(2))-2)
+    s = self.fp.read(i16(self.fp.read(2)) - 2)
     while len(s):
-	if len(s) < 65:
-	    raise SyntaxError, "bad quantization table marker"
-	v = ord(s[0])
-	if v/16 == 0:
-	    self.quantization[v&15] = array.array("b", s[1:65])
-	    s = s[65:]
-	else:
-	    pass
-	    # raise SyntaxError, "bad quantization table element size"
+        if len(s) < 65:
+            raise SyntaxError("bad quantization table marker")
+        v = ord(s[0])
+        if v / 16 == 0:
+            self.quantization[v & 15] = array.array("b", s[1:65])
+            s = s[65:]
+        else:
+            pass
+            # raise SyntaxError, "bad quantization table element size"
 
 
 #
@@ -182,6 +191,7 @@ MARKER = {
 def _accept(prefix):
     return prefix[0] == "\377"
 
+
 class JpegImageFile(ImageFileH.ImageFile):
 
     format = "JPEG"
@@ -189,93 +199,101 @@ class JpegImageFile(ImageFileH.ImageFile):
 
     def _open(self):
 
-	s = self.fp.read(1)
+        s = self.fp.read(1)
 
-	if ord(s[0]) != 255:
-	    raise SyntaxError, "not an JPEG file"
+        if ord(s[0]) != 255:
+            raise SyntaxError("not an JPEG file")
 
-	# Create attributes
-	self.bits = self.layers = 0
+        # Create attributes
+        self.bits = self.layers = 0
 
-	# JPEG specifics (internal)
-	self.layer = []
-	self.huffman_dc = {}
-	self.huffman_ac = {}
-	self.quantization = {}
-	self.app = {}
+        # JPEG specifics (internal)
+        self.layer = []
+        self.huffman_dc = {}
+        self.huffman_ac = {}
+        self.quantization = {}
+        self.app = {}
 
-	while 1:
+        while True:
 
-	    s = s + self.fp.read(1)
+            s = s + self.fp.read(1)
 
-	    i = i16(s)
+            i = i16(s)
 
-	    if MARKER.has_key(i):
-		name, description, handler = MARKER[i]
-		# print hex(i), name, description
-		if handler != None:
-		    handler(self, i)
-		if i == 0xFFDA: # start of scan
-		    rawmode = self.mode
-		    if self.mode == "CMYK" and self.info.has_key("adobe"):
-			rawmode = "CMYK;I" # Photoshop 2.5 is broken!
-		    self.tile = [("jpeg", (0,0) + self.size, 0, (rawmode, ""))]
-		    # self.offset = self.fp.tell()
-		    break
-		s = self.fp.read(1)
-	    else:
-	        raise SyntaxError, "no marker found"
+            if i in MARKER:
+                name, description, handler = MARKER[i]
+                # print hex(i), name, description
+                if handler is not None:
+                    handler(self, i)
+                if i == 0xFFDA:  # start of scan
+                    rawmode = self.mode
+                    if self.mode == "CMYK" and "adobe" in self.info:
+                        rawmode = "CMYK;I"  # Photoshop 2.5 is broken!
+                    self.tile = [
+                        ("jpeg", (0, 0) + self.size, 0, (rawmode, ""))]
+                    # self.offset = self.fp.tell()
+                    break
+                s = self.fp.read(1)
+            else:
+                raise SyntaxError("no marker found")
 
     def draft(self, mode, size):
 
-	if len(self.tile) != 1:
-	    return
+        if len(self.tile) != 1:
+            return
 
-	d, e, o, a = self.tile[0]
-	scale = 0
+        d, e, o, a = self.tile[0]
+        scale = 0
 
-	if a == "RGB" and mode in ["L", "YCC"]:
-	    self.mode = a = mode
+        if a == "RGB" and mode in ["L", "YCC"]:
+            self.mode = a = mode
 
-	if size:
-	    scale = max(self.size[0] / size[0], self.size[1] / size[1])
-	    for s in [8, 4, 2, 1]:
-		if scale >= s:
-		    break
-	    e = e[0], e[1], (e[2]-e[0]+s-1)/s+e[0], (e[3]-e[1]+s-1)/s+e[1]
-	    self.size = ((self.size[0]+s-1)/s, (self.size[1]+s-1)/s)
-	    scale = s
+        if size:
+            scale = max(self.size[0] / size[0], self.size[1] / size[1])
+            for s in [8, 4, 2, 1]:
+                if scale >= s:
+                    break
+            e = e[0], e[1], (e[2] - e[0] + s - 1) / s + \
+                e[0], (e[3] - e[1] + s - 1) / s + e[1]
+            self.size = (
+                (self.size[0] + s - 1) / s,
+                (self.size[1] + s - 1) / s)
+            scale = s
 
-	self.tile = [(d, e, o, a)]
-	self.decoderconfig = (scale, 1)
+        self.tile = [(d, e, o, a)]
+        self.decoderconfig = (scale, 1)
 
-	return self
+        return self
 
     def load_hack(self):
 
-	# ALTERNATIVE: handle JPEGs via the IJG command line utilities
+        # ALTERNATIVE: handle JPEGs via the IJG command line utilities
 
-	import tempfile, os
-	file = tempfile.mktemp()
-	os.system("djpeg %s >%s" % (self.filename, file))
+        import tempfile
+        import os
+        file = tempfile.mktemp()
+        os.system("djpeg %s >%s" % (self.filename, file))
 
-	try:
-	    self.im = ImageH.core.open_ppm(file)
-	finally:
-	    try: os.unlink(file)
-	    except: pass
+        try:
+            self.im = ImageH.core.open_ppm(file)
+        finally:
+            try:
+                os.unlink(file)
+            except BaseException:
+                pass
 
-	self.mode = self.im.mode
-	self.size = self.im.size
+        self.mode = self.im.mode
+        self.size = self.im.size
 
-	self.tile = []
+        self.tile = []
 
 
-def _fetch(dict, key, default = 0):
+def _fetch(dict, key, default=0):
     try:
-	return dict[key]
+        return dict[key]
     except KeyError:
-	return default
+        return default
+
 
 RAWMODE = {
     "1": "L",
@@ -285,29 +303,34 @@ RAWMODE = {
     "CMYK": "CMYK",
 }
 
+
 def _save(im, fp, filename):
     try:
         rawmode = RAWMODE[im.mode]
     except KeyError:
-	raise IOError, "cannot write mode %s as JPEG" % im.mode
+        raise_(IOError, "cannot write mode %s as JPEG" % im.mode)
     # get keyword arguments
     im.encoderconfig = (_fetch(im.encoderinfo, "quality", 0),
-			im.encoderinfo.has_key("progressive"),
-			_fetch(im.encoderinfo, "smooth", 0),
-			im.encoderinfo.has_key("optimize"),
-			_fetch(im.encoderinfo, "streamtype", 0))
-    ImageFileH._save(im, fp, [("jpeg", (0,0)+im.size, 0, rawmode)])
+                        "progressive" in im.encoderinfo,
+                        _fetch(im.encoderinfo, "smooth", 0),
+                        "optimize" in im.encoderinfo,
+                        _fetch(im.encoderinfo, "streamtype", 0))
+    ImageFileH._save(im, fp, [("jpeg", (0, 0) + im.size, 0, rawmode)])
+
 
 def _save_hack(im, fp, filename):
     # ALTERNATIVE: handle JPEGs via the IJG command line utilities.
     import os
     file = im._dump()
     os.system("cjpeg %s >%s" % (file, filename))
-    try: os.unlink(file)
-    except: pass
+    try:
+        os.unlink(file)
+    except BaseException:
+        pass
 
 # -------------------------------------------------------------------q-
 # Registry stuff
+
 
 ImageH.register_open("JPEG", JpegImageFile, _accept)
 ImageH.register_save("JPEG", _save)

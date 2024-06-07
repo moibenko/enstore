@@ -1,33 +1,39 @@
 #!/usr/bin/env python
 
-import sys, os
+from __future__ import print_function
+from __future__ import division
+from past.utils import old_div
+import sys
+import os
 
-if len(sys.argv)<2:
-    print "Usage: %s filename [maxlines] [chunksize]" % (sys.argv[0])
+if len(sys.argv) < 2:
+    print("Usage: %s filename [maxlines] [chunksize]" % (sys.argv[0]))
     sys.exit(-1)
 filename = sys.argv[1]
 maxlines = 1000
-if len(sys.argv)>2:
+if len(sys.argv) > 2:
     maxlines = int(sys.argv[2])
 
-chunksize = maxlines/10
-if len(sys.argv)>3:
+chunksize = old_div(maxlines, 10)
+if len(sys.argv) > 3:
     chunksize = int(sys.argv[3])
 
 outfile = open(filename, 'w')
+
 
 def lose_head(filename, n):
     f = open(filename, 'r')
     lines = f.readlines()
     f.close()
     lines = lines[n:]
-    tmp = filename+'.tmp'
+    tmp = filename + '.tmp'
     f = open(tmp, 'w')
     f.writelines(lines)
     f.close()
     os.rename(tmp, filename)
     f = open(filename, 'a')
     return f, len(lines)
+
 
 nlines = 0
 while 1:
@@ -42,5 +48,3 @@ while 1:
     if nlines >= maxlines:
         outfile.close()
         outfile, nlines = lose_head(filename, chunksize)
-        
-        

@@ -6,12 +6,19 @@
 #
 ###############################################################################
 
-#system imports
+# system imports
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import hex
+from builtins import str
+from builtins import range
+from builtins import object
+from future.utils import raise_
 import pprint
 import math
 import os
 import socket
-import string
 import sys
 import time
 import stat
@@ -21,8 +28,9 @@ import re
 import resource
 import traceback
 import copy
+import string
 
-#enstore imports
+# enstore imports
 import Trace
 import mover_client
 import configuration_client
@@ -30,20 +38,21 @@ import enstore_constants
 import enstore_functions2
 import e_errors
 
-#Set up paths to find our private copy of tcl/tk 8.3
+# Set up paths to find our private copy of tcl/tk 8.3
 
-#Get the environmental variables.
+# Get the environmental variables.
 ENSTORE_DIR = os.environ.get("ENSTORE_DIR", None)
 ENTV_DIR = os.environ.get("ENTV_DIR", None)
 PYTHONLIB = os.environ.get("PYTHONLIB", None)
-#IMAGE_DIR = None
+# IMAGE_DIR = None
 _TKINTER_SO = None
+
 
 def set_tcltk_library(tcltk_dir):
     global _TKINTER_SO
 
-    #Determine the tcl directory.
-    if not os.environ.has_key("TCL_LIBRARY"):
+    # Determine the tcl directory.
+    if "TCL_LIBRARY" not in os.environ:
         for fname in os.listdir(tcltk_dir):
             if fname.startswith('tcl'):
                 temp_dir_tcl = os.path.join(tcltk_dir, fname)
@@ -52,8 +61,8 @@ def set_tcltk_library(tcltk_dir):
         else:
             return
 
-    #Find the tk directory.
-    if not os.environ.has_key("TK_LIBRARY"):
+    # Find the tk directory.
+    if "TK_LIBRARY" not in os.environ:
         for fname in os.listdir(tcltk_dir):
             if fname.startswith('tk'):
                 temp_dir_tk = os.path.join(tcltk_dir, fname)
@@ -62,12 +71,13 @@ def set_tcltk_library(tcltk_dir):
         else:
             return
 
-    #Find the _tkinter.so directory.
+    # Find the _tkinter.so directory.
     temp_dir_lib = os.path.join(tcltk_dir, sys.platform)
     if os.path.exists(temp_dir_lib):
         _TKINTER_SO = temp_dir_lib
-        #Modify the search path for the _tkinter.so library.
+        # Modify the search path for the _tkinter.so library.
         sys.path.insert(0, _TKINTER_SO)
+
 
 """
 #Determine the expected location of the local copy of Tcl/Tk.
@@ -118,13 +128,13 @@ if not IMAGE_DIR:
     sys.exit(1)
 """
 
-#print "_tkinter.so =", _TKINTER_SO
-#print "TCL_LIBRARY =", os.environ.get('TCL_LIBRARY', "")
-#print "TK_LIBRARY =", os.environ.get('TK_LIBRARY', "")
+# print "_tkinter.so =", _TKINTER_SO
+# print "TCL_LIBRARY =", os.environ.get('TCL_LIBRARY', "")
+# print "TK_LIBRARY =", os.environ.get('TK_LIBRARY', "")
 
 try:
-    import Tkinter
-    import tkFont  #Starts a thread not reported by threading.enumerate().
+    import tkinter
+    import tkinter.font  # Starts a thread not reported by threading.enumerate().
 except ImportError:
     try:
         sys.stderr.write("%s\n" % (str(sys.exc_info()[1]),))
@@ -134,16 +144,18 @@ except ImportError:
 
 #########################################################################
 
-#A lock to allow only one thread at a time access the display class instance.
+# A lock to allow only one thread at a time access the display class instance.
 display_lock = threading.Lock()
 startup_lock = threading.Lock()
-thread_lock  = threading.Lock()
+thread_lock = threading.Lock()
 clients_lock = threading.Lock()
 
-#Wrapper for logging when a thread grabs a lock.
+# Wrapper for logging when a thread grabs a lock.
+
+
 def acquire(lock, lock_name="<generic_lock>", blocking=1):
     do_print = 0
-    if Trace.print_levels.has_key(LOCK_LEVEL):
+    if LOCK_LEVEL in Trace.print_levels:
         do_print = 1
 
     if do_print:
@@ -158,10 +170,12 @@ def acquire(lock, lock_name="<generic_lock>", blocking=1):
                                         lock_name))
     return rtn
 
-#Wrapper for logging when a thread gives up a lock.
+# Wrapper for logging when a thread gives up a lock.
+
+
 def release(lock, lock_name="<generic_lock>"):
     do_print = 0
-    if Trace.print_levels.has_key(LOCK_LEVEL):
+    if LOCK_LEVEL in Trace.print_levels:
         do_print = 1
 
     if do_print:
@@ -178,7 +192,8 @@ def release(lock, lock_name="<generic_lock>"):
 
 #########################################################################
 
-CIRCULAR, LINEAR = range(2)
+
+CIRCULAR, LINEAR = list(range(2))
 
 ANIMATE = 1
 STILL = 0
@@ -193,43 +208,44 @@ CONNECTED = 0
 MMPC = 20.0     # Max Movers Per Column
 MIPC = 20       # Max Items Per Column
 
-REINIT_TIME = 3600000  #in milliseconds (1 hour)
-ANIMATE_TIME = 42      #in milliseconds (~1/42nd of second)
-UPDATE_TIME = 1000     #in milliseconds (1 second)
-MESSAGES_TIME = 250    #in milliseconds (1/4th of second)
-JOIN_TIME = 10000      #in milliseconds (10 seconds)
-OFFLINE_REASON_TIME = 300000   #in milliseconds (5 minutes)
-OFFLINE_REASON_INITIAL_TIME = 5000  #in milliseconds (5 seconds)
-MOVER_DISPLAY_TIME = 5000  #in milliseconds (5 seconds)
+REINIT_TIME = 3600000  # in milliseconds (1 hour)
+ANIMATE_TIME = 42  # in milliseconds (~1/42nd of second)
+UPDATE_TIME = 1000  # in milliseconds (1 second)
+MESSAGES_TIME = 250  # in milliseconds (1/4th of second)
+JOIN_TIME = 10000  # in milliseconds (10 seconds)
+OFFLINE_REASON_TIME = 300000  # in milliseconds (5 minutes)
+OFFLINE_REASON_INITIAL_TIME = 5000  # in milliseconds (5 seconds)
+MOVER_DISPLAY_TIME = 5000  # in milliseconds (5 seconds)
 
-YELLOW_WAIT_TIME_IN_SECONDS = 5.0  #status wait time before yellow background
+YELLOW_WAIT_TIME_IN_SECONDS = 5.0  # status wait time before yellow background
 
 status_request_threads = []
 offline_reason_thread = None
 
-#To prevent instantiating a slew of Inquisitors.
+# To prevent instantiating a slew of Inquisitors.
 inqc_dict_cache = {}
 
 st = 0
-#pt = 0
+# pt = 0
 
-#Cache the default configuration server client.
+# Cache the default configuration server client.
 __csc = None
 __cscs = {}
 
-#Trace.message level for generating a messages file for replaying later.
+# Trace.message level for generating a messages file for replaying later.
 MESSAGES_LEVEL = 10
-#Trace.message level for fixing lock deadlocks.
+# Trace.message level for fixing lock deadlocks.
 LOCK_LEVEL = 9
 
 #########################################################################
 
-class Queue:
+
+class Queue(object):
     def __init__(self):
         self.queue = {}
         self.lock = threading.Lock()
 
-        #These are the timestamps that something was put in or taken out
+        # These are the timestamps that something was put in or taken out
         # of the queue.
         self.get_time = time.time()
         self.put_time = time.time()
@@ -238,15 +254,15 @@ class Queue:
         self.lock.acquire()
 
         try:
-            key_list = self.queue.keys()
+            key_list = list(self.queue.keys())
         except KeyError:
             key_list = []
         except (KeyboardInterrupt, SystemExit):
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
         self.lock.release()
 
@@ -261,10 +277,10 @@ class Queue:
             number = 0
         except (KeyboardInterrupt, SystemExit):
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
         self.lock.release()
 
@@ -289,10 +305,10 @@ class Queue:
             pass
         except (KeyboardInterrupt, SystemExit):
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
         self.lock.release()
 
@@ -300,25 +316,25 @@ class Queue:
         self.lock.acquire()
 
         try:
-            for queue in self.queue.values():
+            for queue in list(self.queue.values()):
                 del queue[:]
         except KeyError:
             pass
         except (KeyboardInterrupt, SystemExit):
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
         try:
             self.queue = {}
         except (KeyboardInterrupt, SystemExit):
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
         self.lock.release()
 
@@ -333,10 +349,10 @@ class Queue:
 
         except (KeyboardInterrupt, SystemExit):
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
         self.put_time = time.time()  #Update the time this was done.
 
@@ -354,10 +370,10 @@ class Queue:
 
         except (KeyboardInterrupt, SystemExit):
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
         self.put_time = time.time()  #Update the time this was done.
 
@@ -370,50 +386,50 @@ class Queue:
         now=time.time()
         put_time = None
         while time.time() < now + 10:  #Give it 10 seconds.
-             self.lock.acquire()
+            self.lock.acquire()
 
-             #Get this value while we have the lock on the first pass.
-             if put_time == None:
-                 put_time = self.put_time
+            #Get this value while we have the lock on the first pass.
+            if put_time == None:
+                put_time = self.put_time
 
-             try:
-                 temp = self.queue[tid][0]
-             except (KeyError, IndexError):
-                 #The queue is now empty.
+            try:
+                temp = self.queue[tid][0]
+            except (KeyError, IndexError):
+                #The queue is now empty.
 
-                 if self.get_time > put_time:
-                     #If we get here, we know the display thread has started
-                     # processing at least one additional queued item.
-                     self.lock.release()
-                     return
-                 else:
-                     #Insert a dummy message to make sure that we are done
-                     # processing the update we care about.
-                     self.queue[tid].insert(0, {'item' : "", 'tid' : tid})
+                if self.get_time > put_time:
+                    #If we get here, we know the display thread has started
+                    # processing at least one additional queued item.
+                    self.lock.release()
+                    return
+                else:
+                    #Insert a dummy message to make sure that we are done
+                    # processing the update we care about.
+                    self.queue[tid].insert(0, {'item' : "", 'tid' : tid})
 
-             except (KeyboardInterrupt, SystemExit):
-                 self.lock.release()
-                 raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
-             except:
-                 self.lock.release()
-                 raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            except (KeyboardInterrupt, SystemExit):
+                self.lock.release()
+                raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+            except:
+                self.lock.release()
+                raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
-             #Grab a copy of this before releasing the lock.
-             get_time = self.get_time
+            #Grab a copy of this before releasing the lock.
+            get_time = self.get_time
 
-             self.lock.release()
-             if temp['item'] == queue_item:
-                 #The item is still in the queue.
-                 time.sleep(.1)
-                 continue
-             elif get_time <= put_time:
-                 #If we get here, we know the inserted item has been
-                 # pulled from the queue, but it is not done processing.
-                 time.sleep(.1)
-                 continue
-             else:
-                 #The item is done getting processed, this thread can continue.
-                 return
+            self.lock.release()
+            if temp['item'] == queue_item:
+                #The item is still in the queue.
+                time.sleep(.1)
+                continue
+            elif get_time <= put_time:
+                #If we get here, we know the inserted item has been
+                # pulled from the queue, but it is not done processing.
+                time.sleep(.1)
+                continue
+            else:
+                #The item is done getting processed, this thread can continue.
+                return
 
     def get_queue(self, tid=None):
         self.lock.acquire()
@@ -425,10 +441,10 @@ class Queue:
             temp = {'item' : None}
         except (KeyboardInterrupt, SystemExit):
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             self.lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
         self.get_time = time.time()  #Update the time this was done.
 
@@ -458,9 +474,9 @@ def scale_to_display(x, y, w, h):
 
 def HMS(s):
     """Convert the number of seconds to H:M:S"""
-    h = s / 3600
+    h = s // 3600
     s = s - (h*3600)
-    m = s / 60
+    m = s // 60
     s = s - (m*60)
     return "%02d:%02d:%02d" % (h, m, s)
 
@@ -486,7 +502,7 @@ def get_font(height_wanted, family='Helvetica', fit_string="", width_wanted=0):
         ### Unfortuneatly, it has been observed that, either the Font
         ### constructor or the metrics() is able to hang.  Thus, the use
         ### of alarm() in entv.py to mitigate this behavior.
-        f = tkFont.Font(size=size, family=family)
+        f = tkinter.font.Font(size=size, family=family)
         metrics = f.metrics()  #f.metrics returns something like:
         # {'ascent': 11, 'linespace': 15, 'descent': 4, 'fixed': 1}
         height = metrics['ascent']
@@ -505,7 +521,7 @@ def get_font(height_wanted, family='Helvetica', fit_string="", width_wanted=0):
 def fit_string(font, the_string, width_wanted):
 
     #Get the list in index ranges to check.
-    search = range(len(the_string) + 1)
+    search = list(range(len(the_string) + 1))
     search.reverse()
 
     #Start at the end of the string and move toward the beginning.  Return
@@ -531,7 +547,7 @@ def rgbtohex(r,g,b):
     return "#"+r+g+b
 
 def hextorgb(hexcolor):
-    if type(hexcolor) != types.StringType:
+    if type(hexcolor) != bytes:
         return 0, 0, 0
 
     #make sure the string is long enough
@@ -589,9 +605,9 @@ def endswith(s1,s2):
 
 def normalize_name(hostname):
     ## Clean off any leading or trailing garbage
-    while hostname and hostname[0] not in string.letters+string.digits:
+    while hostname and hostname[0] not in string.ascii_letters+string.digits:
         hostname = hostname[1:]
-    while hostname and hostname[-1] not in string.letters+string.digits:
+    while hostname and hostname[-1] not in string.ascii_letters+string.digits:
         hostname = hostname[:-1]
 
     ## Empty string?
@@ -639,7 +655,7 @@ def find_image(name):
     return img
 """
 
-class XY:
+class XY(object):
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -724,7 +740,7 @@ def get_all_systems(csc=None):
 
     #Create the configuration client objects.
     config_servers = {}
-    for system_name, csc_addr in known_config_servers.items():
+    for system_name, csc_addr in list(known_config_servers.items()):
         new_csc = configuration_client.ConfigurationClient(csc_addr)
         new_csc.new_config_obj.enable_caching()
         rtn_ticket = csc.dump_and_save(timeout = 10, retry = 3)
@@ -734,7 +750,7 @@ def get_all_systems(csc=None):
     #Special section for test systems that are not in their own
     # config file's 'known_config_servers' section.
     config_host = enstore_functions2.default_host()
-    for system_name, csc_addr in known_config_servers.items():
+    for system_name, csc_addr in list(known_config_servers.items()):
         if config_host == csc_addr[0]:
             break
         elif csc and csc.server_address == csc_addr:
@@ -778,7 +794,7 @@ def get_all_systems(csc=None):
                 sys.exit(1)
 
     #Special section to add the a passed in csc to the config_servers list.
-    for system_name, current_csc in config_servers.items():
+    for system_name, current_csc in list(config_servers.items()):
         if csc.server_address == current_csc.server_address:
             break
     else:
@@ -798,7 +814,7 @@ def get_csc(system_name = None, timeout = 3, retry = 3):
     #If we have a configuration client cached, return that.
     if not system_name and __csc:
         return __csc
-    elif system_name in __cscs.keys():
+    elif system_name in list(__cscs.keys()):
         return __cscs[system_name]
 
     #Get the defaults from the environmental variables.
@@ -814,7 +830,7 @@ def get_csc(system_name = None, timeout = 3, retry = 3):
         try:
             csc = configuration_client.ConfigurationClient(
                 (use_config_host, default_config_port))
-        except (socket.error,), msg:
+        except (socket.error,) as msg:
             Trace.trace(0, "Error contacting configuration server: %s\n" %
                         msg.args[1],
                         out_fp=sys.stderr)
@@ -840,14 +856,14 @@ def get_csc(system_name = None, timeout = 3, retry = 3):
                 #We found the default configuration server, now find the
                 # requested configuration server.
                 config_servers = get_all_systems(csc)
-                for sys_name, current_csc in config_servers.items():
+                for sys_name, current_csc in list(config_servers.items()):
                     #Lets save all known configuration servers.  There are not
                     # that many and we may need to know this at some point
                     # in the future.
                     __cscs[sys_name] = current_csc
 
                 #Return the one we are looking for.
-                for sys_name, current_csc in config_servers.items():
+                for sys_name, current_csc in list(config_servers.items()):
                     if sys_name == system_name:
                         return current_csc
                     elif current_csc.server_address[0] == system_name:
@@ -896,7 +912,7 @@ def get_csc(system_name = None, timeout = 3, retry = 3):
 #     reposition() - reposition each feature after screen has been moved
 #
 #########################################################################
-class Mover:
+class Mover(object):
     def __init__(self, name, display, index=0, column=0, row=0, movers=1):
         self.display       = display
         self.name          = name
@@ -959,10 +975,10 @@ class Mover:
             csc = get_csc(system_name)
             minfo = csc.get(self.name.split("@")[0] + ".mover")
             #64MB is the default listed in mover.py.
-            self.max_buffer = long(minfo.get('max_buffer', 67108864))
+            self.max_buffer = int(minfo.get('max_buffer', 67108864))
             self.library = minfo.get('library', "Unknown")
         except (AttributeError, KeyError):
-            self.max_buffer = 67108864L
+            self.max_buffer = 67108864
             self.library = "Unknown"
 
         self.update_state("Unknown")
@@ -1018,7 +1034,7 @@ class Mover:
             self.label = self.display.create_text(x+self.label_offset.x,
                                                   y+self.label_offset.y,
                                                text = self.name.split("@")[0],
-                                                  anchor = Tkinter.E,
+                                                  anchor = tkinter.E,
                                                   font = self.font,
                                                   fill = self.label_color)
 
@@ -1211,7 +1227,7 @@ class Mover:
                                            text=fit_string(self.font,
                                                            self.state,
                                                            self.state_width),
-                                           anchor=Tkinter.CENTER,
+                                           anchor=tkinter.CENTER,
                                            fill=self.state_color)
                 else:
                     self.display.delete(self.state_display)
@@ -1221,7 +1237,7 @@ class Mover:
                     self.state_display = self.display.create_text(x, y,
                         font = self.font,
                         text=fit_string(self.font, self.state, self.state_width),
-                        fill=self.state_color, anchor=Tkinter.CENTER)
+                        fill=self.state_color, anchor=tkinter.CENTER)
 
         #No current state display.
         else:
@@ -1233,7 +1249,7 @@ class Mover:
                 self.state_display = self.display.create_text(x, y,
                     font = self.font,
                     text=fit_string(self.font, self.state, self.state_width),
-                    fill=self.state_color, anchor=Tkinter.CENTER)
+                    fill=self.state_color, anchor=tkinter.CENTER)
 
     def draw_timer(self):
         if self.timer_id == None:
@@ -1247,7 +1263,7 @@ class Mover:
             self.timer_display = self.display.create_text(
                 self.x + self.timer_offset.x, self.y + self.timer_offset.y,
                 text = self.timer_string, fill = self.timer_color,
-                font = self.font, anchor = Tkinter.SE)
+                font = self.font, anchor = tkinter.SE)
 
     def draw_volume(self):
         x, y = self.x + self.volume_offset.x, self.y + self.volume_offset.y
@@ -1333,7 +1349,7 @@ class Mover:
                     self.y + self.percent_disp_offset.y,
                     text = str(self.percent_done)+"%",
                     fill = colors('percent_color'), font = self.font,
-                    anchor = Tkinter.SW)
+                    anchor = tkinter.SW)
 
     def draw_media_progress(self):
         if self.alt_percent_done == None:
@@ -1361,17 +1377,17 @@ class Mover:
         self.draw_media_progress()  #alt_percent_done)
 
         #Raise the correct progress bar to the top of the window stack.
-        if self.rate > 0:  #write transfer, make media bar on top.
+        if self.rate and self.rate > 0:  #write transfer, make media bar on top.
             try:
                 self.display.tag_raise(self.progress_alt_bar,
                                        self.progress_bar)
-            except Tkinter.TclError:
+            except tkinter.TclError:
                 pass #We get here if alt percentage is still None.
         else:              #read transfer, make network bar on top.
             try:
                 self.display.tag_raise(self.progress_bar,
                                        self.progress_alt_bar)
-            except Tkinter.TclError:
+            except tkinter.TclError:
                 pass #We get here if percentage is still None.
 
     def get_bar_position(self, percent):
@@ -1458,7 +1474,7 @@ class Mover:
                 #Use the state width since this is displayed in that space.
                 text=fit_string(self.font, self.rate_string, self.state_width),
                 fill = colors('percent_color'),
-                anchor = Tkinter.NE, font = self.font)
+                anchor = tkinter.NE, font = self.font)
 
     def draw_offline_reason(self):
         if not self.offline_reason:
@@ -1484,7 +1500,7 @@ class Mover:
                 self.y + self.offline_reason_offset.y,
                 text=text,
                 fill = self.state_color,
-                anchor = Tkinter.SW, font = self.font)
+                anchor = tkinter.SW, font = self.font)
 
 
 
@@ -1512,13 +1528,13 @@ class Mover:
         try:
             self.display.delete(self.label)
             self.label = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
         try:
             self.display.delete(self.outline)
             self.outline = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
     def undraw_timer(self):
@@ -1529,71 +1545,71 @@ class Mover:
         try:
             self.display.delete(self.timer_display)
             self.timer_display = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
     def undraw_state(self):
         try:
             self.display.delete(self.state_display)
             self.state_display = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
         try:
             self.display.delete(self.state_display_2)
             self.state_display_2 = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
     def undraw_progress(self):
         try:
             self.display.delete(self.progress_alt_bar)
             self.progress_alt_bar = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
         try:
             self.display.delete(self.progress_bar)
             self.progress_bar = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
         try:
             self.display.delete(self.progress_percent_display)
             self.progress_percent_display = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
         try:
             self.display.delete(self.progress_bar_bg)
             self.progress_bar_bg = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
     def undraw_buffer(self):
         try:
             self.display.delete(self.buffer_bar_bg)
             self.buffer_bar_bg = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
         try:
             self.display.delete(self.buffer_bar)
             self.buffer_bar = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
     def undraw_volume(self):
         try:
             self.display.delete(self.volume_display)
             self.volume_display = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
         try:
             self.display.delete(self.volume_bg_display)
             self.volume_bg_display = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
     def undraw_rate(self):
@@ -1601,14 +1617,14 @@ class Mover:
             self.display.delete(self.rate_display)
             self.rate_display = None
             self.rate = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
     def undraw_offline_reason(self):
         try:
             self.display.delete(self.offline_reason_display)
             self.offline_reason_display = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
     def undraw(self):
@@ -1756,8 +1772,7 @@ class Mover:
                                            fill = self.timer_color)
 
     def update_rate(self, rate):
-
-        if rate == self.rate:
+        if self.rate and rate == self.rate:
             return
 
         old_rate = self.rate
@@ -1821,7 +1836,7 @@ class Mover:
             self.draw_background_buffer()
 
         #This helps prevent potential problems against changes on the fly.
-        buffer_size = long(buffer_size)
+        buffer_size = int(buffer_size)
         if buffer_size > self.max_buffer:
             #In case we don't know the correct max mover size; set it.
             self.max_buffer = buffer_size
@@ -1897,7 +1912,7 @@ class Mover:
     def transfer_rate(self, num_bytes, mover_time = None):
         #keeps track of last number of bytes and time; calculates rate
         # in bytes/second
-        num_bytes = long(num_bytes)  #If this throughs an error...
+        num_bytes = int(num_bytes)  #If this throughs an error...
         try:
             el_time = float(mover_time)
         except (ValueError, TypeError):
@@ -1965,7 +1980,6 @@ class Mover:
         if not position:
             #position is a two-tuple; the column number and the row number
             position = self.display.get_mover_position(self.name)
-
         #k = self.index  # k = number of this mover
         mmpc = float(MMPC) #Maximum movers per column
 
@@ -1991,7 +2005,6 @@ class Mover:
         space_between = (self.display.height - (self.height * mmpc))
         #Adjusted space between individulal movers in the display.
         space_between = (space_between / (mmpc - 1.0))
-
         #Now that the seperation space in pixels between two movers is known,
         # it need to be adjusted for the odd-to-even column offset in the
         # display.
@@ -2149,7 +2162,7 @@ class Mover:
 ##
 #########################################################################
 
-class Client:
+class Client(object):
 
     def __init__(self, name, display):
         self.name               = name
@@ -2197,13 +2210,13 @@ class Client:
         try:
             self.display.delete(self.outline)
             self.outline = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
         try:
             self.display.delete(self.label)
             self.label = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
     #########################################################################
@@ -2257,7 +2270,7 @@ class Client:
 ##
 #########################################################################
 
-class Connection:
+class Connection(object):
     """ a line connecting a mover and a client"""
     def __init__(self, mover, client, display):
         # we are passing instances of movers and clients
@@ -2300,7 +2313,7 @@ class Connection:
         try:
             self.display.delete(self.line)
             self.line = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
     def animate(self, now=None):
@@ -2378,7 +2391,7 @@ class Connection:
             my = self.mover.y + self.mover.height/2.0 + 1
             self.path.extend([mx,my])
 
-        values = range(1, column)
+        values = list(range(1, column))
         values.reverse()
         for i in values:
             if i % 2 == 0:
@@ -2442,7 +2455,7 @@ class Connection:
             Trace.trace(0, "ERROR: %s %s %s" % (position, self.client.name,
                                                 self.mover.name))
             Trace.trace(0, pprint.pformat(self.display.clients))
-            for i in range(len(self.display.client_positions.keys())):
+            for i in range(len(list(self.display.client_positions.keys()))):
                 Trace.trace(0, "COLUMN: %s" % (i + 1,))
                 Trace.trace(0, pprint.pformat(self.display.client_positions[i + 1].item_positions))
 
@@ -2503,7 +2516,7 @@ class Connection:
 ##  What does this class do?
 #########################################################################
 
-class Title:
+class Title(object):
     def __init__(self, text, display):
         self.text       = text #this is just a string
         self.display    = display
@@ -2520,7 +2533,7 @@ class Title:
         self.tk_text = self.display.create_text(self.display.width/2,
                                                 self.display.height/2,
                                                 text=self.text, font=self.font,
-                                                justify=Tkinter.CENTER)
+                                                justify=tkinter.CENTER)
 
     def animate(self, now=None):
         if now==None:
@@ -2541,13 +2554,13 @@ class Title:
 ##
 #########################################################################
 
-class MoverDisplay(Tkinter.Toplevel):
+class MoverDisplay(tkinter.Toplevel):
     """  The mover state display """
     ##** means "variable number of keyword arguments" (passed as a dictionary)
     ## mover - instantiated Mover class instance
     def __init__(self, mover, **attributes):
         if not hasattr(self, "state_display"):
-            Tkinter.Toplevel.__init__(self)
+            tkinter.Toplevel.__init__(self)
             self.configure(attributes)
             #Font geometry.
             self.font = get_font(12)  #, 'arial')
@@ -2568,7 +2581,7 @@ class MoverDisplay(Tkinter.Toplevel):
 
         self.after_cancel(self.after_mover_display_id)
 
-        Tkinter.Toplevel.__init__(self)  #Redraw the window.
+        tkinter.Toplevel.__init__(self)  #Redraw the window.
         self.init_common(mover)  #Set values for this mover's info.
         self.update_status()  #Fill the mover window with the mover info.
 
@@ -2620,25 +2633,25 @@ class MoverDisplay(Tkinter.Toplevel):
             self.state_display.configure(text = self.status_text,
                                          foreground = self.state_color,
                                          background = self.mover_color,)
-            self.state_display.pack(side=Tkinter.LEFT, expand=Tkinter.YES,
-                                    fill=Tkinter.BOTH)
-        except (Tkinter.TclError, AttributeError):
+            self.state_display.pack(side=tkinter.LEFT, expand=tkinter.YES,
+                                    fill=tkinter.BOTH)
+        except (tkinter.TclError, AttributeError):
             #If the state_display variable does not yet exist; create it.
-            self.state_display = Tkinter.Label(master=self,
-                                               justify=Tkinter.LEFT,
+            self.state_display = tkinter.Label(master=self,
+                                               justify=tkinter.LEFT,
                                                font = self.font,
                                                text = self.status_text,
                                                foreground = self.state_color,
                                                background = self.mover_color,
-                                               anchor=Tkinter.NW)
-            self.state_display.pack(side=Tkinter.LEFT, expand=Tkinter.YES,
-                                    fill=Tkinter.BOTH)
+                                               anchor=tkinter.NW)
+            self.state_display.pack(side=tkinter.LEFT, expand=tkinter.YES,
+                                    fill=tkinter.BOTH)
 
     def undraw(self):
         try:
             self.state_display.destroy()
             self.state_display = None
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
     #Wrapper for generic_client.send_deferred().
@@ -2655,9 +2668,9 @@ class MoverDisplay(Tkinter.Toplevel):
                 try:
                     status = self.mc.u.recv_deferred(self.transaction_ids,
                                                      timeout)
-                except (socket.error, socket.herror, socket.gaierror), msg:
+                except (socket.error, socket.herror, socket.gaierror) as msg:
                     status = {'status' : (e_errors.NET_ERROR, str(msg))}
-                except (e_errors.EnstoreError), msg:
+                except (e_errors.EnstoreError) as msg:
                     status = {'status' : (msg.type, str(msg))}
 
                 #In case of timeout, set the state to Unknown.
@@ -2676,7 +2689,7 @@ class MoverDisplay(Tkinter.Toplevel):
         if status_dict == None:
             return ""
         else:
-            order = status_dict.keys()
+            order = list(status_dict.keys())
             order.sort()
             msg = ""
             for item in order:
@@ -2732,7 +2745,7 @@ class MoverDisplay(Tkinter.Toplevel):
 MOVERS="MOVERS"
 CLIENTS="CLIENTS"
 
-class Column:
+class Column(object):
 
     def __init__(self, number, type):
 
@@ -2744,7 +2757,7 @@ class Column:
                             # valid for sequential (MOVERS) columns.
 
     def get_index(self, item_name):
-        for index in self.item_positions.keys():
+        for index in list(self.item_positions.keys()):
             if self.item_positions[index] == item_name:
                 return index
 
@@ -2759,7 +2772,7 @@ class Column:
         return self.column_limit
 
     def set_max_limit(self, limit):
-        if type(limit) == types.IntType and limit > 0 and limit <= MIPC:
+        if type(limit) == int and limit > 0 and limit <= MIPC:
             if self.column_limit == None or self.column_limit < limit:
                 self.column_limit = limit
 
@@ -2768,7 +2781,7 @@ class Column:
 
     def add_item(self, item_name):
 
-        if len(self.item_positions.keys()) >= self.get_max_limit():
+        if len(list(self.item_positions.keys())) >= self.get_max_limit():
             #Column is full.
             return True
 
@@ -2783,7 +2796,7 @@ class Column:
         i = 0
 
         ## Step through possible positions in order 0, 1, -1, 2, -2, 3, ...
-        while self.item_positions.has_key(i):
+        while i in self.item_positions:
             if i == 0:
                 i = 1
             elif i > 0:
@@ -2801,7 +2814,7 @@ class Column:
     def add_seq_item(self, item_name):
         i = 0
 
-        while self.item_positions.has_key(i):
+        while i in self.item_positions:
             i = i + 1
 
         if i > MIPC:
@@ -2814,10 +2827,10 @@ class Column:
         return False
 
     def del_item(self, index_or_name):
-        if type(index_or_name) == types.IntType: #We have an index.
+        if type(index_or_name) == int: #We have an index.
             del self.item_positions[index_or_name]
         else:                                    #We have a name.
-            for index in self.item_positions.keys():
+            for index in list(self.item_positions.keys()):
                 if self.item_positions[index] == index_or_name:
                     del self.item_positions[index]
 
@@ -2825,7 +2838,7 @@ class Column:
         return len(self.item_positions)
 
     def has_item(self, item_name):
-        if item_name in self.item_positions.values():
+        if item_name in list(self.item_positions.values()):
             return True
 
         return False
@@ -2834,7 +2847,7 @@ class Column:
 ##
 #########################################################################
 
-class Display(Tkinter.Canvas):
+class Display(tkinter.Canvas):
     """  The main state display """
     ##** means "variable number of keyword arguments" (passed as a dictionary)
     #entvrc_info is a dictionary of various parameters.
@@ -2855,10 +2868,10 @@ class Display(Tkinter.Canvas):
         if not reinited:
             if master:
                 self.master_geometry = self.master.geometry()
-                Tkinter.Canvas.__init__(self, master = master)
+                tkinter.Canvas.__init__(self, master = master)
 
             else:
-                Tkinter.Canvas.__init__(self)
+                tkinter.Canvas.__init__(self)
 
 ###XXXXXXXXXXXXXXXXXX  --get rid of scrollbars--
 ##        if canvas_width is None:
@@ -2960,11 +2973,11 @@ class Display(Tkinter.Canvas):
     #########################################################################
 
     def undraw(self):
-        for connection in self.connections.values():
+        for connection in list(self.connections.values()):
             connection.undraw()
-        for mover in self.movers.values():
+        for mover in list(self.movers.values()):
             mover.undraw()
-        for client in self.clients.values():
+        for client in list(self.clients.values()):
             client.undraw()
 
     #########################################################################
@@ -2978,7 +2991,7 @@ class Display(Tkinter.Canvas):
         Trace.trace(1, "%s %s" % (overlapping, (x, y)))
 
         #Display detailed mover information.
-        for mover in self.movers.values():
+        for mover in list(self.movers.values()):
             for i in range(len(overlapping)):
                 if mover.state_display == overlapping[i]:
                     #If the window already exits; reuse it.
@@ -2988,7 +3001,7 @@ class Display(Tkinter.Canvas):
                         self.mover_display = MoverDisplay(mover)
 
         #Change the color of the connection.
-        for connection in self.connections.values():
+        for connection in list(self.connections.values()):
             for i in range(len(overlapping)):
                 if connection.line == overlapping[i]:
                     self.itemconfigure(connection.line,
@@ -3100,7 +3113,7 @@ class Display(Tkinter.Canvas):
         if self.after_offline_reason_id:
             self.after_cancel(self.after_offline_reason_id)
 
-        for mov in self.movers.values():
+        for mov in list(self.movers.values()):
             if mov.timer_id:
                 self.after_cancel(mov.timer_id)
 
@@ -3130,7 +3143,7 @@ class Display(Tkinter.Canvas):
 
         try:
             size = self.winfo_width(), self.winfo_height()
-        except Tkinter.TclError:
+        except tkinter.TclError:
             #self.stopped = 1
             return
         if size != (self.width, self.height) or force:
@@ -3151,7 +3164,7 @@ class Display(Tkinter.Canvas):
 
         Trace.trace(7, "Starting reposition_movers()")
 
-        items = self.movers.values()
+        items = list(self.movers.values())
         if number_of_movers:
             N = number_of_movers
         else:
@@ -3166,7 +3179,7 @@ class Display(Tkinter.Canvas):
 
         Trace.trace(7, "Starting reposition_clients()")
 
-        for client in self.clients.values():
+        for client in list(self.clients.values()):
             client.reposition()
 
         Trace.trace(7, "Finishing reposition_clients()")
@@ -3175,7 +3188,7 @@ class Display(Tkinter.Canvas):
 
         Trace.trace(7, "Starting reposition_connections()")
 
-        for connection in self.connections.values():
+        for connection in list(self.connections.values()):
             connection.reposition()
 
         Trace.trace(7, "Finish reposition_connections()")
@@ -3198,7 +3211,7 @@ class Display(Tkinter.Canvas):
 
         now = time.time()
         #### Update all connections.
-        for connection in self.connections.values():
+        for connection in list(self.connections.values()):
             connection.animate(now)
 
         Trace.trace(15, "Starting connection_animation()")
@@ -3241,11 +3254,11 @@ class Display(Tkinter.Canvas):
                     status_request_threads[i].join()
                 else:
                     status_request_threads[i].join(0.0)
-                if status_request_threads[i].isAlive():
+                if status_request_threads[i].is_alive():
                     alive_list.append(status_request_threads[i])
         except (KeyboardInterrupt, SystemExit):
             thread_lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             exc, msg, tb = sys.exc_info()
             traceback.print_exception(exc, msg, tb)
@@ -3300,8 +3313,8 @@ class Display(Tkinter.Canvas):
                                             tid = words[1].split("@")[-1])
                     except (KeyboardInterrupt, SystemExit):
                         release(startup_lock, "startup_lock")
-                        raise sys.exc_info()[0], sys.exc_info()[1], \
-                              sys.exc_info()[2]
+                        raise_(sys.exc_info()[0], sys.exc_info()[1], \
+                               sys.exc_info()[2])
                     except:
                         exc, msg, tb = sys.exc_info()
                         traceback.print_exception(exc, msg, tb)
@@ -3344,7 +3357,7 @@ class Display(Tkinter.Canvas):
                                                     self.smooth_animation)
         except (KeyboardInterrupt, SystemExit):
             display_lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:  #Tkinter.TclError
             exc, msg, tb = sys.exc_info()
             traceback.print_exception(exc, msg, tb)
@@ -3365,13 +3378,13 @@ class Display(Tkinter.Canvas):
         try:
             now = time.time()
             #### Check for unconnected clients
-            for client_name, client in self.clients.items():
+            for client_name, client in list(self.clients.items()):
 
                 #This for loop is needed to identify clients that have
                 # had their connections removed do to a change of mover
                 # state instead of from a "disconnect" notify message being
                 # received.
-                for mover_name in client.mover_names.keys():
+                for mover_name in list(client.mover_names.keys()):
                     connection = self.connections.get(mover_name, None)
                     if not connection or \
                            connection.client.name != client.name:
@@ -3413,8 +3426,8 @@ class Display(Tkinter.Canvas):
                         client.undraw()
                     except (KeyboardInterrupt, SystemExit):
                         display_lock.release()
-                        raise sys.exc_info()[0], sys.exc_info()[1], \
-                              sys.exc_info()[2]
+                        raise_(sys.exc_info()[0], sys.exc_info()[1], \
+                               sys.exc_info()[2])
                     except:  #Tkinter.TclError
                         exc, msg, tb = sys.exc_info()
                         traceback.print_exception(exc, msg, tb)
@@ -3445,7 +3458,7 @@ class Display(Tkinter.Canvas):
                                 % (client_name,))
         except (KeyboardInterrupt, SystemExit):
             release(clients_lock, "clients_lock")
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             exc, msg, tb = sys.exc_info()
             traceback.print_exception(exc, msg, tb)
@@ -3474,7 +3487,7 @@ class Display(Tkinter.Canvas):
             self.after_join_id = self.after(JOIN_TIME, self.join_thread)
         except (KeyboardInterrupt, SystemExit):
             display_lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:  #Tkinter.TclError
             exc, msg, tb = sys.exc_info()
             traceback.print_exception(exc, msg, tb)
@@ -3496,7 +3509,7 @@ class Display(Tkinter.Canvas):
             #For multiple inquisitors; one for each system.
             already_requested = []
 
-            for mover in self.movers.values():
+            for mover in list(self.movers.values()):
                 system_name = mover.name.split("@")[1]
 
                 if mover.state in ['ERROR']:
@@ -3513,7 +3526,7 @@ class Display(Tkinter.Canvas):
                         already_requested.append(system_name)
         except (KeyboardInterrupt, SystemExit):
             display_lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:  #Tkinter.TclError
             exc, msg, tb = sys.exc_info()
             traceback.print_exception(exc, msg, tb)
@@ -3526,7 +3539,7 @@ class Display(Tkinter.Canvas):
                                                   self.check_offline_reason)
         except (KeyboardInterrupt, SystemExit):
             display_lock.release()
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:  #Tkinter.TclError
             exc, msg, tb = sys.exc_info()
             traceback.print_exception(exc, msg, tb)
@@ -3585,7 +3598,7 @@ class Display(Tkinter.Canvas):
         for k in range(N):
             mover_name = new_mover_names[k]
             #If the mover already exists, skip creating it.
-            if not self.movers.has_key(mover_name):
+            if mover_name not in self.movers:
                 column, row = self.add_mover_position(mover_name)
                 self.movers[mover_name] = Mover(mover_name, self, index=k,
                                                 row=row, column=column,
@@ -3601,7 +3614,7 @@ class Display(Tkinter.Canvas):
 
         #In the event that that mover belongs to mulitple libraries,
         # pick the first one.
-        if type(library) == types.ListType:
+        if type(library) == list:
             library = library[0]
 
         #If this is the first mover from this library.
@@ -3609,7 +3622,7 @@ class Display(Tkinter.Canvas):
             self.library_colors = {}
 
         #Make some adjustments.
-        if type(library) == types.ListType:
+        if type(library) == list:
             library = library[0]
         if library[-16:] == ".library_manager":
             library = library[:-16]
@@ -3716,7 +3729,7 @@ class Display(Tkinter.Canvas):
 
     def get_client_count(self, column = None):
         if column == None:
-            columns_search = range(len(self.client_positions) + 1)[1:]
+            columns_search = list(range(len(self.client_positions) + 1))[1:]
         else:
             columns_search = [column]
 
@@ -3790,7 +3803,7 @@ class Display(Tkinter.Canvas):
 
     def get_mover_count(self, column = None):
         if column == None:
-            columns_search = range(len(self.mover_positions) + 1)[1:]
+            columns_search = list(range(len(self.mover_positions) + 1))[1:]
         else:
             columns_search = [column]
 
@@ -3831,7 +3844,7 @@ class Display(Tkinter.Canvas):
         #Third, take the remainder of movers and set them one at a time
         # to the columns to evenly distribute them.
         i2 = 1
-        for i in range(number - (min_count * columns)):
+        for i in range(number - int(min_count * columns)):
             limits[i2] = limits[i2] + 1
             #Adjust the counter to the next limit.
             i2 = ((i2 + 1) % columns)
@@ -3841,7 +3854,7 @@ class Display(Tkinter.Canvas):
         #Create the nessecary columns and set the limit on the number of
         # movers allowed in each of them.
         for i in range(1, columns + 1):
-            if not self.mover_positions.has_key(i):
+            if i not in self.mover_positions:
                 self.mover_positions[i] = Column(i, MOVERS)
             #If the new limit is higher, the new max limit will be reset.
             # Otherwise the exisiting limit will remain.  This is to keep
@@ -3860,20 +3873,20 @@ class Display(Tkinter.Canvas):
                self.get_client_column_count() + 1
 
     def get_mover_coordinates(self, position):
-        if type(position) != types.TupleType and len(position) != 2:
+        if type(position) != tuple and len(position) != 2:
             return None
 
         #We use the first mover in the list and use it to obtain the
         # screen coordinates for the mover at the requested position.
-        first_mover = self.movers.keys()[0]
+        first_mover = list(self.movers.keys())[0]
         return self.movers[first_mover].position(len(self.movers),
                                                  position=position)
 
     #########################################################################
 
     def toggle_library_managers_enabled(self):
-        for mover_name, mover in self.movers.items():
-            if type(mover.library) == types.ListType:
+        for mover_name, mover in list(self.movers.items()):
+            if type(mover.library) == list:
                 use_libraries = mover.library
             else:
                 use_libraries = [mover.library]
@@ -3921,8 +3934,8 @@ class Display(Tkinter.Canvas):
         self.quit()
 
     def title_command(self, command_list):
-        title = string.join(command_list[1:])
-        title=string.replace (title, '\\n', '\n')
+        title = ' '.join(command_list[1:])
+        title = title.replace ('\\n', '\n')
         self.title_animation = Title(title, self)
 
     def menu_command(self, command_list):
@@ -3935,32 +3948,32 @@ class Display(Tkinter.Canvas):
             try:
                 menu_item_name = command_list[2]  #new checkbox label
                 if bool(int(command_list[3])):  #default value
-                    on_off = Tkinter.TRUE
+                    on_off = tkinter.TRUE
                 else:
-                    on_off = Tkinter.FALSE
+                    on_off = tkinter.FALSE
 
                 #shortcut
                 LMs_on_off = self.master.enstore_library_managers_enabled
 
-                if not LMs_on_off.has_key(menu_item_name):
+                if menu_item_name not in LMs_on_off:
                     #Add the library manager to the menu, but only if it is not
                     # already there.
 
-                    LMs_on_off[menu_item_name] = Tkinter.BooleanVar()
+                    LMs_on_off[menu_item_name] = tkinter.BooleanVar()
                     LMs_on_off[menu_item_name].set(on_off)
 
                     self.master.enstore_library_managers_menu.add_checkbutton(
                         label = menu_item_name,
-                        indicatoron = Tkinter.TRUE,
-                        onvalue = Tkinter.TRUE,
-                        offvalue = Tkinter.FALSE,
+                        indicatoron = tkinter.TRUE,
+                        onvalue = tkinter.TRUE,
+                        offvalue = tkinter.FALSE,
                         variable = LMs_on_off[menu_item_name],
                         command = self.toggle_library_managers_enabled,
                         )
             except (KeyboardInterrupt, SystemExit):
                 release(clients_lock, "clients_lock")
-                raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
-            except Tkinter.TclError, msg:
+                raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+            except tkinter.TclError as msg:
                 #Trap this error for giving the user a better error message.
                 if str(msg) in ["out of stack space (infinite loop?)",
                                 'expected boolean value but got "??"']:
@@ -4009,7 +4022,7 @@ class Display(Tkinter.Canvas):
                 client.draw()
         except (KeyboardInterrupt, SystemExit):
             release(clients_lock, "clients_lock")
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             exc, msg, tb = sys.exc_info()
             traceback.print_exception(exc, msg, tb)
@@ -4040,10 +4053,10 @@ class Display(Tkinter.Canvas):
 
             ###What are these for?
             mover.t0 = now
-            mover.b0 = 0L
+            mover.b0 = 0
         except (KeyboardInterrupt, SystemExit):
             release(clients_lock, "clients_lock")
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             exc, msg, tb = sys.exc_info()
             traceback.print_exception(exc, msg, tb)
@@ -4073,8 +4086,8 @@ class Display(Tkinter.Canvas):
                 if old_number != new_number:
                     self.reposition_canvas(force = 1)
 
-                if client_name not in self.clients.keys():
-                    print "ERROR: Newly added client not found in client list."
+                if client_name not in list(self.clients.keys()):
+                    print("ERROR: Newly added client not found in client list.")
             else:
                 client.update_state(CONNECTED) #change fill color if needed
 
@@ -4082,7 +4095,7 @@ class Display(Tkinter.Canvas):
             client.mover_names[mover.name] = mover.name
         except (KeyboardInterrupt, SystemExit):
             release(clients_lock, "clients_lock")
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             exc, msg, tb = sys.exc_info()
             traceback.print_exception(exc, msg, tb)
@@ -4109,7 +4122,7 @@ class Display(Tkinter.Canvas):
                 connection.draw() #Draw it correctly.
         except (KeyboardInterrupt, SystemExit):
             release(clients_lock, "clients_lock")
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             exc, msg, tb = sys.exc_info()
             traceback.print_exception(exc, msg, tb)
@@ -4137,7 +4150,7 @@ class Display(Tkinter.Canvas):
                 #Decrease the number of connections this client has.
                 try:
                     del client.mover_names[mover.name]
-                except (AttributeError, KeyError), msg:
+                except (AttributeError, KeyError) as msg:
                     pass
 
             ## Only change the active color to the WAITING/COUNTDOWN
@@ -4150,11 +4163,11 @@ class Display(Tkinter.Canvas):
                 #Remove all references to the connection.
                 try:
                     connection.undraw()
-                except (AttributeError, KeyError, Tkinter.TclError), msg:
+                except (AttributeError, KeyError, tkinter.TclError) as msg:
                     pass
                 try:
                     del self.connections[mover.name]
-                except (AttributeError, KeyError), msg:
+                except (AttributeError, KeyError) as msg:
                     pass
 
             if mover != None:
@@ -4167,7 +4180,7 @@ class Display(Tkinter.Canvas):
                         (mover_name, client_name))
         except (KeyboardInterrupt, SystemExit):
             release(clients_lock, "clients_lock")
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             exc, msg, tb = sys.exc_info()
             traceback.print_exception(exc, msg, tb)
@@ -4203,7 +4216,7 @@ class Display(Tkinter.Canvas):
 
         mover = self.movers.get(command_list[1])
 
-        what_error = string.join(command_list[2:])
+        what_error = ' '.join(command_list[2:])
         mover.update_offline_reason(what_error)
 
     def unload_command(self, command_list):
@@ -4252,14 +4265,14 @@ class Display(Tkinter.Canvas):
             #Redraw/reposition the buffer bar.
             mover.update_buffer(command_list[5])
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             pass
         try:
             # set draining
             mover.draining = bool(int(command_list[7]))
         except (KeyboardInterrupt, SystemExit):
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             pass
 
@@ -4296,10 +4309,10 @@ class Display(Tkinter.Canvas):
     #########################################################################
 
     def queue_command(self, command):
-        command = string.strip(command) #get rid of extra blanks and newlines
-        words = string.split(command)
+        command = command.strip() #get rid of extra blanks and newlines
+        words = command.split()
 
-        if words[0] in self.comm_dict.keys():
+        if words[0] in list(self.comm_dict.keys()):
             #Under normal situations.
             message_queue.put_queue(command, self.system_name)
 
@@ -4346,13 +4359,13 @@ class Display(Tkinter.Canvas):
         if not command:
             return ""
 
-        command = string.strip(command) #get rid of extra blanks and newlines
-        words = string.split(command)
+        command = command.strip() #get rid of extra blanks and newlines
+        words = command.split()
 
         if not words: #input was blank, nothing to do!
             return ""
 
-        if words[0] not in self.comm_dict.keys():
+        if words[0] not in list(self.comm_dict.keys()):
             return ""
 
         #Don't bother processing transfer messages if we are not keeping up.
@@ -4362,7 +4375,7 @@ class Display(Tkinter.Canvas):
             return ""
 
         if len(words) < self.comm_dict[words[0]]['length']:
-            Trace.trace(1, "Insufficent length for %s command: %s" % (words[0], string.join(words, "")))
+            Trace.trace(1, "Insufficent length for %s command: %s" % (words[0], "".join(words)))
             return ""
 
         if self.comm_dict[words[0]].get('mover_check', None) and \
@@ -4415,10 +4428,10 @@ class Display(Tkinter.Canvas):
             #Run the corresponding function.
             display_lock.acquire()
             try:
-                apply(self.comm_dict[words[0]]['function'], (self, words,))
+                self.comm_dict[words[0]]['function'](*(self, words,))
             except (KeyboardInterrupt, SystemExit):
                 display_lock.release()
-                raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+                raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
             except:
                 exc, msg, tb = sys.exc_info()
                 traceback.print_exception(exc, msg, tb)
@@ -4439,11 +4452,11 @@ class Display(Tkinter.Canvas):
             if self.winfo_exists():
                 self.undraw()
                 self.update()
-        except Tkinter.TclError:
+        except tkinter.TclError:
             pass
 
         #Clobber these lists.
-        for key in self.movers.keys():
+        for key in list(self.movers.keys()):
             try:
                 self.movers[key].display = None
                 del self.movers[key]
@@ -4451,7 +4464,7 @@ class Display(Tkinter.Canvas):
                 Trace.trace(1, "Unable to remove mover %s" % key)
         acquire(clients_lock, "clients_lock")
         try:
-            for key in self.clients.keys():
+            for key in list(self.clients.keys()):
                 try:
                     self.clients[key].display = None
                     del self.clients[key]
@@ -4459,13 +4472,13 @@ class Display(Tkinter.Canvas):
                     Trace.trace(1, "Unable to remove client %s" % key)
         except (KeyboardInterrupt, SystemExit):
             release(clients_lock, "clients_lock")
-            raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+            raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
         except:
             exc, msg, tb = sys.exc_info()
             traceback.print_exception(exc, msg, tb)
             del tb  #Avoid resource leak.
         release(clients_lock, "clients_lock")
-        for key in self.connections.keys():
+        for key in list(self.connections.keys()):
             try:
                 self.connections[key].mover = None
                 self.connections[key].client = None
@@ -4481,11 +4494,11 @@ class Display(Tkinter.Canvas):
         #Perform the following two deletes explicitly to avoid obnoxious
         # tkinter warning messages printed to the terminal when using
         # python 2.2.
-        for key in _font_cache.keys():
+        for key in list(_font_cache.keys()):
             try:
                 del _font_cache[key]
             except (KeyboardInterrupt, SystemExit):
-                raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+                raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
             except:
                 exc, msg, tb = sys.exc_info()
                 traceback.print_exception(exc, msg, tb)
@@ -4509,10 +4522,10 @@ class Display(Tkinter.Canvas):
         try:
             if self.winfo_exists():
                 self.master.update()
-        except ValueError, msg:
+        except ValueError as msg:
             Trace.trace(1, "Unexpected Tkinter error...ignore[update]: %s" %
                         str(msg))
-        except Tkinter.TclError:
+        except tkinter.TclError:
             exc, msg, tb = sys.exc_info()
             Trace.trace(1, "TclError...ignore[update]: %s: %s" %
                         (str(exc), str(msg)))
@@ -4553,7 +4566,7 @@ class Display(Tkinter.Canvas):
                 offline_reason_thread = None
             except (KeyboardInterrupt, SystemExit):
                 thread_lock.release()
-                raise sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2]
+                raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
             except:
                 exc, msg, tb = sys.exc_info()
                 traceback.print_exception(exc, msg, tb)
@@ -4568,8 +4581,7 @@ if __name__ == "__main__":   # pragma: no cover
     else:
         title = "Enstore"
 
-    master = Tkinter.Tk()
+    master = tkinter.Tk()
     display = Display({'background' : rgbtohex(173, 216, 230)},
                       "localhost", master = master)
     display.mainloop()
-

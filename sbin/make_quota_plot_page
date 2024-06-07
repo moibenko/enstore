@@ -7,4 +7,4 @@ else html_file=$1;shift;fi
 if [ "${1:-}" = "" ] ; then in_dir="`enstore config --show crons | grep html_dir | cut -d"'" -f 4`/tape_inventory/quotas";
 else in_dir=$1;shift;fi
 
-python $ENSTORE_DIR/src/enstore_make_plot_page.py --plot quota --description "Current quotas by storage group and type" --title "Enstore Tape Quotas" --input_dir $in_dir --html_file $html_file  --url "tape_inventory/quotas" --title_gif en_quota.gif
+$ENSTORE_DIR/sbin/enstore_make_plot_page --plot quota --description "Current quotas by storage group and type" --title "Enstore Tape Quotas" --input_dir $in_dir --html_file $html_file  --url "tape_inventory/quotas" --title_gif en_quota.gif

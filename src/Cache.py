@@ -3,12 +3,15 @@
    certain number of elements and removes excess
    based on LRU
 """
+from __future__ import print_function
+from builtins import object
 import collections
 import threading
 
-DEFAULT_CAPACITY=200
+DEFAULT_CAPACITY = 200
 
-class Cache:
+
+class Cache(object):
     """
     simple lru cache
     """
@@ -19,22 +22,22 @@ class Cache:
         :arg capacity: cache size
         """
         self.capacity = capacity
-        self.cache    = collections.OrderedDict()
-        self.lock     = threading.Lock()
+        self.cache = collections.OrderedDict()
+        self.lock = threading.Lock()
 
-    def get(self,key):
+    def get(self, key):
         """
         :type key: :obj:`obj`
         """
         with self.lock:
             try:
                 value = self.cache.pop(key)
-                self.cache[key]=value
+                self.cache[key] = value
                 return value
             except KeyError:
                 return None
 
-    def put(self,key,value):
+    def put(self, key, value):
         """
         :type key: :obj:`obj`
         :arg kay: key
@@ -52,7 +55,7 @@ class Cache:
                     remove first (oldest) item:
                     """
                     self.cache.popitem(last=False)
-            self.cache[key]=value
+            self.cache[key] = value
 
     def __repr__(self):
         return self.cache.__repr__()
@@ -60,10 +63,9 @@ class Cache:
 
 if __name__ == "__main__":   # pragma: no cover
     cache = Cache(3)
-    cache.put("a",1)
-    cache.put("b",1)
-    cache.put("c",1)
-    print cache
-    cache.put("d",1)
-    print cache
-
+    cache.put("a", 1)
+    cache.put("b", 1)
+    cache.put("c", 1)
+    print(cache)
+    cache.put("d", 1)
+    print(cache)

@@ -13,6 +13,7 @@ storage group combination.
 
 # Python imports
 from __future__ import division, print_function
+from builtins import zip
 import os
 import time
 
@@ -25,6 +26,7 @@ import histogram
 WEB_SUB_DIRECTORY = enstore_constants.DRIVE_HOURS_SEP_PLOTS_SUBDIR
 """Subdirectory in which to write plots. This constant is also referenced by
 the :mod:`enstore_make_plot_page` module."""
+
 
 class DriveHoursSepPlotterModule(enstore_plotter_module.EnstorePlotterModule):
     """Plot drive usage hours versus date, separately for each unique drive
@@ -156,8 +158,8 @@ class DriveHoursSepPlotterModule(enstore_plotter_module.EnstorePlotterModule):
                                                                 now_time_str))
 
         # Make plots
-        for drive, drive_dict in self.mounts.iteritems():
-            for sg, sg_dict in drive_dict.iteritems():
+        for drive, drive_dict in self.mounts.items():
+            for sg, sg_dict in list(drive_dict.items()):
                 self._write_plot(drive, sg, sg_dict)
 
     def _write_plot(self, drive, sg, sg_dict):
@@ -219,7 +221,7 @@ class DriveHoursSepPlotterModule(enstore_plotter_module.EnstorePlotterModule):
 
             # Fill histogram
             if plot_type == 'basic':
-                for _volume, md_times in sg_dict.iteritems():
+                for _volume, md_times in sg_dict.items():
                     starts = md_times['M']  # starts of mounts
                     finishes = md_times['D']  # finishes of dismounts
                     durations = [f - s for s, f in zip(starts, finishes)]

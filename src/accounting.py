@@ -6,6 +6,8 @@
 #
 ###############################################################################
 
+from builtins import str
+from builtins import object
 import os
 import sys
 import time
@@ -25,7 +27,7 @@ def timestamp2time(s):
     return time.mktime(time.strptime(s, "%Y-%m-%d %H:%M:%S"))
 
 
-class accDB:
+class accDB(object):
     def __init__(self, host, dbname, port=None, user=None, logname='UNKNOWN'):
         self.logname = logname
         self.db = dbaccess.DatabaseAccess(maxconnections=10,
@@ -60,8 +62,8 @@ class accDB:
             self.db.insert('tape_mounts_tmp', {
                 'volume': volume,
                 'state': 'm',
-                'id': res['oid']})
-        except:
+                'id': int(res['oid'])})
+        except Exception as e:
             #
             # no need to report error here. Failure to insert is part of the workflow
             #
@@ -70,10 +72,10 @@ class accDB:
                     "volume, state from tape_mounts_tmp " \
                     "where volume = %s and state = 'm'"
                 res2 = self.db.query_dictresult(q, (volume,))[0]
-
+                
                 self.db.update("update tape_mounts_tmp set id=%s where oid=%s", (res['oid'],
                                                                                  res2['oid_tape_mounts_tmp'],))
-            except:
+            except BaseException:
                 Trace.log(e_errors.ERROR, "%s: %s" %
                           (str(sys.exc_info()[0]),
                            str(sys.exc_info()[1])))
@@ -92,13 +94,14 @@ class accDB:
             self.db.delete("delete from tape_mounts_tmp where tape_mounts_tmp.oid=%s",
                            (res['oid_tape_mounts_tmp'],))
 
-        except:
+        except BaseException:
             Trace.log(e_errors.ERROR, "%s: %s" %
                       (str(sys.exc_info()[0]),
                        str(sys.exc_info()[1])))
             return
 
-    def log_start_dismount(self, node, volume, sg, reads, writes, mtype, logname, start):
+    def log_start_dismount(self, node, volume, sg, reads,
+                           writes, mtype, logname, start):
         if not isinstance(start, str):
             start = time2timestamp(start)
 
@@ -119,7 +122,7 @@ class accDB:
                 'volume': volume,
                 'state': 'd',
                 'id': res['oid']})
-        except:
+        except BaseException:
             #
             # no need to report error here. Failure to insert is part of the workflow
             #
@@ -130,7 +133,7 @@ class accDB:
                 res2 = self.db.query_dictresult(q, (volume,))[0]
                 self.db.update("update tape_mounts_tmp set id=%s where oid=%s",
                                (res['oid'], res2['oid_tape_mounts_tmp']))
-            except:
+            except BaseException:
                 Trace.log(e_errors.ERROR, "%s: %s" %
                           (str(sys.exc_info()[0]),
                            str(sys.exc_info()[1])))
@@ -146,8 +149,11 @@ class accDB:
             res = self.db.query_dictresult(q, (volume,))[0]
             q = "update tape_mounts set finish=%s, state=%s where tape_mounts.oid=%s"
             self.db.update(q, (finish, state, res['id'],))
-            self.db.delete("delete from tape_mounts_tmp where tape_mounts_tmp.oid=%s", (res['oid_tape_mounts_tmp'],))
-        except:
+            self.db.delete(
+                "delete from tape_mounts_tmp where tape_mounts_tmp.oid=%s",
+                (res['oid_tape_mounts_tmp'],
+                 ))
+        except BaseException:
             Trace.log(e_errors.ERROR, "%s: %s" %
                       (str(sys.exc_info()[0]),
                        str(sys.exc_info()[1])))
@@ -166,7 +172,7 @@ class accDB:
                       encp_id, rw, encp_version=None, file_family=None,
                       wrapper=None, library=None):
 
-        if type(date) != type(""):
+        if not isinstance(date, type("")):
             date = time2timestamp(date)
 
         xfer = {'date': date,

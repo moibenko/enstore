@@ -24,8 +24,8 @@ unsigned long int adler32_o(unsigned long int crc, char *buf, int offset, int nb
 #else
    typedef unsigned int zint;
 #endif
-typedef char * cptr;
 typedef long long off_t_2;
+typedef unsigned char * cptr;
 %}
 /* Tell SWIG about it */
 #ifdef UINT32_MAX
@@ -33,8 +33,8 @@ typedef long long off_t_2;
 #else
    typedef unsigned int zint;
 #endif
-typedef char * cptr;
 typedef long long off_t_2;
+typedef unsigned char * cptr;
 
 %typemap(in) zint {
     if (PyLong_Check($input))
@@ -49,8 +49,10 @@ typedef long long off_t_2;
 %typemap(out) zint {
         $result = PyLong_FromUnsignedLong((zint)$1);
 }
-%typemap(in) cptr{
-        $1= PyString_AsString($input);
+%typemap(in) cptr {
+  //        $1= PyBytes_AS_STRING($input);
+  //$1 = PyBytes_AsBytes($input);
+  $1 = PyBytes_AsString($input);
 }
 %typemap(in) off_t_2 {
     if (PyLong_Check($input))
