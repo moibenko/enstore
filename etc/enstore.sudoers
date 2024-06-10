@@ -1,0 +1,11 @@
+# enstore sudo settings
+Defaults:enstore !requiretty
+Defaults env_keep += "PATH PYTHON_DIR PYTHONPATH PYTHONINC PYTHONLIB \
+                          ENSTORE_CONFIG_HOST ENSTORE_CONFIG_PORT ENSTORE_DIR ENSTORE_MAIL \
+                          FTT_DIR KRBTKFILE ENSTORE_OUT ENSSH ENSCP"
+Cmnd_Alias      PYTHON  = /opt/enstore/Python/bin/python
+Cmnd_Alias      PIDKILL = /opt/enstore/bin/pidkill, /opt/enstore/bin/pidkill_s, /bin/kill
+Cmnd_Alias      MOVER = /opt/enstore/sbin/mover
+Cmnd_Alias      MIGRATOR = /opt/enstore/sbin/migrator
+enstore ALL=NOPASSWD:PYTHON, NOPASSWD:PIDKILL, NOPASSWD:MOVER, NOPASSWD:MIGRATOR
+
