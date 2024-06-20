@@ -240,7 +240,13 @@ def is_in_cluster():
     # If we are on the configuration server host, check the config file
     # directly.
     if os.environ['ENSTORE_CONFIG_HOST'] in this_host():
-        conf_dict = enstore_functions.get_config_dict().configdict
+        # do not know why, but sometimes enstore_functions.get_config_dict() returns dict istead of object
+        # so instead of just doing 
+        # conf_dict = enstore_functions.get_config_dict().configdict
+        # do the following
+        conf_dict = enstore_functions.get_config_dict()
+        if not isinstance(conf_dict, dict):
+            conf_dict = conf_dict.configdict
         kcs = conf_dict.get('known_config_servers')
 
     # Any other system we need to check with the configuration server.
