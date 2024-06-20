@@ -79,7 +79,7 @@ class Relay(object):
         csc = (enstore_functions2.default_host(),
                enstore_functions2.default_port())
         self.logc = log_client.LoggerClient(csc, LOG_NAME, 'log_server')
-        self.do_print = 1
+        self.do_print = 0
         Trace.init(LOG_NAME)
 
     def ev_print(self, msg):
@@ -171,7 +171,7 @@ class Relay(object):
                 elif tok[0] == QUIT:
                     self.doQuit()
                 elif tok[0] == DO_PRINT:
-                    self.do_print = YES
+                    self.do_print = 1
                 elif tok[0] == DONT_PRINT:
                     self.do_print = 0
                 else:
@@ -207,9 +207,9 @@ class Relay(object):
                 # the filter contains the message type in its dict.
                 if (not filter_d) or msg_type in filter_d:
                     try:
-                        self.ev_print("    sending '%s' to %s" % (msg, addr,))
+                        self.ev_print("    sending '{}' to {}".format(msg, addr))
                         l = self.send_socket.sendto(msg, addr)
-                        self.ev_print("    sendto return = %s" % (l,))
+                        self.ev_print("    sendto return = {}".format(l))
                     except socket.error as detail:
                         extra = "%s" % (detail,)
                         self.ev_print("    ERROR: %s" % (detail,))

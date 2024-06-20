@@ -17,7 +17,7 @@ import host_config
 import cleanUDP
 import Interfaces
 import en_eval
-
+import Trace
 
 def __get_callback(host, port):
     hostinfo = None
@@ -112,10 +112,10 @@ def r_eval(message_to_decode):
         rc = en_eval.en_eval(message_to_decode, debug=True)
         return rc
     except TypeError as e:
-        print('TypeError', e)
+        Trace.log(e_errors.ERROR, 'r_eval TypeError {} processing {}'.format(e, message_to_decode))
         raise_(e)
-    except Exception:
-        print("EXC", sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
+    except Exception as e:
+        Trace.log(e_errors.ERROR, 'r_eval exception {} processing {}'.format(e, message_to_decode))
         raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
 
 

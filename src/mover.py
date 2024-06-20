@@ -2495,7 +2495,7 @@ class Mover(dispatching_worker.DispatchingWorker,
 
         if do_restart:
             cmd = '/usr/bin/at now+1minute'
-            ecmd = "enstore start --just %s\n" % (self.name,)
+            ecmd = "enstore start --just {}\n".format(self.name)
             Trace.log(e_errors.INFO, "sending restart command: %s" % (ecmd,))
             p = os.popen(cmd, 'w')
             p.write(ecmd)

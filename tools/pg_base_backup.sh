@@ -24,6 +24,8 @@
 # Related:
 # pg_xlog_archive.sh
 
+if [ "${1:-}" = "-x" ] ; then set -xv; shift; fi
+
 source /usr/local/etc/setups.sh
 setup enstore
 
@@ -51,7 +53,7 @@ if [ ${rc} -ne 0 ]; then
 else
     pg_basebackup --pgdata=- --format=tar --xlog --checkpoint=fast --port="$(db_cfg dbport)" --username="$(db_cfg dbuser)" | xz -1 >"${OUT}"
 fi
-
+chown enstore:enstore "${OUT}"
 tmpwatch -f -q -m 4d "${OUT_DIR}"
 
 # Get remote destination

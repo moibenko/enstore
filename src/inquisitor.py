@@ -294,7 +294,6 @@ class InquisitorMethods(dispatching_worker.DispatchingWorker):
         # check to see if the server is known to be down by enstore.
         (sfile, outage_d, offline_d, override_d) = (None, None, None, None)
         self.rw_lock.acquire_read()
-        print("RSF1")
         try:
             sfile, outage_d, offline_d, override_d = enstore_files.read_schedule_file(
                 self.html_dir)
@@ -1485,7 +1484,6 @@ class InquisitorMethods(dispatching_worker.DispatchingWorker):
         now = time.time()
         (sfile, outage_d, offline_d, override_d) = (None, None, None, None)
         self.rw_lock.acquire_read()
-        print("RSF2")
         try:
             sfile, outage_d, offline_d, override_d = enstore_files.read_schedule_file(
                 self.html_dir)
@@ -1645,7 +1643,6 @@ class InquisitorMethods(dispatching_worker.DispatchingWorker):
         server_l = ticket["servers"].split(',')
         (sfile, outage_d, offline_d, override_d) = (None, None, None, None)
         self.rw_lock.acquire_read()
-        print("RSF3")
         try:
             sfile, outage_d, offline_d, override_d = enstore_files.read_schedule_file(
                 self.html_dir)
@@ -1920,7 +1917,6 @@ class InquisitorMethods(dispatching_worker.DispatchingWorker):
         ticket["status"] = (e_errors.OK, None)
         (sfile, outage_d, offline_d, override_d) = (None, None, None, None)
         self.rw_lock.acquire_read()
-        print("RSF4")
         try:
             sfile, outage_d, offline_d, override_d = enstore_files.read_schedule_file(
                 self.html_dir)
@@ -2312,7 +2308,6 @@ if __name__ == "__main__":   # pragma: no cover
     Trace.init(MY_NAME.upper())
     enstore_functions.inqTrace(enstore_constants.INQSTARTDBG,
                                "inquisitor called with args %s" % (sys.argv,))
-    print("SSSSS INQ")
     # get interface
     intf = InquisitorInterface()
     # get the inquisitor
