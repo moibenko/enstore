@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
 from builtins import object
-import pg
 import os
-import pprint
 import time
+import pg
 
 # time2timestamp(t) -- convert time to "YYYY-MM-DD HH:MM:SS"
 
@@ -31,8 +30,8 @@ class dsDB(object):
     def close(self):
         self.db.close()
 
-    def insert(self, table, dict):
-        return self.db.insert(table, dict)
+    def insert(self, table, adict):
+        return self.db.insert(table, adict)
 
     def log_stat(self,
                  drive_sn,
