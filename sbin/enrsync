@@ -20,6 +20,9 @@ fi
 krbdir="/usr/krb5/bin"
 defaultDomain=".fnal.gov"
 RSYNC="/usr/bin/rsync"
+if [ "`whoami`" = "root" ]; then
+    RSYNC="/usr/bin/rsync -o"
+fi
 enstorekt_path="/fnal/ups/kt/enstorekt"
 
 if [ ! -x ${RSYNC} ]; then
