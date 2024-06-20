@@ -2270,7 +2270,6 @@ class EnLogPage(EnBaseHtmlDoc):
             str(HTMLgen.Bold(HTMLgen.Href('enstore_log_file_search.html', 'searched'))),)
 
     def logfile_date(self, logfile):
-        print("LF", logfile)
         (prefix, year, month, day) = logfile.split('-')
         month = int(month)
         year = int(year)
