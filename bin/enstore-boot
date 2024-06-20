@@ -75,9 +75,13 @@ case "$1" in
 
 	# start database servers if it is necessary
 	if [ -e  /var/run/postgresql ]; then
-	    chown -R enstore:enstore /var/run/postgresql
+	    systemctl | grep postgresql | awk '{print $1}' | while read i; do systemctl is-enabled $i;done
+	    if [ $? != 0 ]; then
+		# postgresql is not installed as service
+		chown -R enstore:enstore /var/run/postgresql
+		$ENSTORE_DIR/bin/enstore_database_server start
+	    fi
 	fi
-	$ENSTORE_DIR/bin/enstore_database_server start
 
         if [ $estat -eq 0 ]; then
           # we should be enstore when we start this up (at least not root) if we are a server
@@ -110,8 +114,10 @@ case "$1" in
 	enstore stop
 
 	# should we shut down database servers?
-
-	$ENSTORE_DIR/bin/enstore_database_server.py stop
+	systemctl | grep postgresql | awk '{print $1}' | while read i; do systemctl is-enabled $i;done
+        if [ $? != 0 ]; then
+	    $ENSTORE_DIR/bin/enstore_database_server.py stop
+	fi
 
         ;;
 
