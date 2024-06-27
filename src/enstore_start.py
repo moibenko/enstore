@@ -160,7 +160,7 @@ def output(server_name):
             # If the file already exists, this really is not an error.
             if msg.errno != errno.EEXIST:
                 raise_(OSError, msg)
-    except OSError:
+    except OSError as msg:
         output_dir = None
         try:
             sys.stderr.write("Unable to create tmp directory %s: %s" %
