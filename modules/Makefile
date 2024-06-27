@@ -5,7 +5,7 @@ SHELL=/bin/sh
 #
 #############################################################
 
-ALL_TARGETS=enroute2 t_rand t_read ecrc ddencp
+ALL_TARGETS=enroute2 t_rand t_read ecrc
 
 all: adler32.a Modules $(ALL_TARGETS)
 
