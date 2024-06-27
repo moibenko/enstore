@@ -229,7 +229,7 @@ class TestEnstoreError(unittest.TestCase):
         """
         fail_list = [OK]
         # uncomment the following line to test all error codes and show the bug
-        #fail_list = []
+        # fail_list = []
         for e in self.e_errors_list:
             if is_retriable(e):
                 self.assertFalse(is_non_retriable(e), e)
@@ -238,7 +238,8 @@ class TestEnstoreError(unittest.TestCase):
             if e not in fail_list:
                 r = is_retriable(e)
                 n = is_non_retriable(e)
-                #print "testing ", e, "is_retriable=", r, "is_non_retriable=", n
+                # print "testing ", e, "is_retriable=", r, "is_non_retriable=",
+                # n
                 self.assertEqual(
                     r + n, 1, "expected %s got %s testing %s" % (1, r + n, e))
 

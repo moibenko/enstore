@@ -1,3 +1,5 @@
+from builtins import str
+from builtins import object
 import unittest
 import socket
 import Trace
@@ -37,7 +39,7 @@ class TestGenericServerInterface(unittest.TestCase):
 
 class Msg(object):
     def __init__(self, **kwargs):
-        for k, v in kwargs.items():
+        for k, v in list(kwargs.items()):
             setattr(self, k, v)
 
 

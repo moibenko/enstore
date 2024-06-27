@@ -1,9 +1,12 @@
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import unittest
 import os
 import pwd
 import socket
 import errno
-import StringIO
+import io
 import threading
 import mock
 import e_errors
@@ -112,7 +115,7 @@ class TestTCPLoggerClient(unittest.TestCase):
     def test_connect(self):
 
         # turn off complaints to stdout about connection failures
-        with mock.patch('sys.stdout', new_callable=StringIO.StringIO):
+        with mock.patch('sys.stdout', new_callable=io.StringIO):
 
             # test normal connect
             with mock.patch('socket.socket.connect', new_callable=mock.MagicMock):
@@ -217,7 +220,7 @@ class TestMisc(unittest.TestCase):
         for lowline in test_lines:
             for err in e_errors.stypedict:
                 gen_msg = log_client.genMsgType(lowline, '', err)
-                #print "debug gen_msg=%s " % gen_msg
+                # print "debug gen_msg=%s " % gen_msg
                 self.assertNotEqual(
                     "", log_client.genMsgType(
                         lowline, lowline, err))
@@ -237,7 +240,7 @@ class TestMisc(unittest.TestCase):
         udp_client.UDPClient.send_no_wait = sent_msg
         os.environ['ENSTORE_CONFIG_PORT'] = '7777'
         os.environ['ENSTORE_CONFIG_HOST'] = '127.0.0.1'
-        with mock.patch('sys.stderr', new=StringIO.StringIO()):
+        with mock.patch('sys.stderr', new=io.StringIO()):
             log_client.logthis()
         formatted_str = "%06d %s I LOGIT  HELLO" % (os.getpid(), self.user)
         param_1 = {'message': formatted_str, 'work': 'log_message'}
@@ -270,8 +273,8 @@ class TestLoggerClientInterface(unittest.TestCase):
         self.assertEqual(4, len(self.lci.valid_dictionaries()))
 
     def test_do_work(self):
-        with mock.patch('sys.stderr', new=StringIO.StringIO()):
-            with mock.patch('sys.stdout', new=StringIO.StringIO()) as std_out:
+        with mock.patch('sys.stderr', new=io.StringIO()):
+            with mock.patch('sys.stdout', new=io.StringIO()) as std_out:
                 with mock.patch("sys.exit") as exit_mock:
                     with mock.patch('generic_client.GenericClient.check_ticket'):
                         log_client.do_work(self.lci)

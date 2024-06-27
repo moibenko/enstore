@@ -1,11 +1,15 @@
 import unittest
 import generic_driver
 
+
 class TestDriverError(unittest.TestCase):
     def test___init__(self):
-        self.assertTrue(isinstance(generic_driver.DriverError("foo"), Exception))   
+        self.assertTrue(
+            isinstance(
+                generic_driver.DriverError("foo"),
+                Exception))
 
-        
+
 class TestDriver(unittest.TestCase):
     def setUp(self):
         self.gd = generic_driver.Driver()
@@ -20,11 +24,11 @@ class TestDriver(unittest.TestCase):
 
     def test_open(self):
         with self.assertRaises(NotImplementedError):
-            self.gd.open( "foo", "bar")
+            self.gd.open("foo", "bar")
 
     def test_flush(self):
         with self.assertRaises(NotImplementedError):
-            self.gd.flush( "foo")
+            self.gd.flush("foo")
 
     def test_close(self):
         with self.assertRaises(NotImplementedError):
@@ -36,11 +40,11 @@ class TestDriver(unittest.TestCase):
 
     def test_seek(self):
         with self.assertRaises(NotImplementedError):
-            self.gd.seek( "foo")
+            self.gd.seek("foo")
 
     def test_skipfm(self):
         with self.assertRaises(NotImplementedError):
-            self.gd.skipfm( "foo")
+            self.gd.skipfm("foo")
 
     def test_get_status(self):
         with self.assertRaises(NotImplementedError):
@@ -60,6 +64,7 @@ class TestDriver(unittest.TestCase):
 
     def test_get_cleaning_bit(self):
         self.assertEqual(self.gd.get_cleaning_bit(), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

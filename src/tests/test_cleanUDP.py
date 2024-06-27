@@ -1,6 +1,9 @@
+from __future__ import print_function
 # udp_common includes C module imports.
 # If this import fails, please read enstore-pytest-c-module.md,
 # and remember to use `python -m pytest`.
+from builtins import str
+from builtins import object
 import cleanUDP
 import pytest
 import select
@@ -20,27 +23,27 @@ def test_Select():
     sout.sendto("all dogs have fleas", ('localhost', 33031))
     r, w, x = select.select([sout], [sout], [sout], 1.0)
     if not x and not r and w:
-        print "expected select.select behavior on non-linux " \
-              "and post 2.4 linux kernel"
+        print("expected select.select behavior on non-linux "
+              "and post 2.4 linux kernel")
         assert True
     elif x and r and w:
-        print "expected select.select behavior on linux, " \
-              "pre 2.2 kernel"
+        print("expected select.select behavior on linux, "
+              "pre 2.2 kernel")
         assert False
     elif not x and r and w:
-        print "expected select.select behavior on linux, " \
-              "post 2.2 kernel"
+        print("expected select.select behavior on linux, "
+              "post 2.2 kernel")
         assert False
     else:
-        print "***unexpected behavior on _any_ platform"
+        print("***unexpected behavior on _any_ platform")
         assert False
     r, w, x, remaining_time = Select([sout], [sout], [sout], 1.0)
 
     if not r and not x:
-        print "expected behavior"
+        print("expected behavior")
         assert True
     else:
-        print "***unexpected behavior"
+        print("***unexpected behavior")
         assert False
 
     sout.sendto("all dogs have fleas", ('localhost', 33031))
@@ -48,7 +51,7 @@ def test_Select():
     sin.bind(('localhost', 33031))
     sout.sendto("Expected behavior", ('localhost', 33031))
     buf = sin.recvfrom(1000)
-    print buf
+    print(buf)
     assert "Expected behavior" in buf
 
 
@@ -61,7 +64,7 @@ def _test_no_ipv(socket_family, peer_addr):
         return True
 
 
-class TestCleanUDP:
+class TestCleanUDP(object):
 
     @pytest.fixture(params=[
         pytest.param(socket.AF_INET, marks=pytest.mark.skipif(

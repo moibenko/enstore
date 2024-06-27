@@ -1,6 +1,7 @@
 """ Unit tests for mover.py
 Author: Dennis Box, dbox@fnal.gov
 """
+from builtins import range
 import unittest
 import mover
 import sys
@@ -69,8 +70,8 @@ class TestMoverError(unittest.TestCase):
 
 class TestMoverMisc(unittest.TestCase):
     def test_state_name(self):
-        IDLE, SETUP, MOUNT_WAIT, SEEK, ACTIVE, HAVE_BOUND, DISMOUNT_WAIT, DRAINING, OFFLINE, CLEANING, ERROR, FINISH_WRITE = range(
-            12)
+        IDLE, SETUP, MOUNT_WAIT, SEEK, ACTIVE, HAVE_BOUND, DISMOUNT_WAIT, DRAINING, OFFLINE, CLEANING, ERROR, FINISH_WRITE = list(range(
+            12))
         self.assertEqual('IDLE', state_name(IDLE))
         self.assertEqual('SETUP', state_name(SETUP))
         self.assertEqual('MOUNT_WAIT', state_name(MOUNT_WAIT))

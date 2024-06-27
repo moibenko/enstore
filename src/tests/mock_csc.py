@@ -1,3 +1,4 @@
+from builtins import object
 import string
 import ast
 import mock
@@ -74,7 +75,7 @@ class MockCSC(object):
                     migs[migrator] = ret[migrator]
             ret['migrators'] = migs
         elif akey == 'get_keys':
-            keys = self.csc.saved_dict.keys()
+            keys = list(self.csc.saved_dict.keys())
             ret['get_keys'] = keys
         elif akey in self.csc.saved_dict:
             ret[akey] = self.csc.saved_dict[akey]

@@ -1,10 +1,12 @@
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 import sys
 import string
 import threading
 import time
 import mock
-import StringIO
+import io
 import mpq  # binary search / put
 import Trace
 import e_errors
@@ -179,7 +181,7 @@ class TestSortedList(unittest.TestCase):
         self.assertTrue(r2_pri == (r1_pri + 100))
 
     def test_wprint(self):
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as _out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as _out:
             self.slp.wprint()
             self.assertTrue('LIST LENGTH' in _out.getvalue(), _out.getvalue())
             self.assertTrue('<priority ' in _out.getvalue(), _out.getvalue())
@@ -244,7 +246,7 @@ class TestQueue(unittest.TestCase):
         self.assertFalse(tst_rslt[0], tst_rslt)
 
     def test_wprint(self):
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as _out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as _out:
             self.q.wprint()
             self.assertTrue(
                 'KEY volume_family_0' in _out.getvalue(),
@@ -264,7 +266,7 @@ class TestQueue(unittest.TestCase):
         q2 = self.q.get_queue(queue_key='opt')
         self.assertTrue(isinstance(q2, list))
         # test a bad key
-        with mock.patch('sys.stderr', new=StringIO.StringIO()) as _out:
+        with mock.patch('sys.stderr', new=io.StringIO()) as _out:
             try:
                 q3 = self.q.get(queue_key='bad_key')
                 self.assertTrue(False)
@@ -312,7 +314,7 @@ class TestQueue(unittest.TestCase):
     def test_change_pri(self):
         req = self.r_list[0]
         pri = req.pri
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as _out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as _out:
             req2 = self.q.change_pri(req, pri + 100)
             self.assertTrue(req2.pri == pri + 100)
 
@@ -362,17 +364,17 @@ class TestAtomic_Request_Queue(unittest.TestCase):
         # self.arq.wprint()
 
     def test_update(self):
-        keylist = self.arq.tags.keys.union(self.arq.ref.keys())
+        keylist = self.arq.tags.keys.union(list(self.arq.ref.keys()))
         # leaving the debug stuff in here for now
         # to remind me that there may be a bunch of unneeded
         # inserts and deletes in update()
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         for k in keylist:
-            #print "k=%s" % k
+            # print "k=%s" % k
             for req in self.r_list:
-                #print "req=%s" % req
+                # print "req=%s" % req
                 ret = self.arq.update(req, k)
-                #print "ret output = %s" % ret
+                # print "ret output = %s" % ret
 
     def test_get_tags(self):
         tags = self.arq.get_tags()
@@ -424,13 +426,13 @@ class TestAtomic_Request_Queue(unittest.TestCase):
         req = self.arq.find(self.r_list[0].unique_id)
         self.assertTrue(req.pri is not None)
         r2 = req.pri + 100
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as _out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as _out:
             self.arq.change_pri(req, r2)
         req = self.arq.find(self.r_list[0].unique_id)
         self.assertEqual(req.pri, r2)
 
     def test_wprint(self):
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as _out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as _out:
             self.arq.wprint()
             self.assertTrue("LIST LENGTH" in _out.getvalue())
             self.assertTrue("WRITE QUEUE" in _out.getvalue())
@@ -491,7 +493,7 @@ class TestRequest_Queue(unittest.TestCase):
         self.assertTrue(isinstance(req, Request))
         pri = req.pri
         newpri = pri + 100
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as _out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as _out:
             self.rq.change_pri(req, newpri)
         req = self.rq.find(self.r_list[1][0].unique_id)
         self.assertEqual(req.pri, newpri)
@@ -526,7 +528,7 @@ class TestRequest_Queue(unittest.TestCase):
         self.assertTrue(isinstance(q[2], list))
 
     def test_wprint(self):
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as _out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as _out:
             self.rq.wprint()
             self.assertTrue('ADMIN QUEUE' in _out.getvalue(), _out.getvalue())
             self.assertTrue('WRITE QUEUE' in _out.getvalue(), _out.getvalue())

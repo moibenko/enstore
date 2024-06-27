@@ -1,13 +1,16 @@
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 import null_driver
 import os
 import time
-import StringIO
+import io
 import setpath
 import generic_driver
 import strbuffer
 import e_errors
 import Trace
+
 
 class TestNullDriver(unittest.TestCase):
 
@@ -23,17 +26,17 @@ class TestNullDriver(unittest.TestCase):
         self.ndr.open(mode=0)
         self.ndw.open(mode=1)
         self.assertEqual(self.ndw.device, '/dev/null')
-        self.assertEqual(self.ndr.device, '/dev/zero') 
+        self.assertEqual(self.ndr.device, '/dev/zero')
         ndw2 = null_driver.NullDriver()
         with self.assertRaises(ValueError):
             ndw2.open(mode=2)
 
     def test_seek_tell_rewind(self):
         self.ndr.seek(30)
-        self.assertEqual(self.ndr.tell(), (30,30))
+        self.assertEqual(self.ndr.tell(), (30, 30))
         self.ndr.rewind()
-        self.assertEqual(self.ndr.tell(), (0,0))
-    
+        self.assertEqual(self.ndr.tell(), (0, 0))
+
     def test_fileno(self):
         self.ndw.open(mode=1)
         self.assertEqual(self.ndw.fileno(), self.ndw.fd)
@@ -51,37 +54,37 @@ class TestNullDriver(unittest.TestCase):
     def test_read(self):
         # test normal read
         self.ndr.open(mode=0)
-        s = StringIO.StringIO()
-        r = self.ndr.read(s.buf,0,10)
+        s = io.StringIO()
+        r = self.ndr.read(s.buf, 0, 10)
         self.assertEqual(r, 10)
-        
+
         # test read from bad file descriptor
         with self.assertRaises(IOError):
             self.ndw.open(mode=0)
             self.ndw.fd = -1
-            self.ndw.read(s.buf,0,10)
+            self.ndw.read(s.buf, 0, 10)
 
         # test read from file open for writing
         with self.assertRaises(ValueError):
             self.ndw.open(mode=1)
-            self.ndw.read(s.buf,0,10)  
+            self.ndw.read(s.buf, 0, 10)
 
     def test_write(self):
         # test normal write
         self.ndw.open(mode=1)
-        s = StringIO.StringIO()
-        w = self.ndw.write(s.buf,0,10)
+        s = io.StringIO()
+        w = self.ndw.write(s.buf, 0, 10)
         self.assertEqual(w, 10)
 
         # test write with bad file descriptor, returning -1
         self.ndr.open(mode=1)
         self.ndr.fd = -1
-        self.assertEqual(self.ndr.write(s.buf,0,10), -1)
+        self.assertEqual(self.ndr.write(s.buf, 0, 10), -1)
 
         # test write to driver open for reading
         with self.assertRaises(ValueError):
             self.ndr.open(mode=0)
-            self.ndr.write(s.buf,0,10)
+            self.ndr.write(s.buf, 0, 10)
 
     def test_write_and_skip_fm(self):
         self.ndw.open(mode=1)
@@ -96,16 +99,20 @@ class TestNullDriver(unittest.TestCase):
 
     def test_set_mode(self):
         self.assertEqual(self.ndw.set_mode(1), None)
-    
+
     def test_rates(self):
-        self.assertEqual(self.ndw.rates(), (0,0))
-    
+        self.assertEqual(self.ndw.rates(), (0, 0))
+
     def test_verify_label(self):
-        self.assertEqual(self.ndw.verify_label(), ( e_errors.READ_VOL1_READ_ERR, None))
-        self.assertEqual(self.ndr.verify_label(label='foo'), ( e_errors.OK, None))
+        self.assertEqual(self.ndw.verify_label(),
+                         (e_errors.READ_VOL1_READ_ERR, None))
+        self.assertEqual(
+            self.ndr.verify_label(
+                label='foo'), (e_errors.OK, None))
 
     def test_tape_transfer_time(self):
         self.assertEqual(self.ndw.tape_transfer_time(), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

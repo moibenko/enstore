@@ -1,6 +1,8 @@
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 import mock
-import StringIO
+import io
 import enstore_constants
 try:
     import Interfaces
@@ -32,8 +34,8 @@ class TestGenericAlarm(unittest.TestCase):
 
     def test_ticket(self):
         self.al.set_ticket("severe", "bad")
-        with mock.patch('sys.stderr', new_callable=StringIO.StringIO) as stderr_mock:
-            with mock.patch('sys.stdout', new_callable=StringIO.StringIO) as stdout_mock:
+        with mock.patch('sys.stderr', new_callable=io.StringIO) as stderr_mock:
+            with mock.patch('sys.stdout', new_callable=io.StringIO) as stdout_mock:
                 self.al.ticket()
                 self.assertEqual(self.al.ticket_generated, "YES")
 

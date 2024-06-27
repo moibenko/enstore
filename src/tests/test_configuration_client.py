@@ -1,6 +1,8 @@
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 import string
-import StringIO
+import io
 import time
 import ast
 import mock
@@ -121,7 +123,7 @@ class TestConfigurationClient(unittest.TestCase):
                         migs[migrator] = ret[migrator]
                 ret['migrators'] = migs
             elif akey == 'get_keys':
-                keys = self.csc.saved_dict.keys()
+                keys = list(self.csc.saved_dict.keys())
                 ret['get_keys'] = keys
             elif akey in self.csc.saved_dict:
                 ret[akey] = self.csc.saved_dict[akey]
@@ -296,7 +298,7 @@ class TestConfigurationClient(unittest.TestCase):
 
 class TestConfigurationClientInterface(unittest.TestCase):
     def setUp(self):
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as std_out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as std_out:
             self.cci = configuration_client.ConfigurationClientInterface()
 
     def test___init__(self):
@@ -342,14 +344,14 @@ class TestMisc(unittest.TestCase):
         self.assertNotEqual(conf_dict, flat_dict)
 
         # test print_configuration
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as std_out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as std_out:
             intf = configuration_client.ConfigurationClientInterface(
                 user_mode=0)
             intf.show = 1
             configuration_client.print_configuration(conf_dict, intf)
             self.assertTrue(len(std_out.getvalue()) > 0)
 
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as std_out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as std_out:
             intf.show = 0
             intf.print_1 = 1
             configuration_client.print_configuration(conf_dict, intf)

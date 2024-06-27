@@ -1,8 +1,10 @@
+from future import standard_library
+standard_library.install_aliases()
 import unittest
 import os
 import sys
 import mock
-import StringIO
+import io
 try:
     import enroute
 except ImportError:

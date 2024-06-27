@@ -1,10 +1,13 @@
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
 import unittest
 import volume_clerk_client
 import sys
 import string
-import StringIO
+import io
 import socket
-import StringIO
+import io
 import mock
 import option
 import generic_client
@@ -22,7 +25,7 @@ def bogus_ticket(*args, **kwargs):
     retval['work'] = args[0]
     for arg in args[1:]:
         retval[arg] = arg
-    for key, value in kwargs.items():
+    for key, value in list(kwargs.items()):
         retval[key] = value
     return retval
 
@@ -68,7 +71,7 @@ class TestMisc(unittest.TestCase):
     def test_show_volume_header(self):
         cmp = 'label               avail.   system_inhibit                              library          volume_family                        comment     \n'
 
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as std_out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as std_out:
             volume_clerk_client.show_volume_header()
             self.assertEqual(std_out.getvalue(), cmp)
 
@@ -105,7 +108,7 @@ class TestMisc(unittest.TestCase):
         cmp += "          M8.volume_read_test.cpio_odc         "
         cmp += "totally made up\n"
 
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as std_out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as std_out:
             volume_clerk_client.show_volume(fake_vol)
             self.assertEqual(std_out.getvalue(), cmp)
 
@@ -722,12 +725,12 @@ class TestVolumeClerkClientInterface(unittest.TestCase):
         self.assertTrue(isinstance(vd[0], dict))
 
     def test_do_work(self):
-        #import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         sent_msg = mock.MagicMock()
         udp_client.UDPClient.send = sent_msg
         udp_client.UDPClient.send_no_wait = sent_msg
-        with mock.patch('sys.stderr', new=StringIO.StringIO()) as std_err:
-            with mock.patch('sys.stdout', new=StringIO.StringIO()) as std_out:
+        with mock.patch('sys.stderr', new=io.StringIO()) as std_err:
+            with mock.patch('sys.stdout', new=io.StringIO()) as std_out:
                 with mock.patch("sys.exit") as exit_mock:
                     with mock.patch('generic_client.GenericClient.check_ticket') as check_please:
                         # test = Usage
@@ -744,13 +747,15 @@ class TestVolumeClerkClientInterface(unittest.TestCase):
                         volume_clerk_client.do_work(self.vci)
                         exit_mock.assert_not_called()
                         self.assertEqual(
-                            {'work': 'start_backup'}, sent_msg.mock_calls[102][1][0],
+                            {
+                                'work': 'start_backup'}, sent_msg.mock_calls[102][1][0],
                             test + ": " + str(sent_msg.mock_calls))
                         self.assertEqual({'work': 'backup'},
                                          sent_msg.mock_calls[104][1][0],
                                          test + ": " + str(sent_msg.mock_calls))
                         self.assertEqual(
-                            {'work': 'stop_backup'}, sent_msg.mock_calls[106][1][0],
+                            {
+                                'work': 'stop_backup'}, sent_msg.mock_calls[106][1][0],
                             test + ": " + str(sent_msg.mock_calls))
                         self.vci.backup = 0
 
@@ -1126,8 +1131,8 @@ class TestVolumeClerkClientInterface(unittest.TestCase):
                                 sent_msg.mock_calls))
                         self.vci.show_ignored_storage_groups = 0
 
-                        #test = "add"
-                        #test = "modify"
+                        # test = "add"
+                        # test = "modify"
 
                         # -------------
                         test = "new_library"
@@ -1190,8 +1195,8 @@ class TestVolumeClerkClientInterface(unittest.TestCase):
                                 sent_msg.mock_calls))
                         self.vci.recycle = 0
 
-                        #test = "clear_sg"
-                        #test = "clear"
+                        # test = "clear_sg"
+                        # test = "clear"
 
                         # -------------
                         test = "decr_file_count"
@@ -1290,8 +1295,8 @@ class TestVolumeClerkClientInterface(unittest.TestCase):
                                 sent_msg.mock_calls))
                         self.vci.lm_to_clear = 0
 
-                        #test = "list"
-                        #test = "ls_active"
+                        # test = "list"
+                        # test = "ls_active"
 
 
 if __name__ == "__main__":

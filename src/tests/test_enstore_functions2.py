@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import os
 import mock
@@ -11,7 +12,7 @@ try:
     import enroute
 except ImportError:
     import fixtures.mock_imports
-    print "WARNING using mocked import of enstore C library"
+    print("WARNING using mocked import of enstore C library")
 import enstore_constants
 import enstore_functions2
 from enstore_functions2 import XMODE
@@ -200,11 +201,11 @@ class TestEnstoreFunctions2(unittest.TestCase):
         now = time.time()
         sec_in_day = 86400
         msg = 'get_days_ago  returned  %s, expected %s'
-        two_days_ago = float(sec_in_day*2)
+        two_days_ago = float(sec_in_day * 2)
         expected = now - two_days_ago
         rc = get_days_ago(now, 2)
         self.assertEqual(rc, expected, msg % (rc, expected))
-        ten_days_ago = float(sec_in_day*10)
+        ten_days_ago = float(sec_in_day * 10)
         expected = now - ten_days_ago
         rc = get_days_ago(now, 10)
         self.assertEqual(rc, expected, msg % (rc, expected))
@@ -245,9 +246,9 @@ class TestEnstoreFunctions2(unittest.TestCase):
         self.assertEqual(expect, rc, msg % (addr, expect, rc))
 
     def test_format_and_unformattime(self):
-        now = long(time.time())
+        now = int(time.time())
         fmted = format_time(now)
-        expected = long(unformat_time(fmted))
+        expected = int(unformat_time(fmted))
         msg = "format_time unformat_time disagree returned %s expected %s"
         self.assertEqual(now, expected, msg % (expected, now))
 
@@ -261,7 +262,7 @@ class TestEnstoreFunctions2(unittest.TestCase):
         expected = os.getcwd()
         rc = get_dir(expected)
         self.assertEqual(rc, expected)
-        inp = expected+'/foo/bar/'
+        inp = expected + '/foo/bar/'
         expected = inp[:-1]
         rc = get_dir(inp)
         self.assertEqual(rc, expected)

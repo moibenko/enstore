@@ -1,9 +1,14 @@
+from __future__ import print_function
+from __future__ import division
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import unittest
 import sys
 import traceback
 import os
 import mock
-import StringIO
+import io
 import pwd
 import time
 import types
@@ -47,7 +52,7 @@ def alarm_func_0(time, pid, name, root_error,
     __pychecker__ = "unusednames=time"
 
     # translate severity to text
-    if isinstance(severity, types.IntType):
+    if isinstance(severity, int):
         severity = e_errors.sevdict.get(severity,
                                         e_errors.sevdict[e_errors.ERROR])
     ticket = {}
@@ -77,9 +82,9 @@ def log_func_0(timestamp, pid, name, args):
     logmsg = 'log_func_0 %s %.6d %.8s %s %s  %s' % (time.ctime(
         timestamp), pid, usr, e_errors.sevdict[severity], name, msg)
     if severity in Trace.STDERR_SEVERITIES:
-        print >> sys.stderr, logmsg
+        print(logmsg, file=sys.stderr)
     else:
-        print logmsg
+        print(logmsg)
     return None
 
 
@@ -112,11 +117,11 @@ class TestTrace(unittest.TestCase):
 
     def test_log_functionality(self):
         msg = 'this is  a log msg'
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as std_out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as std_out:
             log(e_errors.INFO, msg)
             self.assertTrue(msg in std_out.getvalue(), std_out.getvalue())
         set_log_func(log_func_0)
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as std_out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as std_out:
             log(e_errors.INFO, msg)
             self.assertTrue(msg in std_out.getvalue(), std_out.getvalue())
             self.assertTrue(
@@ -126,11 +131,11 @@ class TestTrace(unittest.TestCase):
     def test_log_to_stderr(self):
         msg = 'this is  a log msg'
         for severity in Trace.STDERR_SEVERITIES:
-            with mock.patch('sys.stderr', new=StringIO.StringIO()) as std_err:
+            with mock.patch('sys.stderr', new=io.StringIO()) as std_err:
                 log(severity, msg)
                 self.assertTrue(msg in std_err.getvalue(), std_err.getvalue())
             set_log_func(log_func_0)
-            with mock.patch('sys.stderr', new=StringIO.StringIO()) as std_err:
+            with mock.patch('sys.stderr', new=io.StringIO()) as std_err:
                 log(severity, msg)
                 self.assertTrue(msg in std_err.getvalue(), std_err.getvalue())
                 self.assertTrue(
@@ -140,7 +145,7 @@ class TestTrace(unittest.TestCase):
     def test_alarm_functionality(self):
         msg = 'this is  an alarm!!!'
         # test default alarm function
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as std_out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as std_out:
             alarm(e_errors.ALARM, msg)
             self.assertTrue(
                 'default_alarm_func' in std_out.getvalue(),
@@ -148,29 +153,29 @@ class TestTrace(unittest.TestCase):
 
         # test setting custom alarm
         set_alarm_func(alarm_func_0)
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as std_out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as std_out:
             alarm(e_errors.ALARM, msg)
             self.assertTrue(msg in std_out.getvalue(), std_out.getvalue())
 
     def test_do_and_dont_print(self):
-        self.assertEqual(len(print_levels.keys()), 0)
+        self.assertEqual(len(list(print_levels.keys())), 0)
         do_print(Trace.STDERR_SEVERITIES)
-        self.assertEqual(len(print_levels.keys()),
+        self.assertEqual(len(list(print_levels.keys())),
                          len(Trace.STDERR_SEVERITIES))
         dont_print(Trace.STDERR_SEVERITIES)
-        self.assertEqual(len(print_levels.keys()), 0)
+        self.assertEqual(len(list(print_levels.keys())), 0)
 
     def test_do_and_dont_log(self):
-        self.assertEqual(len(log_levels.keys()), 0)
+        self.assertEqual(len(list(log_levels.keys())), 0)
         do_log(Trace.STDERR_SEVERITIES)
-        self.assertEqual(len(log_levels.keys()), len(Trace.STDERR_SEVERITIES))
+        self.assertEqual(len(list(log_levels.keys())), len(Trace.STDERR_SEVERITIES))
         dont_log(Trace.STDERR_SEVERITIES)
-        self.assertEqual(len(log_levels.keys()), 0)
+        self.assertEqual(len(list(log_levels.keys())), 0)
 
     def test_do_and_dont_message(self):
-        self.assertEqual(len(message_levels.keys()), 0)
+        self.assertEqual(len(list(message_levels.keys())), 0)
         do_message(Trace.STDERR_SEVERITIES)
-        self.assertEqual(len(message_levels.keys()),
+        self.assertEqual(len(list(message_levels.keys())),
                          len(Trace.STDERR_SEVERITIES))
         try:
             dont_message(Trace.STDERR_SEVERITIES)
@@ -178,12 +183,12 @@ class TestTrace(unittest.TestCase):
         except ValueError:
             pass
         dont_message(DONT_ALARM_CAPABLE_LIST)
-        self.assertEqual(len(message_levels.keys()), 1)
+        self.assertEqual(len(list(message_levels.keys())), 1)
 
     def test_do_and_dont_alarm(self):
-        self.assertEqual(len(alarm_levels.keys()), 0)
+        self.assertEqual(len(list(alarm_levels.keys())), 0)
         do_alarm(Trace.STDERR_SEVERITIES)
-        self.assertEqual(len(alarm_levels.keys()),
+        self.assertEqual(len(list(alarm_levels.keys())),
                          len(Trace.STDERR_SEVERITIES))
         try:
             dont_alarm(Trace.STDERR_SEVERITIES)
@@ -191,7 +196,7 @@ class TestTrace(unittest.TestCase):
         except ValueError:
             pass
         dont_alarm(DONT_ALARM_CAPABLE_LIST)
-        self.assertEqual(len(alarm_levels.keys()), 1)
+        self.assertEqual(len(list(alarm_levels.keys())), 1)
 
     def test_trunc_length(self):
         msg = "this is a very very very "
@@ -206,7 +211,7 @@ class TestTrace(unittest.TestCase):
         msg += "ous correlation. Oh well."
 
         len1 = len(msg)
-        max_msg_size = set_max_message_size(len1 / 2)
+        max_msg_size = set_max_message_size(old_div(len1, 2))
         msg2 = trunc(msg)
         len2 = len(msg2)
         self.assertTrue(len2 < len1)
@@ -216,8 +221,8 @@ class TestTrace(unittest.TestCase):
         dont_print(1)
         do_alarm(1)
         do_log(1)
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as std_out:
-            with mock.patch('sys.stderr', new=StringIO.StringIO()) as std_err:
+        with mock.patch('sys.stdout', new=io.StringIO()) as std_out:
+            with mock.patch('sys.stderr', new=io.StringIO()) as std_err:
                 trace(1, 'a spurious test message: %s' % (ticket,))
                 self.assertTrue(
                     'spurious' in std_err.getvalue(), "t2:%s" %
@@ -230,7 +235,7 @@ class TestTrace(unittest.TestCase):
         try:
             dont_alarm(Trace.STDERR_SEVERITIES)
         except BaseException:
-            with mock.patch('sys.stdout', new=StringIO.StringIO()) as _out:
+            with mock.patch('sys.stdout', new=io.StringIO()) as _out:
                 Trace.handle_error()
                 self.assertTrue(
                     'ValueError' in _out.getvalue(),
@@ -241,7 +246,7 @@ class TestTrace(unittest.TestCase):
             with open('/var/lib/does/not/exist', 'r') as not_there:
                 lines = not_there.readlines()
         except BaseException:
-            with mock.patch('sys.stderr', new=StringIO.StringIO()) as _out:
+            with mock.patch('sys.stderr', new=io.StringIO()) as _out:
                 Trace.log_stack_trace()
                 self.assertTrue(
                     'Failure writing message to log' in _out.getvalue(),

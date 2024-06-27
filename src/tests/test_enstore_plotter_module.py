@@ -5,6 +5,7 @@ import errno
 import time
 import tempfile
 
+
 class TestEnstorePlotterModule(unittest.TestCase):
 
     def setUp(self):
@@ -12,10 +13,13 @@ class TestEnstorePlotterModule(unittest.TestCase):
 
     def test___init__(self):
         self.assertTrue(self.epm.name == "test")
-        self.assertTrue(isinstance(self.epm, enstore_plotter_module.EnstorePlotterModule))
+        self.assertTrue(
+            isinstance(
+                self.epm,
+                enstore_plotter_module.EnstorePlotterModule))
 
     def test_set_and_isActive(self):
-        self.assertEqual(self.epm.isActive(), True) 
+        self.assertEqual(self.epm.isActive(), True)
         self.epm.setActive(False)
         self.assertEqual(self.epm.isActive(), False)
 
@@ -48,11 +52,20 @@ class TestEnstorePlotterModule(unittest.TestCase):
     def test_roundtime(self):
         t1 = 1677875595.160911
         self.assertEqual(enstore_plotter_module.roundtime(t1), 1677875595.0)
-        self.assertEqual(enstore_plotter_module.roundtime(t1,'floor'), 1677798000.0)
-        self.assertEqual(enstore_plotter_module.roundtime(t1,'ceil'), 1677884399.0)
-    
-        self.assertEqual(enstore_plotter_module.roundtime(1000000000), 1000000000.0)
-        self.assertEqual(enstore_plotter_module.roundtime(1000000001), 1000000001.0)
+        self.assertEqual(
+            enstore_plotter_module.roundtime(
+                t1, 'floor'), 1677798000.0)
+        self.assertEqual(
+            enstore_plotter_module.roundtime(
+                t1, 'ceil'), 1677884399.0)
+
+        self.assertEqual(
+            enstore_plotter_module.roundtime(1000000000),
+            1000000000.0)
+        self.assertEqual(
+            enstore_plotter_module.roundtime(1000000001),
+            1000000001.0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,10 +1,14 @@
+from __future__ import print_function
+from past.builtins import cmp
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import unittest
 import mock
-import StringIO
+import io
 import mpq
 import sys
 import os
-
 
 class Req(object):
     def __init__(self, size, priority):
@@ -14,6 +18,12 @@ class Req(object):
     def __repr__(self):
         return "<size=%s, priority=%s>" % (self.size, self.priority)
 
+def cmp(a, b):
+    """
+    In python 3 thre is no built in function cmp.
+    So define it here
+    """
+    return (a > b) - (a < b)
 
 def compare_priority(r1, r2):
     return -cmp(r1.priority, r2.priority)
@@ -50,10 +60,10 @@ class TestMPQ(unittest.TestCase):
     def test_insort(self):
         self.perform_insort()
         if os.getenv('DEBUG'):
-            print "\nafter insort:\n"
-            print "self.reqs: %s\n" % self.reqs
-            print "self.prio_mpq: %s\n" % self.prio_mpq
-            print "self.size_mpq: %s\n" % self.size_mpq
+            print("\nafter insort:\n")
+            print("self.reqs: %s\n" % self.reqs)
+            print("self.prio_mpq: %s\n" % self.prio_mpq)
+            print("self.size_mpq: %s\n" % self.size_mpq)
         self.assertNotEqual(self.prio_mpq[0], self.size_mpq[0])
 
     def test_bisect(self):
@@ -69,7 +79,7 @@ class TestMPQ(unittest.TestCase):
         req = Req(size=5, priority=5)
 
         # try removing something not in list
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as std_out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as std_out:
             self.prio_mpq.remove(req)
             self.assertTrue(
                 'exceptions.ValueError' in std_out.getvalue(),
@@ -86,9 +96,9 @@ class TestMPQ(unittest.TestCase):
         self.assertTrue(self.prio_mpq.__nonzero__())
 
     def test___repr__(self):
-        with mock.patch('sys.stdout', new=StringIO.StringIO()) as std_out:
+        with mock.patch('sys.stdout', new=io.StringIO()) as std_out:
             self.perform_insort()
-            print self.prio_mpq
+            print(self.prio_mpq)
             self.assertTrue(
                 '<size=4, priority=4>' in std_out.getvalue(),
                 std_out.getvalue())

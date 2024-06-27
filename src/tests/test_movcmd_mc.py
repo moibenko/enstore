@@ -9,7 +9,7 @@ from movcmd_mc import *
 
 TESTCONFIG = {
     'enstor01.mover': {
-         'media_changer': 'enstor06.media_changer',
+        'media_changer': 'enstor06.media_changer',
     },
     'enstor02.mover': {},
     'enstor03.library': {'asd': '1'},
@@ -19,9 +19,11 @@ TESTCONFIG = {
     },
 }
 
+
 def test_endswith():
     assert endswith("asd", "sd")
     assert not endswith("asd", "fd")
+
 
 def test_dict_eval():
     with pytest.raises(ValueError):
@@ -31,12 +33,14 @@ def test_dict_eval():
     test_response = {"thisdict": "is ok"}
     assert dict_eval(test_value) == test_response
 
+
 def test_get_config():
     expected_res = {'movers': ['enmv1', 'enmv2'], 'host': 'enconf1'}
     test_read_data = "%s" % expected_res
     with patch.object(os, 'popen') as mock_popen:
         mock_popen().read.return_value = test_read_data
         assert get_config() == expected_res
+
 
 def test_get_movers():
     expected_res = ['enstor01', 'enstor02']
@@ -45,9 +49,10 @@ def test_get_movers():
         mock_get_config.return_value = TESTCONFIG
         assert get_movers() == expected_res
 
+
 def test_get_media_changer():
     get_media_changer_res = get_media_changer(
-      'enstor01.mover', config=TESTCONFIG)
+        'enstor01.mover', config=TESTCONFIG)
     assert get_media_changer_res == 'enstor06'
     with patch.object(movcmd_mc, 'get_config') as mock_get_config:
         mock_get_config.return_value = TESTCONFIG
@@ -55,6 +60,7 @@ def test_get_media_changer():
         assert get_media_changer_res == 'enstor06'
         get_media_changer_res = get_media_changer('enstor01')
         assert get_media_changer_res == 'NotFound'
+
 
 def test_mc_for_movers():
     expected_res = {'Unknown': ['enstor02'], 'enstor06': ['enstor01']}
