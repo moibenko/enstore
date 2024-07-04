@@ -455,7 +455,7 @@ def move_file(input_filename, output_filename, intf):
             sys.exit(1)
 
         try:
-            file_utils.chmod(output_filename, mode)
+            file_utils.chmod(output_filename, mode) # pylint: disable=E0601
         except OSError as msg:
             print_error(e_errors.OSERROR,
                         "File permissions update failed: %s" % str(msg))
