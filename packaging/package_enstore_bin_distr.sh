@@ -2,11 +2,11 @@
 # run as enstore/package_enstore_bin.sh from directory above enstore
 NAME=enstore_bin_distr
 VERSION=0.0
-REL=7
+REL=10
 VERS=${NAME}-${VERSION}
 
 if [ ! -d enstore ]; then
-   echo 'package_enstore_bin.sh is expecting to be executed as enstore/package_enstore_bin.sh' >&2
+   echo 'package_enstore_bin.sh is expecting to be executed as enstore/packaging/package_enstore_bin.sh' >&2
    exit 1
 fi
 
@@ -19,10 +19,9 @@ sed -e "s/__VERSION__/${VERSION}/g" -e "s/__RELEASE__/${REL}/g" ./enstore/spec/e
 
 # Package product for rpmbuild
 export ENSTORE_INSTALL_DIR=$HOME/enstore_bin_distr_dir/${VERS}
-rm -rf $ENSTORE_INSTALL_DIR
-#if [ ! -d $ENSTORE_INSTALL_DIR ]; then
-#    mkdir -p $ENSTORE_INSTALL_DIR
-#fi
+if [ ! -d $ENSTORE_INSTALL_DIR ]; then
+    mkdir -p $ENSTORE_INSTALL_DIR
+fi
 
 pushd .
 cd enstore/pyinstaller
@@ -33,6 +32,7 @@ mkdir -p $ENSTORE_INSTALL_DIR/etc
 mkdir -p $ENSTORE_INSTALL_DIR/sbin
 mkdir -p $ENSTORE_INSTALL_DIR/bin
 cp $ENSTORE_DIR/README $ENSTORE_INSTALL_DIR
+cp $ENSTORE_DIR/LICENSE $ENSTORE_INSTALL_DIR
 cp $ENSTORE_DIR/doc/*.pdf $ENSTORE_INSTALL_DIR/doc
 cp $ENSTORE_DIR/doc/guides/*.pdf $ENSTORE_INSTALL_DIR/doc
 cp -r $ENSTORE_DIR/databases $ENSTORE_INSTALL_DIR
