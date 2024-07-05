@@ -55,10 +55,3 @@ cp ${VERS}.tgz ~/rpm/SOURCES/
 echo "Calling rpmbuild"
 # Create rpmbuild
 rpmbuild -bb ~/rpm/SPECS/enstore_RH7_bin_distr.spec || exit 1
-#cp ~/rpm/RPMS/noarch/${VERS}-${REL}.noarch.rpm ./bill-calculator/packaging
-
-# Tag 
-#TVER="v${VERSION}-${REL}"  
-#cd bill-calculator/
-#git tag  -m ${TVER} -a ${TVER}
-#git push origin ${TVER}

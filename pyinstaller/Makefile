@@ -55,7 +55,7 @@ entv_sa:
 ### All python code is built in sbin and then moved to proper places
 
 pre_enstore:
-	(cd $(ENSTORE_DIR)/modules; make all mouse_move autologinenstore)
+	(cd $(ENSTORE_DIR)/modules; make all mouse_move autologinenstore ddencp)
 	mkdir -p $(ENSTORE_BIN_DIR)
 	mkdir -p $(ENSTORE_TARGET_DIR)/etc
 	mkdir -p $(ENSTORE_TARGET_DIR)/www/cgi-bin
@@ -72,8 +72,8 @@ post_enstore: install_enstore
 	$(MV) $(ENSTORE_SBIN_DIR)/duplicate_chimera   $(ENSTORE_BIN_DIR)/duplicate
 	$(MV) $(ENSTORE_SBIN_DIR)/volume_assert   $(ENSTORE_BIN_DIR)/
 
+	$(CP) $(ENSTORE_DIR)/modules/ddencp             $(ENSTORE_BIN_DIR)
 	$(CP) $(ENSTORE_DIR)/modules/enroute2		$(ENSTORE_BIN_DIR)
-	$(CP) $(ENSTORE_DIR)/modules/ddencp		$(ENSTORE_BIN_DIR)
 	$(CP) $(ENSTORE_DIR)/modules/ecrc		$(ENSTORE_BIN_DIR)
 
 install_enstore:

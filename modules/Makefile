@@ -7,7 +7,7 @@ SHELL=/bin/sh
 
 ALL_TARGETS=enroute2 t_rand t_read ecrc
 
-all: adler32.a Modules $(ALL_TARGETS)
+all: adler32.a ftt Modules $(ALL_TARGETS)
 
 POSIX4=`if [ "_SunOS" = _\`uname\` ]; then echo "-lposix4"; else echo ""; fi`
 RT=`if [ "_OSF1" = _\`uname\` ]; then echo "-lrt"; else echo ""; fi`
@@ -23,10 +23,13 @@ XINCLUDES=-I/usr/X11R6/include/X11 -I/usr/X11R6/include/ -I/usr/include/X11
 XLIBS=-L/usr/X11R6/lib/X11 -L/usr/X11R6/lib64 -L/usr/X11R6/lib -L/usr/lib/X11 -lX11 -lm
 #-lXext -lXmu -lXt -lXi -lSM -lICE
 FTT_INCLUDES=-I. -I$(FTT_DIR)/ftt_lib -I$(FTT_DIR)/include
-#FTT_LIBS=-L. -L$(FTT_DIR)/lib -L$(FTT_DIR)/ftt_lib -lftt $(LIBDS)
 FTT_LIBS=-L. -L$(FTT_DIR)/lib -L$(FTT_DIR)/ftt_lib $(LIBDS)
 FTTTEST_LIBS=$(FTT_LIBS)
 CFLAGS=$(BITS_FLAG) $(MACOS_FLAGS)
+
+ftt:
+	@echo "MAKING FTT ================================"
+	cd ../ftt/ftt_lib && cp -f Linux/ftt_mtio.h . && make && make install
 
 Modules:
 	@echo "MAKING MODULES ================================"
