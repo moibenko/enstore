@@ -26,7 +26,7 @@ import file_utils
 
 import psycopg2
 import psycopg2.extras
-from DBUtils.PooledDB import PooledDB
+from dbutils.pooled_db import PooledDB
 
 DURATION = 72  # hours
 PREFIX = 'RECENT_FILES_ON_TAPE'

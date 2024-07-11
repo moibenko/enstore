@@ -22,7 +22,7 @@ import e_errors
 import file_utils
 import statvfs
 import dispatcher_client
-from DBUtils import PooledDB
+from dbutils import pooled_db as PooledDB
 import psycopg2
 import psycopg2.extras
 

@@ -39,7 +39,7 @@ import urllib.parse
 import psycopg2
 import psycopg2.extras
 
-import DBUtils.PooledDB as PooledDB
+import dbutils.pooled_db as PooledDB
 
 import Trace
 import alarm_client

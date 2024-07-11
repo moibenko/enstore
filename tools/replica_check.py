@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-from DBUtils import PooledDB
+from dbutils import pooled_db as PooledDB
 import psycopg2
 
 

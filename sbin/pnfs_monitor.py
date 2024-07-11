@@ -17,7 +17,7 @@ import string
 import sys
 
 # external dependencies
-import DBUtils.PooledDB as PooledDB
+import dbutils.pooled_db as PooledDB
 import psycopg2
 import psycopg2.extras
 

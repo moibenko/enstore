@@ -14,7 +14,7 @@ import time
 
 import psycopg2
 import psycopg2.extras
-from DBUtils.PooledDB import PooledDB
+from dbutils.pooled_db import PooledDB
 
 import Trace
 import e_errors
