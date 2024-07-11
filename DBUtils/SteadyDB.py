@@ -361,7 +361,8 @@ class SteadyDBConnection:
 					con2.close()
 				except Exception:
 					pass
-			raise error # reraise the original error again
+			#raise error # reraise the original error again
+                        raise self._failures # reraise the original error again
 		return cursor
 
 	def cursor(self, *args, **kwargs):
@@ -510,7 +511,8 @@ class SteadyDBCursor:
 						con2.close()
 					except Exception:
 						pass
-				raise error # reraise the original error again
+				#raise error # reraise the original error again
+                                raise self._con._failures # reraise the original error again
 			else:
 				self._con._usage += 1
 				return result

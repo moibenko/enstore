@@ -18,6 +18,7 @@ import cleanUDP
 import Interfaces
 import en_eval
 import Trace
+import e_errors
 
 def __get_callback(host, port):
     hostinfo = None

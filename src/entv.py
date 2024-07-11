@@ -1199,7 +1199,7 @@ def send_all_status_requests(system_name=None):
                 setup_movers(
                     use_system_name,
                     get_display(use_system_name),
-                    intf_of_entv)
+                    intf_of_entv) # pylint: disable=E0601
             elif mover_name == 'inquisitor':
                 send_sched_request(use_system_name)
             elif mover_name:

@@ -760,7 +760,7 @@ class Fs(object):  # pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
 ##########################################################################
 
     # Copies the contents of the unix file to the specified extended attribute.
-    def fs_cp(self):
+    def fs_cp(self, intf):
         try:
             f = file_utils.wrapper(os.open, (intf.unixfile, 'r'))
 
@@ -809,7 +809,7 @@ class Fs(object):  # pnfs_common.PnfsCommon, pnfs_admin.PnfsAdmin):
         return self.fs_xattrrm(intf, target=os.getcwd())
 
     # Return the mount point that the target file or directory is under.
-    def fs_mount_point(self):
+    def fs_mount_point(self, intf):
         try:
             print_results(self.get_mount_point(intf.file))
             return 0

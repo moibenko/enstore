@@ -284,7 +284,7 @@ def is_chimeraid(pnfsid):
     # 3) All characters are in the capital hex character set.
     # Note: Does it need to be capital set of hex characters???
     len_of_pnfsid = len(pnfsid)
-    if isinstane(pnfsid, (bytes, str)) and len_of_pnfsid == 36:
+    if isinstance(pnfsid, (bytes, str)) and len_of_pnfsid == 36:
         allowable_characters = string.hexdigits
         allowable_characters = allowable_characters.upper()
         for c in pnfsid:

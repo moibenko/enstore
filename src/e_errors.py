@@ -412,8 +412,8 @@ class EnstoreError(Exception):
         # Handle the errno (if a valid one passed in).
         if e_errno in errno.errorcode:
             self.errno = e_errno
-        elif isinstance(e, Exception):
-                self.errno = e.errno
+        elif isinstance(e_errno, Exception):
+                self.errno = e_errno
         else:
             self.errno = UNKNOWN
 

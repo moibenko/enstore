@@ -179,7 +179,7 @@ def print_drv(Drv, fp):
 def make_failed_page(Vol, Drv, out_file_fp):
 
     # Output the header.
-    out_file_fp.write("%s: Failed Transfers Report\n" % (time.ctime(now),))
+    out_file_fp.write("%s: Failed Transfers Report\n" % (time.ctime(),))
     out_file_fp.write("Brought to You by: %s\n" %
                       (os.path.basename(sys.argv[0]),))
     out_file_fp.write("\n" + "-" * 80 + "\n\n")

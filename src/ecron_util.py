@@ -163,7 +163,10 @@ class EcronData(object):
         # need to put convert together here to make sure the files
         # are ready before the conversion
         cmd = "gnuplot; convert -flatten -background lightgray -rotate 90 %s.ps %s.jpg; convert -flatten -background lightgray -rotate 90 -geometry 120x120 -modulate 80 %s.ps %s_stamp.jpg" % (file, file, file, file)
-        p = subprocess.Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, close_fds=True)
+        p = subprocess.Popen(cmd, shell=True,
+                             stdin=subprocess.PIPE,
+                             stdout=subprocess.PIPE,
+                             close_fds=True)
         (out, gp) = (p.stdin, p.stdout)
         if not start:
             start = self.get_duration(name)

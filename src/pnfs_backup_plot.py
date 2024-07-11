@@ -58,7 +58,7 @@ if __name__ == "__main__":   # pragma: no cover
         else:
             pnfs_host = None
 
-    if pnfs_host:
+    if pnfs_host: # pylint: disable=E0601
         # copy data from pnfs host
         # this is hardcoded so far
         print("copying data from", pnfs_host)
@@ -101,7 +101,7 @@ if __name__ == "__main__":   # pragma: no cover
                 finished = 1
                 ft = t
         if started & finished:
-            dt = ft - st
+            dt = ft - st # pylint: disable=E0601
             started = finished = 0
             d.append((st, dt, code))
 

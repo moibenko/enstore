@@ -107,7 +107,7 @@ def print_volume_content(ticket, list):
             color = '#0000ff'
         else:
             deleted = 'unknown'
-        print('<font color=\"' + color + '\">', format % (intf.list,
+        print('<font color=\"' + color + '\">', format % (list,
                                                           record['bfid'],
                                                           record['bfid'],
                                                           record['size'],
