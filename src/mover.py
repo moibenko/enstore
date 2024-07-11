@@ -323,7 +323,7 @@ class Buffer(object):
         self.write_ok.clear()
 
         self._buf = []
-# self._freelist = []   keep this around to save on malloc's
+        # self._freelist = []   keep this around to save on malloc's
         self._buf_bytes = 0
         self._reading_block = None
         self._writing_block = None
@@ -1338,6 +1338,8 @@ class Mover(dispatching_worker.DispatchingWorker,
         # parse the line
         # result[0].split('\t')
         mem_u = 0.
+        if isinstance(result, (tuple, list)):
+            result = result[0]
         if isinstance(result, bytes):
             result = result.decode()
         try:
