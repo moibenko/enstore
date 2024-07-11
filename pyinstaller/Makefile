@@ -10,11 +10,10 @@ ENCP_TOP_DIR=$(ENSTORE_INSTALL_DIR)
 ENCP_BIN_DIR=$(ENCP_TOP_DIR)/bin
 
 ENSTORE_TOP_DIR=$(ENSTORE_INSTALL_DIR)
-#ENSTORE_TARGET_DIR=$(ENSTORE_TOP_DIR)/enstore
 ENSTORE_TARGET_DIR=$(ENSTORE_TOP_DIR)
 ENSTORE_BIN_DIR=$(ENSTORE_TARGET_DIR)/bin
 ENSTORE_SBIN_DIR=$(ENSTORE_TARGET_DIR)/sbin
-ENSTORE_TARGET_DCACHE=$(ENSTORE_TOP_DIR)/dcache
+ENSTORE_TARGET_DCACHE=$(ENSTORE_TOP_DIR)
 ENSTORE_BIN_DCACHE=$(ENSTORE_TARGET_DCACHE)/bin
 PYINSTALLER_DIR=$(ENSTORE_HOME)/pyinstaller
 PYINSTALLER_SPEC_DIR=$(PYINSTALLER_DIR)/specs
@@ -41,12 +40,103 @@ clean:
 ### intended for release to the general public.
 ###
 ### The two commands of interest are "make encp" and "make encp_for_dcache".
+pre_encp_cmd:
+	(cd $(ENSTORE_DIR)/modules; make all)
+	if [ ! -d $(ENCP_BIN_DIR) ]; then \
+        mkdir -p $(ENCP_BIN_DIR); \
+        fi
+
+
+encp_cmd:
+	pyinstaller --onefile --distpath encp_dist  --workpath encp_build --hidden-import enroute ../src/encp_user.py
+	$(CP) encp_dist/encp_user    $(ENCP_BIN_DIR)/encp
+	pyinstaller --onefile --distpath encp_dist  --workpath encp_build --hidden-import enroute ../src/monitor_client.py
+	$(CP) encp_dist/monitor_client    $(ENCP_BIN_DIR)
+	$(RM) encp_dist
+	$(RM) encp_build
+
+ensync_cmd:
+	pyinstaller --onefile --distpath ensync_dist  --workpath ensync_build --hidden-import enroute ../src/ensync_user.py
+	$(CP) ensync_dist/ensync_user      $(ENCP_BIN_DIR)/ensync
+	$(RM) ensync_dist ensync_build
+
+enmv_cmd:
+	pyinstaller --onefile --distpath enmv_dist  --workpath enmv_build --hidden-import enroute ../src/enmv_user.py
+	$(CP) enmv_dist/enmv_user      $(ENCP_BIN_DIR)/enmv
+	$(RM) enmv_dist enmv_build
+
+post_encp_cmd:
+	$(CP) $(ENSTORE_DIR)/modules/ddencp             $(ENCP_BIN_DIR)/
+	$(CP) $(ENSTORE_DIR)/modules/ecrc               $(ENCP_BIN_DIR)/
+	$(CP) $(ENSTORE_DIR)/modules/enroute2           $(ENCP_BIN_DIR)/
+	$(CP) $(ENSTORE_DIR)/sbin/EPS                   $(ENCP_BIN_DIR)/
+	chmod -R ug+rw $(ENCP_BIN_DIR)/
+
+post_encp_cmd_for_dcache:
+	$(CP) $(ENSTORE_DIR)/modules/ddencp             $(ENSTORE_BIN_DCACHE)/
+	$(CP) $(ENSTORE_DIR)/modules/ecrc               $(ENSTORE_BIN_DCACHE)/
+	$(CP) $(ENSTORE_DIR)/modules/enroute2           $(ENSTORE_BIN_DCACHE)/
+	$(CP) $(ENSTORE_DIR)/sbin/EPS                   $(ENSTORE_BIN_DCACHE)/
+	$(CP) $(ENSTORE_DIR)/dcache-deploy              $(ENSTORE_TARGET_DCACHE)
+	chmod -R ug+rw $(ENSTORE_BIN_DCACHE)/
+
+enstore_cmd:
+	pyinstaller --onefile --distpath ecmd_dist  --workpath ecmd_build --hidden-import enroute ../src/enstore_user.py
+	if [ ! -d $(ENCP_BIN_DIR) ]; then \
+	mkdir -p $(ENCP_BIN_DIR); \
+	fi
+
+	$(CP) ecmd_dist/enstore_user      $(ENCP_BIN_DIR)/enstore
+	$(RM) ecmd_dist ecmd_build
+
+enstore_admin_cmd:
+	pyinstaller --onefile --distpath ecmd_dist  --workpath ecmd_build --hidden-import enroute ../src/e\
+nstore_admin.py
+	if [ ! -d $(ENCP_BIN_DIR) ]; then \
+	mkdir -p $(ENCP_BIN_DIR); \
+	fi
+
+	$(CP) ecmd_dist/enstore_admin      $(ENCP_BIN_DIR)/
+	$(RM) ecmd_dist ecmd_build
+
+enstore_cmd_for_dcache:
+	pyinstaller --onefile --distpath ecmd_dist  --workpath ecmd_build --hidden-import enroute ../src/enstore_user2.py
+	if [ ! -d $(ENSTORE_BIN_DCACHE) ]; then \
+	mkdir -p $(ENSTORE_BIN_DCACHE); \
+	fi
+	$(CP) ecmd_dist/enstore_user2      $(ENSTORE_BIN_DCACHE)/enstore
+	$(RM) ecmd_dist/ ecmd_build
+
+encp_cmd_for_dcache:
+	pyinstaller --onefile --distpath encp_dist  --workpath encp_build --hidden-import enroute ../src/e\
+ncp_user2.py
+	if [ ! -d $(ENSTORE_BIN_DCACHE) ]; then \
+	mkdir -p $(ENSTORE_BIN_DCACHE); \
+	fi
+	$(CP) encp_dist/encp_user2      $(ENSTORE_BIN_DCACHE)/encp
+	$(RM) encp_dist/ encp_build
+
+ensync_cmd_for_dcache:
+	pyinstaller --onefile --distpath ensync_dist  --workpath ensync_build --hidden-import enroute ../src/ensync_user.py
+	$(CP) ensync_dist/ensync_user      $(ENSTORE_BIN_DCACHE)/ensync
+	$(RM) ensync_dist ensync_build
+
+
+enmv_cmd_for_dcache:
+	pyinstaller --onefile --distpath enmv_dist  --workpath enmv_build --hidden-import enroute ../src/enmv_user.py
+	$(CP) enmv_dist/enmv_user      $(ENSTORE_BIN_DCACHE)/enmv
+	$(RM) enmv_dist enmv_build
+
 
 entv_sa:
 	(cd $(ENSTORE_DIR)/modules; make all mouse_move autologinenstore)
-	pyinstaller pyinstaller/entv.spec
-	cp dist/entv $(ENSTORE_BIN_DIR)/
-	$(RM) dist/entv
+	pyinstaller --onefile --distpath entv_dist  --workpath entv_build --hidden-import enroute ../src/enmv_user.py
+	cp entv_dist/entv $(ENSTORE_BIN_DIR)/
+	$(RM) entv_dist entv_build
+
+encp: pre_encp_cmd encp_cmd enstore_cmd ensync_cmd enmv_cmd post_encp_cmd
+
+encp_for_dcache: pre_encp_cmd encp_cmd_for_dcache enstore_cmd_for_dcache ensync_cmd_for_dcache enmv_cmd_for_dcache post_encp_cmd_for_dcache
 
 
 ### intended for use by the Enstore administrators.
@@ -55,7 +145,7 @@ entv_sa:
 ### All python code is built in sbin and then moved to proper places
 
 pre_enstore:
-	(cd $(ENSTORE_DIR)/modules; make all mouse_move autologinenstore ddencp)
+	(cd $(ENSTORE_DIR)/modules; make all mouse_move autologinenstore)
 	mkdir -p $(ENSTORE_BIN_DIR)
 	mkdir -p $(ENSTORE_TARGET_DIR)/etc
 	mkdir -p $(ENSTORE_TARGET_DIR)/www/cgi-bin
@@ -72,8 +162,8 @@ post_enstore: install_enstore
 	$(MV) $(ENSTORE_SBIN_DIR)/duplicate_chimera   $(ENSTORE_BIN_DIR)/duplicate
 	$(MV) $(ENSTORE_SBIN_DIR)/volume_assert   $(ENSTORE_BIN_DIR)/
 
-	$(CP) $(ENSTORE_DIR)/modules/ddencp             $(ENSTORE_BIN_DIR)
 	$(CP) $(ENSTORE_DIR)/modules/enroute2		$(ENSTORE_BIN_DIR)
+	$(CP) $(ENSTORE_DIR)/modules/ddencp		$(ENSTORE_BIN_DIR)
 	$(CP) $(ENSTORE_DIR)/modules/ecrc		$(ENSTORE_BIN_DIR)
 
 install_enstore:
