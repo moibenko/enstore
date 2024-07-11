@@ -30,7 +30,7 @@ all:
 
 clean:
 	@ $(ENSTORE_DIR)/bin/enstoreClean
-	rm -f *.pyc encp
+	rm -f *.pyc encp *.spec spec_list
 	- rm -rf build
 	- rm -rf dist
 	- $(RM) specs
