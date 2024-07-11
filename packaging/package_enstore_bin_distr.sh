@@ -1,12 +1,12 @@
 #!/bin/bash
 # run as enstore/package_enstore_bin.sh from directory above enstore
 NAME=enstore_bin_distr
-VERSION=0.0
-REL=10
+VERSION=0.1
+REL=3
 VERS=${NAME}-${VERSION}
 
 if [ ! -d enstore ]; then
-   echo 'package_enstore_bin.sh is expecting to be executed as enstore/packaging/package_enstore_bin.sh' >&2
+   echo "`basename $0` is expecting to be executed as enstore/packaging/`basename $0`" >&2
    exit 1
 fi
 
@@ -55,3 +55,10 @@ cp ${VERS}.tgz ~/rpm/SOURCES/
 echo "Calling rpmbuild"
 # Create rpmbuild
 rpmbuild -bb ~/rpm/SPECS/enstore_RH7_bin_distr.spec || exit 1
+#cp ~/rpm/RPMS/noarch/${VERS}-${REL}.noarch.rpm ./bill-calculator/packaging
+
+# Tag 
+#TVER="v${VERSION}-${REL}"  
+#cd bill-calculator/
+#git tag  -m ${TVER} -a ${TVER}
+#git push origin ${TVER}
