@@ -3525,15 +3525,15 @@ def inputfile_check_pnfs(request_list, bfid_brand, e):
             except (ValueError, TypeError, IndexError, KeyError):
                 db_size = None
                 rest['db_size'] = namespace.UNKNOWN
+            db_file_family = '' # to make pylint happy
             try:
                 db_volume_family = request['vc']['volume_family']
                 try:
                     db_file_family = volume_family.extract_file_family(
                         db_volume_family)
                 except TypeError:
-                    rest['db_file_family_type'] = \
-                        "db_file_family contains wrong type %s." % \
-                               type(db_file_family)
+                    rest['db_file_family_type'] = "db_file_family contains wrong type %s." \
+                                                  % type(db_file_family) # pylint: disable=E0601
             except (ValueError, TypeError, IndexError, KeyError) as msg:
                 db_file_family = None
                 rest['db_file_family'] = namespace.UNKNOWN
@@ -12548,4 +12548,18 @@ def start(mode, do_work=do_work, main=main, Interface=EncpInterface):
 
 
 if __name__ == "__main__":   # pragma: no cover
-    delete_at_exit.quit(start(0))  # 0 means admin
+    use_profiler = os.getenv('USE_PROFILER')
+    if use_profiler:
+        import cProfile
+        from pstats import SortKey, Stats
+        with cProfile.Profile() as profile:
+            exit_code = start(0)  # 0 means admin
+            (
+                Stats(profile)
+                .strip_dirs()
+                .sort_stats(SortKey.CALLS)
+                .print_stats()
+            )
+        os._exit(exit_code)
+    else:
+        delete_at_exit.quit(start(0))  # 0 means admin
