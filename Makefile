@@ -31,8 +31,6 @@ clean:
 	rm -f *.pyc encp
 	- rm -rf build
 	- rm -rf dist
-	- rm -f *.spec spec_list
-	-rm -rf specs
 	- $(RM) $(ENSTORE_TARGET_DIR)
 
 ### The following groupings for for building the client side programs
