@@ -1624,11 +1624,11 @@ class EnSysStatusPage(EnBaseHtmlDoc):
         # now the movers
         if got_movers:
             tr, num_tds_so_far = add_to_scut_row(num_tds_so_far, tr, table,
-                                                 '#%s' % (first_mover,), MOVERS)
+                                                 '#%s' % (first_mover,), MOVERS) # pylint: disable=E0601
         # now the migrators
         if got_migrators:
             tr, num_tds_so_far = add_to_scut_row(num_tds_so_far, tr, table,
-                                                 '#%s' % (first_migrator,), MIGRATORS)
+                                                 '#%s' % (first_migrator,), MIGRATORS) # pylint: disable=E0601
 
         # now the unmonitored servers
         if got_unmonitored_server:
