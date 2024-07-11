@@ -20,7 +20,7 @@ case $command in
 stop)
 	echo "" >>$OUT 2>&1
 	echo "`date`: Stopping monitor server (if it is running)" >>$OUT 2>&1
-	$ENSTORE_DIR/sbin/ezapit "python .*monitor_server" >>$OUT 2>&1
+	$ENSTORE_DIR/sbin/ezapit ".*monitor_server" >>$OUT 2>&1
 	EPS | grep monitor_server  >>$OUT 2>&1
 	echo "" >>$OUT 2>&1
 	;;
