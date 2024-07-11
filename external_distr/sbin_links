@@ -19,3 +19,10 @@ volume_clerk
 # list of others
 enstore_up_down
 quickquota
+make_ingest_rates_html_page
+html_main
+enstore_make_plot_page
+summary_plots
+get_total_bytes_counter
+fill_slot_usage
+plotter
