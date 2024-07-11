@@ -26,6 +26,7 @@ do
 	if [ $do_update -ne 0 ]
 	then
 	    rm -f $ENSTORE_DIR/sbin/${file}
+	    chmod 755 $ENSTORE_DIR/src/${file}.py
 	    ln -s $ENSTORE_DIR/src/${file}.py $ENSTORE_DIR/sbin/${file}
 	fi
     fi
