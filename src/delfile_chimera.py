@@ -45,10 +45,11 @@ import Trace
 import alarm_client
 import e_errors
 import file_clerk_client
+import info_client
 import option
 
 
-def delete_trash_record(db, pnfsid):
+def delete_trash_record(db, pnfsid, itype):
     delete_cursor = None
     success = True
     try:
@@ -57,8 +58,8 @@ def delete_trash_record(db, pnfsid):
         # we are removing only TAPE files (itype=0) DISK files (itype=1) are handled by dCache
         # cleaner
         #
-        delete_cursor.execute(
-            "delete from t_locationinfo_trash where ipnfsid=%s and itype=0", (pnfsid,))
+        cmd = "delete from t_locationinfo_trash where ipnfsid='{}' and itype={}".format(pnfsid, itype)
+        delete_cursor.execute(cmd)
         db.commit()
     except psycopg2.Error as msg:
         success = False
@@ -85,8 +86,12 @@ def main(intf):
     if os.geteuid() != 0:
         sys.stderr.write("Must be user root.\n")
         return False
-
+    itype = 0 # tape
+    if intf.clear:
+        itype = 2 # inode
     fcc = file_clerk_client.FileClient((intf.config_host, intf.config_port))
+    ifc = info_client.infoClient((intf.config_host, intf.config_port))
+
     namespaceDictionary = fcc.csc.get('namespace')
 
     if not namespaceDictionary:
@@ -125,7 +130,8 @@ def main(intf):
             # we are looking for only TAPE files (itype=0) DISK files (itype=1) are handled by dCache
             # cleaner
             #
-            cursor.execute("select * from t_locationinfo_trash where itype=0")
+            cmd = "select * from t_locationinfo_trash where itype={}".format(itype)
+            cursor.execute(cmd)
             res = cursor.fetchall()
 
             for row in res:
@@ -139,25 +145,52 @@ def main(intf):
                 #
                 # files in /pnfs/fs/usr/Migration will have ilocation set to '\n'
                 #
-                if ilocation == '\n':
-                    success = delete_trash_record(db, pnfsid)
+                if not ilocation and itype == 2:
+                    # try to find bfid
+                    finfo = ifc.find_file_by_pnfsid(pnfsid)
+                    if e_errors.is_ok(finfo):
+                        bfid = finfo.get('bfid')
+                        print('deleting', bfid, pnfsid, '...', end=' ')
+                        result = fcc.set_deleted('yes', bfid=bfid)
+                        if result['status'][0] not in (
+                                e_errors.OK, e_errors.NO_FILE):
+                            print(bfid, result['status'][1])
+                            success = False
+                        else:
+                            success = delete_trash_record(db, pnfsid, itype)
+                            
+
+                elif ilocation == '\n':
+                    success = delete_trash_record(db, pnfsid, itype)
                 else:
                     url_dict = urllib.parse.parse_qs(ilocation)
                     if not url_dict or not url_dict.get('bfid', None):
-                        success = delete_trash_record(db, pnfsid)
+                        success = delete_trash_record(db, pnfsid, itype)
                         continue
                     bfid = url_dict.get('bfid')[0]
                     fcc.bfid = bfid
-                    if fcc.bfid_info().get('active_package_files_count', 0) > 0 and \
-                            fcc.bfid_info().get('package_id', None) == bfid:
+                    active_package_count = fcc.bfid_info().get('active_package_files_count', 0)
+                    if active_package_count is None:
+                        active_package_count = 0
+                    package_id = fcc.bfid_info().get('package_id', None)
+                    if package_id is None:
+                        package_id = ''
+                    if active_package_count > 0 and \
+                            package_id == bfid:
                         Trace.log(e_errors.WARNING,
                                   'Skipping non-empy package file %s' % (
                                       bfid,),
                                   fcc.bfid_info().get('pnfs_name0', None))
                         print('skipping non-empty package file', bfid, '...')
                         continue
-                    print('deleting', bfid, '...', end=' ')
+                    print('deleting', bfid, pnfsid, '...', end=' ')
                     result = fcc.set_deleted('yes')
+                    if result['status'][0] not in (
+                            e_errors.OK, e_errors.NO_FILE):
+                        print(bfid, result['status'][1])
+                        success = False
+                    else:
+                        success = delete_trash_record(db, pnfsid, itype)
                     """
                     during SFA testing we encountered many cases where BFID of these file
                     no longer in database. Skip these as not errors.
@@ -167,7 +200,7 @@ def main(intf):
                         print(bfid, result['status'][1])
                         success = False
                     else:
-                        success = delete_trash_record(db, pnfsid)
+                        success = delete_trash_record(db, pnfsid, itype)
         except psycopg2.OperationalError as opr:
             Trace.alarm(
                 e_errors.ALARM,
@@ -206,11 +239,20 @@ def do_work(intf):
 
 
 class DelfileInterface(option.Interface):
+    def __init__(self, args=sys.argv, user_mode=0):
+        self.clear = 0
+        option.Interface.__init__(self, args=args, user_mode=user_mode)
+
     def valid_dictionaries(self):
-        return (self.help_options,)
+        return (self.help_options, self.config_options)
+    config_options = {
+        option.CLEAR: {option.HELP_STRING: "remove files indicated by inode",
+                    option.DEFAULT_TYPE: option.INTEGER,
+                    option.USER_LEVEL: option.ADMIN
+                }
+    }
 
 
 if __name__ == "__main__":   # pragma: no cover
     intf_of_delfile = DelfileInterface()
-
     do_work(intf_of_delfile)
