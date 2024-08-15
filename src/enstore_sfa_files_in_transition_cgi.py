@@ -13,7 +13,6 @@ import configuration_client
 import info_client
 import e_errors
 import file_utils
-import statvfs
 import dispatcher_client
 from dbutils import pooled_db as PooledDB
 import psycopg2
