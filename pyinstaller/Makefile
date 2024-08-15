@@ -113,7 +113,12 @@ ncp_user2.py
 	if [ ! -d $(ENSTORE_BIN_DCACHE) ]; then \
 	mkdir -p $(ENSTORE_BIN_DCACHE); \
 	fi
+	if [ ! -d $(ENSTORE_BIN_DCACHE)/crontabs ]; then \
+	mkdir -p $(ENSTORE_TARGET_DCACHE)/crontabs; \
+	fi
 	$(CP) encp_dist/encp_user2      $(ENSTORE_BIN_DCACHE)/encp
+	sed -e "s/sbin/bin/g" ../crontabs/delfile > $(ENSTORE_TARGET_DCACHE)/crontabs/delfile
+	$(CP) ../sbin/ecron $(ENSTORE_BIN_DCACHE) 
 	$(RM) encp_dist/ encp_build
 
 ensync_cmd_for_dcache:
@@ -127,6 +132,11 @@ enmv_cmd_for_dcache:
 	$(CP) enmv_dist/enmv_user      $(ENSTORE_BIN_DCACHE)/enmv
 	$(RM) enmv_dist enmv_build
 
+delfile_cmd:
+	pyinstaller --onefile --distpath delfile_dist  --workpath delfile_build --hidden-import enroute ../src/delfile_chimera.py
+	$(CP) delfile_dist/delfile_chimera      $(ENSTORE_BIN_DCACHE)
+	$(RM) delfile_dist delfile_build
+
 
 entv_sa:
 	(cd $(ENSTORE_DIR)/modules; make all mouse_move autologinenstore)
@@ -136,7 +146,7 @@ entv_sa:
 
 encp: pre_encp_cmd encp_cmd enstore_cmd ensync_cmd enmv_cmd post_encp_cmd
 
-encp_for_dcache: pre_encp_cmd encp_cmd_for_dcache enstore_cmd_for_dcache ensync_cmd_for_dcache enmv_cmd_for_dcache post_encp_cmd_for_dcache
+encp_for_dcache: pre_encp_cmd encp_cmd_for_dcache enstore_cmd_for_dcache ensync_cmd_for_dcache enmv_cmd_for_dcache delfile_cmd post_encp_cmd_for_dcache
 
 
 ### intended for use by the Enstore administrators.
