@@ -1525,18 +1525,25 @@ class Mover(dispatching_worker.DispatchingWorker,
             else:
                 nearing_media_end_life = int(
                     self.stats[self.ftt.NEARING_MEDIA_END_LIFE])
+            if isinstance(self.stats[self.ftt.MEMORY_CHIP], type(None)):
+                memory_chip = 0
+            else:
+                memory_chip = int(self.stats[self.ftt.MEMORY_CHIP])
         except (self.ftt.FTTError, TypeError) as detail:
             Trace.log(
                 e_errors.ERROR, "error getting stats %s %s" %
                 (self.ftt.FTTError, detail))
             self.tr_failed = True
             return
-        Trace.trace(DEBUG_LOG, 'Media Life Flag %s Nearing Media Life Flag %s' %
-                    (media_end_life, nearing_media_end_life))
-        if media_end_life + nearing_media_end_life != 0:
+        Trace.trace(DEBUG_LOG, 'Media Life Flag %s Nearing Media Life Flag %s Memory Chip %s' %
+                    (media_end_life, nearing_media_end_life, memory_chip))
+        if media_end_life + nearing_media_end_life + memory_chip != 0:
             if not self.media_life_alarmed:  # alarm only once per mount
-                Trace.alarm(e_errors.WARNING, 'Media Life Flag %s Nearing Media Life Flag %s Volume %s' %
-                            (media_end_life, nearing_media_end_life, self.current_volume))
+                Trace.alarm(e_errors.WARNING,
+                            'Media Life Flag {} Nearing Media Life Flag {} Memory Chip {} Volume {}'.format(media_end_life,
+                                                                                                            nearing_media_end_life,
+                                                                                                            memory_chip,
+                                                                                                            self.current_volume))
                 self.media_life_alarmed = True
 
     def update_stat(self):

@@ -909,12 +909,21 @@ ftt_get_stats(ftt_descriptor d, ftt_stat_buf b) {
 			    set_stat(b,FTT_NEARING_MEDIA_END_LIFE,ftt_itoa(bit(5,buf[10])),0); /* flag 0x13 */
 			    break;
 			case 0x2e:
-			    /* stk Tape Alert page */
+			    /* Tape Alert page */
 			    if (0 == strncmp(d->prod_id,"9840",4) ||
                                 0 == strncmp(d->prod_id,"T9940A",6) ||
                                 0 == strncmp(d->prod_id,"T9940B",6)) {
 			    (void)decrypt_ls(b,buf,0x15,FTT_CLEANING_BIT,1.0);
                             }
+			    /* For 03592 */
+			    if (strncmp(d->prod_id,"03592",5) == 0) {
+				// EOL flag is 0x7 so postion of the flag in buffer is 7*5+3
+				set_stat(b,FTT_MEDIA_END_LIFE, ftt_itoa((long)buf[7*5+3]), 0);
+				// NEAR_EOL pos. is 0x13
+				set_stat(b,FTT_NEARING_MEDIA_END_LIFE,ftt_itoa((long)buf[0x13*5+3]), 0);
+				// Memory chip failure
+				set_stat(b,FTT_MEMORY_CHIP,ftt_itoa((long)buf[0x0f*5+3]), 0);
+			      }
 			    break;
 
 			case 0x30:

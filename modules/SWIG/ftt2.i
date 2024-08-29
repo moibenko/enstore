@@ -303,9 +303,10 @@ typedef cher *ftt_descriptor;
 #define FTT_ERROR_CODE		54
 #define FTT_CUR_PART		55
 #define FTT_MOUNT_PART		56
-#define FTT_MEDIA_END_LIFE		57
+#define FTT_MEDIA_END_LIFE	57
 #define FTT_NEARING_MEDIA_END_LIFE	58
-#define FTT_MAX_STAT		59
+#define FTT_MEMORY_CHIP         59
+#define FTT_MAX_STAT		60
 
 extern int ftt_errno;
 extern int ftt_debug;
