@@ -1561,10 +1561,10 @@ class Mover(dispatching_worker.DispatchingWorker,
             if not self.tape_system_area_alarmed:
                 if corrupted_dir:
                     Trace.alarm(e_errors.WARNING, 'Corrupted Tape directory. Volume {}. Try to rebuild'.format(self.current_volume))
-                    if sys_wr_fail + sys_rd_fail:
-                        Trace.alarm(e_errors.WARNING, 'Tape system area Write Flag {}. Read flag {}. Volume {}'.format(sys_wr_fail,
-                                                                                                                       sys_rd_fail,
-                                                                                                                       self.current_volume))
+                if sys_wr_fail + sys_rd_fail:
+                    Trace.alarm(e_errors.WARNING, 'Tape system area Write Flag {}. Read flag {}. Volume {}'.format(sys_wr_fail,
+                                                                                                                   sys_rd_fail,
+                                                                                                                   self.current_volume))
                 self.tape_system_area_alarmed = True
 
     def update_stat(self):
