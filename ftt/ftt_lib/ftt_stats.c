@@ -923,6 +923,12 @@ ftt_get_stats(ftt_descriptor d, ftt_stat_buf b) {
 				set_stat(b,FTT_NEARING_MEDIA_END_LIFE,ftt_itoa((long)buf[0x13*5+3]), 0);
 				// Memory chip failure
 				set_stat(b,FTT_MEMORY_CHIP,ftt_itoa((long)buf[0x0f*5+3]), 0);
+				// Corrpted directory
+				set_stat(b,FTT_CORRUPTED_DIR,ftt_itoa((long)buf[0x33*5+3]), 0);
+				// Tape system area write failure
+				set_stat(b, FTT_SYS_AREA_WR_FAIL,ftt_itoa((long)buf[0x34*5+3]), 0);
+				// Tape system area read failure
+				set_stat(b, FTT_SYS_AREA_RD_FAIL,ftt_itoa((long)buf[0x35*5+3]), 0);
 			      }
 			    break;
 

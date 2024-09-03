@@ -949,6 +949,7 @@ class Mover(dispatching_worker.DispatchingWorker,
         # 2.6.32-754.25.1.el6.x86_64
         self.delay_alarm_for_tape_thread = True
         self.media_life_alarmed = False
+        self.tape_system_area_alarmed = False
         if self.shortname[-6:] == '.mover':
             self.shortname = name[:-6]
         self.draining = 0  # draining flag. Draining is not 0
@@ -1529,6 +1530,18 @@ class Mover(dispatching_worker.DispatchingWorker,
                 memory_chip = 0
             else:
                 memory_chip = int(self.stats[self.ftt.MEMORY_CHIP])
+            if isinstance(self.stats[self.ftt.CORRUPTED_DIR], type(None)):
+                corrupted_dir = 0
+            else:
+                corrupted_dir = int(self.stats[self.ftt.CORRUPTED_DIR])
+            if isinstance(self.stats[self.ftt.SYS_AREA_WR_FAIL], type(None)):
+                sys_wr_fail = 0
+            else:
+                sys_wr_fail = int(self.stats[self.ftt.SYS_AREA_WR_FAIL])
+            if isinstance(self.stats[self.ftt.SYS_AREA_RD_FAIL], type(None)):
+                sys_rd_fail = 0
+            else:
+                sys_rd_fail = int(self.stats[self.ftt.SYS_AREA_RD_FAIL])
         except (self.ftt.FTTError, TypeError) as detail:
             Trace.log(
                 e_errors.ERROR, "error getting stats %s %s" %
@@ -1544,7 +1557,15 @@ class Mover(dispatching_worker.DispatchingWorker,
                                                                                                             nearing_media_end_life,
                                                                                                             memory_chip,
                                                                                                             self.current_volume))
-                self.media_life_alarmed = True
+        if corrupted_dir + sys_wr_fail + sys_rd_fail != 0:
+            if not self.tape_system_area_alarmed:
+                if corrupted_dir:
+                    Trace.alarm(e_errors.WARNING, 'Corrupted Tape directory. Volume {}. Try to rebuild'.format(self.current_volume))
+                    if sys_wr_fail + sys_rd_fail:
+                        Trace.alarm(e_errors.WARNING, 'Tape system area Write Flag {}. Read flag {}. Volume {}'.format(sys_wr_fail,
+                                                                                                                       sys_rd_fail,
+                                                                                                                       self.current_volume))
+                self.tape_system_area_alarmed = True
 
     def update_stat(self):
         """
@@ -8310,7 +8331,7 @@ n the drive" % (self.current_volume,))
             Trace.log(e_errors.INFO, "mounted %s %s %s" % (volume_label, self.config['product_id'], time_msg),
                       msg_type=Trace.MSG_MC_LOAD_DONE)
             self.media_life_alarmed = False
-
+            self.tape_system_area_alarmed = False
             if self.mount_delay:
                 Trace.trace(
                     25, "waiting %s seconds after mount" %
