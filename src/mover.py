@@ -1755,10 +1755,24 @@ class Mover(dispatching_worker.DispatchingWorker,
         Trace.log(e_errors.INFO, 'list_drives returned {}'.format(mcc_reply))
         if not e_errors.is_ok(mcc_reply):
             return None, None, None
-        Trace.log(e_errors.INFO, 'list_drives returned SN %s' % (mcc_reply,))
         for d in mcc_reply['drive_list']:
             if serial_num == d.get('SN'):
                 return d.get('address'), d.get('location'), d.get('volume')
+        # If we get here no match yet has been found
+        # There have been seen cases when SN is short and media changer returns garbage in the end of SN
+        # Consider such cases
+        Trace.alarm(e_errors.WARNING, 'no EXACT match for SN {} was found will try to guess'.format(serial_num))
+        matches = 0
+        for d in mcc_reply['drive_list']:
+            if serial_num in d.get('SN'):
+                Trace.alarm(e_errors.WARNING, 
+                            'match for SN {} was found {}'.format(serial_num, d.get('SN')))
+                matches =+ 1
+        if matches == 1:
+            # Exactly one match was found
+            for d in mcc_reply['drive_list']:
+                if serial_num in d.get('SN'):
+                    return d.get('address'), d.get('location'), d.get('volume')
         return None, None, None
 
     def fetch_tape_device(self):
