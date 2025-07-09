@@ -66,7 +66,10 @@ if outfile:
             m = i[1]
     cmd = "gnuplot; convert -flatten -background lightgray -rotate 90 %s.ps %s.jpg;"
     "convert -flatten -background lightgray -rotate 90 -geometry 120x120 -modulate 80 %s.ps %s_stamp.jpg" % (outfile, outfile, outfile, outfile)
-    p = subprocess.Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, close_fds=True)
+    p = subprocess.Popen(cmd, shell=True,
+                         stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE,
+                         close_fds=True)
     (out, gp) = (p.stdin, p.stdout)
     gp.write(gscript % (outfile, "Migration/Duplication per day", 3,
              day_after(res1[0][0], -1), day_after(res1[-1][0], 1), (m + 5) / 5 * 5))
@@ -83,7 +86,29 @@ if outfile:
     cmd = "gnuplot; convert -flatten -background lightgray -rotate 90 %s.ps %s.jpg;"
     "convert -flatten -background lightgray -rotate 90 -geometry 120x120 -modulate 80 %s.ps %s_stamp.jpg" % (outfile + '_acc', outfile + '_acc', outfile + '_acc', outfile + '_acc')
 
-    p = subprocess.Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, close_fds=True)
+    p = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE,
+                         close_fds=True)
+    (out, gp) = (p.stdin, p.stdout)
+    gp.write(gscript % (outfile, "Migration/Duplication per day", 3,
+             day_after(res1[0][0], -1), day_after(res1[-1][0], 1), (m + 5) / 5 * 5))
+    for i in res1:
+        gp.write("%s %d\n" % (i[0], i[1]))
+    gp.write("e\n")
+    gp.write("quit\n")
+    gp.close()
+
+    print('<img src="MIGRATION_SUMMARY.jpg">')
+    print('<a href="MIGRATION_SUMMARY.ps">Postscript version</a>')
+    print('<p>')
+
+    cmd = "gnuplot; convert -flatten -background lightgray -rotate 90 %s.ps %s.jpg;"
+    "convert -flatten -background lightgray -rotate 90 -geometry 120x120 -modulate 80 %s.ps %s_stamp.jpg" % (outfile + '_acc', outfile + '_acc', outfile + '_acc', outfile + '_acc')
+
+    p = subprocess.Popen(cmd, shell=True,
+                         stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE,
+                         close_fds=True)
     (out, gp) = (p.stdin, p.stdout)
     gp.write('set title "Accumulated Progress"\n')
     total = 0

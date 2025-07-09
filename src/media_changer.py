@@ -3660,7 +3660,7 @@ class MTXN_MediaLoader(MediaLoaderMethods):
         # parent process.  Probably with callback.py.
 
         msg_e = repr(('0', '0', ticket)).encode()
-        
+
         Trace.trace(ACTION_LOG_LEVEL, f"RET TICKET: {msg_e}")
         bytecount = b"%08d" % (len(msg_e),)
         try:
@@ -3767,11 +3767,11 @@ class MTXN_MediaLoader(MediaLoaderMethods):
     def _mtx_server(self, read_pipe, write_pipe, err_pipe):
         mtx.cvar.device = self.device_name
         mtx.cvar.absolute_addressing = 1
-        
+
         os.set_inheritable(write_pipe, True)
         os.get_inheritable(err_pipe)
         os.set_inheritable(err_pipe, True)
-        
+
         mtx.set_scsi_timeout(self.mount_timeout)
 
         to = mtx.get_scsi_timeout()
@@ -3836,9 +3836,9 @@ class MTXN_MediaLoader(MediaLoaderMethods):
                     try:
                         Trace.log(ACTION_LOG_LEVEL,
                                   "MTX server: calling load_unload_local")
-                        a, b = return_by(self.load_unload_local, 
-                                         (int(args[0]), 
-                                          int(args[1]), cmd), 
+                        a, b = return_by(self.load_unload_local,
+                                         (int(args[0]),
+                                          int(args[1]), cmd),
                                          self.mount_timeout)
                         Trace.log(ACTION_LOG_LEVEL, "MTX server: load_unload_local returned %s %s" %
                         (a, b))
@@ -3858,7 +3858,7 @@ class MTXN_MediaLoader(MediaLoaderMethods):
                                    sys.exc_info()[2]))
                         break
 
-            
+
             elif cmd == 'status':
                 mtx.status()
             elif cmd == 'TestUnitReady':
@@ -3867,7 +3867,7 @@ class MTXN_MediaLoader(MediaLoaderMethods):
             self.libc.fflush(self.c_stdout)
             sys.stdout.flush()
             sys.stderr.flush()
-            
+
             print(response)  # this is a terminator
             sys.stdout.flush()
             sys.stderr.flush()
@@ -3882,10 +3882,10 @@ class MTXN_MediaLoader(MediaLoaderMethods):
             os.set_inheritable(self.p2cread, True)
         if not os.get_inheritable(self.c2pwrite):
             os.set_inheritable(self.c2pwrite, True)
-            
+
         self.server = multiprocessing.Process(target=self._mtx_server,
                                               args=(self.p2cread, self.c2pwrite, self.c2pwrite))
-        
+
         print("STARTING MTX SERVER")
         self.server.start()
         t = 0
@@ -6805,7 +6805,7 @@ class MTXN_Local_MediaLoader(MTXN_MediaLoader):
         self.mtx_server_started = self.manager.Value('i', 0)
         self.libc = ctypes.CDLL(None)
         self.c_stdout = ctypes.c_void_p.in_dll(self.libc, 'stdout')
- 
+
         self.start_mtx_server()
         Trace.log(e_errors.INFO,
                   '%s initialized with device: %s status time limit: %s mount time limit: %s ' %

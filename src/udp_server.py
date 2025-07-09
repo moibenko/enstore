@@ -153,8 +153,8 @@ class UDPServer(object):
             self.raw_requests = rawUDP.RawUDP(receive_timeout=self.rcv_timeout)
             self.raw_requests.init_socket(self.server_socket)
 
-        thread = threading.currentThread()
-        thread_name = thread.getName()
+        thread = threading.current_thread()
+        thread_name = thread.name
 
         print("UDP_SERVER starting in thread", thread_name)
 
@@ -312,7 +312,7 @@ class UDPServer(object):
                     return (request, client_addr)
                 # calculate CRC
                 crc = checksum.adler32(0, request, len(request))
-                
+
                 if (crc != inCRC):
                     Trace.log(e_errors.INFO,
                               "BAD CRC request: %s " % (request,))

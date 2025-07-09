@@ -73,6 +73,7 @@ import file_cache_status
 import scsi_mode_select
 import set_cache_status
 import log_client
+import ports_to_use
 
 
 DEBUG_LOG = 11
@@ -130,7 +131,8 @@ SANITY_SIZE = 65536
 TRANSFER_THRESHOLD = 2 * MB
 """Used in the threshold calculation"""
 
-MAX_BUFFER = 2500 * MB
+#MAX_BUFFER = 2500 * MB
+MAX_BUFFER = 5000 * MB
 """Maximal allowed buffer size
 for 32 bit architecture maximal process size is 4 GB,
 so maximal buffer size can not be bigger than this value.
@@ -281,7 +283,8 @@ class Buffer(object):
         self.read_stats = [0, 0, 0, 0, 0]  # read block timing stats
         self.write_stats = [0, 0, 0, 0, 0]  # read block timing stats
         self.buffered_tapemarks = None
-
+        self.enable_buffered_tapemarks = False
+        
     def set_wrapper(self, wrapper):
         self.wrapper = wrapper
 
@@ -1004,7 +1007,8 @@ class Mover(dispatching_worker.DispatchingWorker,
         ##############################################
         # moved from start()
         self.buffer = None  # data buffer
-        self.udpc = udp_client.UDPClient()  # UDP client to communicate with LM(s)
+        self.port_range = ports_to_use.get_ports()
+        self.udpc = udp_client.UDPClient(port_range=self.port_range)  # UDP client to communicate with LM(s)
         self.udp_control_address = None  # needed for tape ingest
         self.udp_ext_control_address = None  # needed for tape ingest
         self.udp_cm_sent = 0  # needed for tape ingest
@@ -1092,21 +1096,19 @@ class Mover(dispatching_worker.DispatchingWorker,
                 self.__dict__['tmp_vol'] = None
                 self.__dict__['tmp_vf'] = None
             if self.starting == 0:
-                if val == IDLE:
-                    # in idle update interval for update_lm is as set
-                    interval = self.update_interval
-                elif val == HAVE_BOUND:
-                    # in have_bound update interval for update_lm is different
-                    interval = self.update_interval_in_bound
-                else:
-                    # in all other states it is 3 times +1 more
-                    interval = self.update_interval * 3 + 1
+                interval = self.update_interval
+                if not (val in (IDLE, HAVE_BOUND)):
+                    # in all other states it is 10 times +1 more
+                    interval = self.update_interval * 10 + 1
                 self.reset_interval(self.update_lm, interval)
+            else:
+                pass
+                #self.starting = 0
         except BaseException:
             exc, msg, tb = sys.exc_info()
-            Trace.trace(
-                10, "Exception setting attr %s: %s %s" %
-                (attr, exc, msg))
+            Trace.log(e_errors.INFO, "Exception setting attr %s: %s %s" %
+                      (attr, exc, msg))
+
             del (tb)
             pass  # don't want any errors here to stop us
         self.__dict__[attr] = val
@@ -1254,9 +1256,9 @@ class Mover(dispatching_worker.DispatchingWorker,
             cmd = "EPS | grep %s" % (self.name,)
             result = shell_command(cmd)
             Trace.log(e_errors.INFO, "LOG: PS %s" % (result,))
-            thread = threading.currentThread()
+            thread = threading.current_thread()
             if thread:
-                thread_name = thread.getName()
+                thread_name = thread.name
             else:
                 thread_name = None
             Trace.log(e_errors.INFO, "LOG: CurThread %s" % (thread_name))
@@ -1267,7 +1269,7 @@ class Mover(dispatching_worker.DispatchingWorker,
             threads = threading.enumerate()
             for thread in threads:
                 if thread.is_alive():
-                    thread_name = thread.getName()
+                    thread_name = thread.name
                     Trace.log(
                         e_errors.INFO, "LOG: Thread %s is running" %
                         (thread_name,))
@@ -1296,9 +1298,9 @@ class Mover(dispatching_worker.DispatchingWorker,
             Trace.log(
                 e_errors.INFO, "LOG: All running processes \n%s" %
                 (result,))
-            thread = threading.currentThread()
+            thread = threading.current_thread()
             if thread:
-                thread_name = thread.getName()
+                thread_name = thread.name
             else:
                 thread_name = None
             Trace.log(e_errors.INFO, "LOG: CurThread %s" % (thread_name))
@@ -1765,7 +1767,7 @@ class Mover(dispatching_worker.DispatchingWorker,
         matches = 0
         for d in mcc_reply['drive_list']:
             if serial_num in d.get('SN'):
-                Trace.alarm(e_errors.WARNING, 
+                Trace.alarm(e_errors.WARNING,
                             'match for SN {} was found {}'.format(serial_num, d.get('SN')))
                 matches =+ 1
         if matches == 1:
@@ -1920,7 +1922,7 @@ class Mover(dispatching_worker.DispatchingWorker,
                 threads = threading.enumerate()
                 for thread in threads:
                     if thread.is_alive():
-                        thread_name = thread.getName()
+                        thread_name = thread.name
                         Trace.log(
                             e_errors.INFO, "LOG: Thread %s is running" %
                             (thread_name,))
@@ -2049,8 +2051,21 @@ class Mover(dispatching_worker.DispatchingWorker,
         # how often to send an alive heartbeat to the event relay
         self.alive_interval = monitored_server.get_alive_interval(
             self.csc, self.name, self.config)
+        # how often to send a message to the library manager
+        self.update_interval = self.config.get('update_interval', 15)
+        self.update_interval_in_bound = self.config.get(
+            'update_interval_in_bound', self.update_interval)
+
         self.address = (self.config['hostip'], self.config['port'])
         self.lm_address = ('none', 0)  # LM that called mover
+        dispatching_worker.DispatchingWorker.__init__(self, self.address)
+        # this sets the period for messages to LM.
+        self.add_interval_func(self.update_lm, self.update_interval)
+        # this sets the period for checking if child thread has asked for
+        # update.
+        self.add_interval_func(self.need_update, 1)
+        self.set_error_handler(self.handle_mover_error)
+
         if 'do_eject' in self.config:
             if self.config['do_eject'][0] in ('n', 'N'):
                 self.do_eject = 0
@@ -2078,6 +2093,7 @@ class Mover(dispatching_worker.DispatchingWorker,
         self.connect_to = self.config.get("connect_timeout", 15)
         self.connect_retry = self.config.get("connect_retries", 4)
         self.stop = self.config.get('stop_mover', None)
+        self.enable_buffered_tapemarks = self.config.get('enable_buffered_tapemarks', False)
         self.check_first_written_enabled = self.config.get(
             "check_first_written_file", 0)
         # pecentage of memory usage in idle state
@@ -2121,11 +2137,6 @@ class Mover(dispatching_worker.DispatchingWorker,
                 port = lib_config['port']
             self.libraries.append((lib, (lib_config['hostip'], port)))
         self.saved_libraries = self.libraries  # needed for tape ingest
-
-        # how often to send a message to the library manager
-        self.update_interval = self.config.get('update_interval', 15)
-        self.update_interval_in_bound = self.config.get(
-            'update_interval_in_bound', self.update_interval)
 
         # Setting this attempts to optimize filemark writing by writing only
         # a single filemark after each file, instead of using ftt's policy of always
@@ -2252,10 +2263,10 @@ class Mover(dispatching_worker.DispatchingWorker,
                         if self.local_mcc:
                             self.mcc.quit()
                         sys.exit(-1)
-                    Trace.log(e_errors.INFO, 
+                    Trace.log(e_errors.INFO,
                               'MC drive address: %s physical location %s serial number %s volume %s' %
-                              (self.mc_device, 
-                               self.mc_device_phys_location, 
+                              (self.mc_device,
+                               self.mc_device_phys_location,
                                self.config['serial_num'],
                                volume_as_known_to_mc))
 
@@ -2443,13 +2454,6 @@ class Mover(dispatching_worker.DispatchingWorker,
         if self.mount_delay < 0:
             self.mount_delay = 0
 
-        dispatching_worker.DispatchingWorker.__init__(self, self.address)
-        # this sets the period for messages to LM.
-        self.add_interval_func(self.update_lm, self.update_interval)
-        # this sets the period for checking if child thread has asked for
-        # update.
-        self.add_interval_func(self.need_update, 1)
-        self.set_error_handler(self.handle_mover_error)
         # setup the communications with the event relay task
         self.erc.start([event_relay_messages.NEWCONFIGFILE])
         # start our heartbeat to the event relay process
@@ -2490,9 +2494,9 @@ class Mover(dispatching_worker.DispatchingWorker,
         Restart myself.
 
         """
-        cur_thread = threading.currentThread()
+        cur_thread = threading.current_thread()
         if cur_thread:
-            cur_thread_name = cur_thread.getName()
+            cur_thread_name = cur_thread.name
         else:
             cur_thread_name = None
         Trace.log(e_errors.INFO, "Current thread %s" % (cur_thread_name,))
@@ -2793,9 +2797,9 @@ class Mover(dispatching_worker.DispatchingWorker,
         Trace.trace(
             20, "update_lm: %s %s" %
             (state_name(state), self.unique_id))
-        thread = threading.currentThread()
+        thread = threading.current_thread()
         if thread:
-            thread_name = thread.getName()
+            thread_name = thread.name
         else:
             thread_name = None
         Trace.trace(20, "update_lm: thread %s" % (thread_name,))
@@ -3236,9 +3240,9 @@ class Mover(dispatching_worker.DispatchingWorker,
         if hasattr(self, 'too_long_in_state_sent'):
             del (self.too_long_in_state_sent)
 
-        thread = threading.currentThread()
+        thread = threading.current_thread()
         if thread:
-            thread_name = thread.getName()
+            thread_name = thread.name
         else:
             thread_name = None
         # if running in the main thread update lm
@@ -3255,9 +3259,9 @@ class Mover(dispatching_worker.DispatchingWorker,
             (mode_name(
                 self.mode),
              ))
-        thread = threading.currentThread()
+        thread = threading.current_thread()
         if thread:
-            thread_name = thread.getName()
+            thread_name = thread.name
         else:
             thread_name = None
         # if running in the main thread update lm
@@ -4078,7 +4082,7 @@ class Mover(dispatching_worker.DispatchingWorker,
                 if str(detail) == 'FTT_ENOSPC':
                     # no space left on tape
                     Trace.log(
-                        e_errors.INFO, "No sace left on %s. Setting to full" %
+                        e_errors.INFO, "No space left on %s. Setting to full" %
                         (self.current_volume,))
                     ret = self.vcc.set_remaining_bytes(
                         self.current_volume, 0, self.vol_info['eod_cookie'])
@@ -5226,7 +5230,7 @@ class Mover(dispatching_worker.DispatchingWorker,
         threads = threading.enumerate()
         for thread in threads:
             if thread.is_alive():
-                thread_name = thread.getName()
+                thread_name = thread.name
                 Trace.trace(
                     87, "setup_transfer: Thread %s is running" %
                     (thread_name,))
@@ -6039,19 +6043,19 @@ class Mover(dispatching_worker.DispatchingWorker,
             self.buffer.trailer_pnt = self.buffer.file_size - len(self.trailer)
             self.target_location = None
 
-        self.buffered_tapemarks = ticket.get(
-            'buffered_tape_marks',
-            False) and enstore_functions2.is_migration_file_family(
-            volume_family.extract_file_family(
-                self.vol_info['volume_family']))
+
+        self.buffered_tapemarks = (ticket.get('buffered_tape_marks', False) and
+                                   (enstore_functions2.is_migration_file_family(
+                                       volume_family.extract_file_family(
+                                           self.vol_info['volume_family'])) or
+                                    self.enable_buffered_tapemarks))
+
         Trace.trace(10, "finish_transfer_setup: label %s state %s" %
                     (volume_label, state_name(self.save_state)))
-        Trace.trace(
-            10, "finish_transfer_setup: ticket %s" %
-            (self.current_work_ticket,))
-        Trace.trace(
-            10, "finish_transfer_setup: buffered tapemarks%s" %
-            (self.buffered_tapemarks,))
+        Trace.trace(10, "finish_transfer_setup: ticket %s" %
+                    (self.current_work_ticket,))
+        Trace.trace(10, "finish_transfer_setup: buffered tapemarks %s" %
+                    (self.buffered_tapemarks,))
         # this is for crc check in ASSERT mode
         Trace.trace(24, "finish_transfer_setup MODE %s" %
                     (mode_name(self.mode),))
@@ -6124,9 +6128,9 @@ class Mover(dispatching_worker.DispatchingWorker,
                     self.net_driver.close()
                     self.network_write_active = False  # reset to indicate no network activity
 
-                    thread = threading.currentThread()
+                    thread = threading.current_thread()
                     if thread:
-                        thread_name = thread.getName()
+                        thread_name = thread.name
                     else:
                         thread_name = None
                     if thread_name and thread_name == 'media_thread':
@@ -6412,9 +6416,9 @@ class Mover(dispatching_worker.DispatchingWorker,
             msg = str(msg)
 
         # get the current thread
-        cur_thread = threading.currentThread()
+        cur_thread = threading.current_thread()
         if cur_thread:
-            cur_thread_name = cur_thread.getName()
+            cur_thread_name = cur_thread.name
         else:
             cur_thread_name = None
 
@@ -6862,9 +6866,9 @@ n the drive" % (self.current_volume,))
         if self.memory_error:
             return 1
         Trace.log(e_errors.INFO, "maybe_clean")
-        cur_thread = threading.currentThread()
+        cur_thread = threading.current_thread()
         if cur_thread:
-            cur_thread_name = cur_thread.getName()
+            cur_thread_name = cur_thread.name
         else:
             cur_thread_name = None
         if cur_thread_name and cur_thread_name != "tape_thread":
@@ -7270,7 +7274,7 @@ n the drive" % (self.current_volume,))
                     ticket['mover_ip'] = host
                     # bind control socket to data ip
                     self.control_socket.bind((host, 0))
-                    u = udp_client.UDPClient()
+                    u = udp_client.UDPClient(port_range=self.port_range)
                     Trace.trace(10, "sending IP %s to %s. whole ticket %s" %
                                 (host, ticket['routing_callback_addr'], ticket))
                     Trace.trace(
@@ -7967,7 +7971,7 @@ n the drive" % (self.current_volume,))
             threads = threading.enumerate()
             for thread in threads:
                 if thread.is_alive():
-                    thread_name = thread.getName()
+                    thread_name = thread.name
                     Trace.log(
                         e_errors.INFO, "Thread %s is running" %
                         (thread_name,))
@@ -8673,7 +8677,7 @@ n the drive" % (self.current_volume,))
         threads_info = {}
         threads = threading.enumerate()
         for thread in threads:
-            thread_name = thread.getName()
+            thread_name = thread.name
             if thread.is_alive():
                 threads_info[thread_name] = 'Running'
             else:
@@ -9047,9 +9051,9 @@ class DiskMover(Mover):
 
         """
         self.__idle()
-        thread = threading.currentThread()
+        thread = threading.current_thread()
         if thread:
-            thread_name = thread.getName()
+            thread_name = thread.name
         else:
             thread_name = None
         # if running in the main thread update lm
@@ -10067,9 +10071,9 @@ class DiskMover(Mover):
 
         save_state = self.state
         # get the current thread
-        cur_thread = threading.currentThread()
+        cur_thread = threading.current_thread()
         if cur_thread:
-            cur_thread_name = cur_thread.getName()
+            cur_thread_name = cur_thread.name
         else:
             cur_thread_name = None
 
@@ -10448,6 +10452,41 @@ class DiskMover(Mover):
         self.reply_to_caller(ticket)
         return
 
+def identify_device_host(device):
+    """
+    This method is for TS4500 robotic library
+    :type device: :obj:`str`
+    :arg device: tape device in /dev/nst* or /dev/rmt*
+    :rtype: device SCSI host
+    """
+    device_host = None
+    if "/dev/nst" in device:
+        # assumig tape device format /dev/nstNN
+        ret = shell_command('sg_map')
+        tape_sg = None
+        if ret and isinstance(ret, str):
+            # match nst device with sg device
+            ret_list = ret.split('\n')
+            for l in ret_list:
+                if device in l:
+                    tape_sg = l.split()[0]
+                    break
+        Trace.trace(10, 'tape_sg_device {}'.format(tape_sg))
+        if not tape_sg:
+            return None
+        st_device = device.replace('dev/nst', 'dev/st')
+        ret = shell_command('lsscsi -g')
+        if ret and isinstance(ret, str):
+            ret_list = ret.split('\n')
+            for l in ret_list:
+                if st_device in l:
+                    device_host = l.split(':')[0].replace('[', '')
+                    break
+    elif "/dev/rmt" in device:
+        # assumig tape device format /dev/rmt/tps*
+        ds = device[12:]
+        device_host = ds[:ds.find('d')]
+    return device_host
 
 def identify_mc_device(device):
     """
@@ -10459,12 +10498,8 @@ def identify_mc_device(device):
 
     # assumig tape device format /dev/rmt/tpsNdMn
     ret = None
-    if not os.path.exists(device):
-        Trace.log(e_errors.ALARM, 'device {} does not exist'.format(device))
-        return None
-    ds = device[12:]
-    device_host = ds[:ds.find('d')]
-    Trace.trace(10, 'device %s, device host %s' % (ds, device_host,))
+    device_host = identify_device_host(device)
+    Trace.trace(10, 'device {}, device host {}'.format(device, device_host))
 
     # now look in dmesg
 
@@ -10579,8 +10614,11 @@ if __name__ == "__main__":   # pragma: no cover
         logclient=logclient,
         media_changer_client=media_changer_cl)
     mover.handle_generic_commands(intf)
-    # mover._do_print({'levels':range(21, 36)})
-    mover._do_print({'levels':range(5, 200)})
+    """
+    levels = range(5, 20)
+    for level in levels:
+        Trace.print_levels[level]=1
+    """
     mover.start()
     mover.starting = 0
     Trace.log(e_errors.INFO, "mover %s STARTED." % (mover.name,))

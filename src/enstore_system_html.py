@@ -184,11 +184,6 @@ class EnstoreSystemHtml(object):
                          "Plots",
                          "Enstore Plots")
         add_row_to_table(self.status_table,
-                         "%s/%s" % (enstore_constants.WEB_SUBDIR,
-                                    enstore_files.generated_web_page_html_file_name()),  # generated_web_pages.html
-                         "Web Pages",
-                         "Enstore Web Pages")
-        add_row_to_table(self.status_table,
                          "/cgi-bin/active_volumes.sh",  # Need constant???
                          "Active Volumes",
                          "Currently Active Volumes per Library")
@@ -234,7 +229,7 @@ class EnstoreSystemHtml(object):
                 "http://www-ccf.fnal.gov/enstore",
                 "Mass Storage System Main Page",
                 "Storage links for Enstore and dCache")
-        add_row_to_table(self.info_table, "http://www-ccf.fnal.gov/enstore/documentation.html", "Mass Storage System Documentation Page",
+        add_row_to_table(self.info_table, "documentation.html", "Mass Storage System Documentation Page",
                          "Documentation, reports, talks for Enstore and dCache")
         if not remote:
             add_row_to_table(self.info_table, "http://www-ccf.fnal.gov/enstore/enstore_status_only.html",
@@ -309,6 +304,11 @@ def do_work(intf):
         html_dir = enstore_files.default_dir
     if not os.path.exists(html_dir):
         os.makedirs(html_dir)
+
+    ## make subdirectories mentioned in this script
+    tape_inventory_subdir = os.path.join(html_dir, enstore_constants.TAPE_INVENTORY_SUBDIR)
+    if not os.path.exists(tape_inventory_subdir):
+        os.makedirs(tape_inventory_subdir)
     main_web_page.write_html_page_to_directory(html_dir)
 
 

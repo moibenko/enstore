@@ -5,7 +5,7 @@ SHELL=/bin/sh
 #
 #############################################################
 
-ALL_TARGETS=enroute2 t_rand t_read ecrc
+ALL_TARGETS=enroute2 t_rand t_read ecrc ddencp
 
 all: adler32.a Modules $(ALL_TARGETS)
 
@@ -26,7 +26,7 @@ FTT_INCLUDES=-I. -I$(FTT_DIR)/ftt_lib -I$(FTT_DIR)/include
 #FTT_LIBS=-L. -L$(FTT_DIR)/lib -L$(FTT_DIR)/ftt_lib -lftt $(LIBDS)
 FTT_LIBS=-L. -L$(FTT_DIR)/lib -L$(FTT_DIR)/ftt_lib $(LIBDS)
 FTTTEST_LIBS=$(FTT_LIBS)
-CFLAGS=$(BITS_FLAG) $(MACOS_FLAGS)
+CFLAGS=$(BITS_FLAG) $(MACOS_FLAGS) -O3
 
 Modules:
 	@echo "MAKING MODULES ================================"

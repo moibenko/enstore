@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# The file
+#   {ENSTORE_HOME}/site_specific/config/setup-enstore.local
+# has to be symlinked to this or similar file during system configuration.
+# The file setup-enstore.local will be sourced from setup-enstore file.
+# File setup-enstore.local.README provides further details.
+
+## Uncomment the following lines and fill with values
+# name of framlets. Not needed if farmlets are not used
+#ENSTORE_GANG=stken
+
+# The host name or IP address of the host where configuration server is running
+#ENSTORE_CONFIG_HOST=
+
+# The port of the configuration server
+ENSTORE_CONFIG_PORT=7500
+
+# Enstore configuration file. Must exist on each host where configuration server is running
+#ENSTORE_CONFIG_FILE=${ENSTORE_CONFIG_DIR}/config/enstore-system.conf
+
+# Define this only if Small Files Aggregation is needed and exists in configuration file
+#ENSTORE_SFA_POLICY=${ENSTORE_CONFIG_DIR}/config/stken_policy.py
+
+# These are used for remote commands between enstore hosts
+#export ENSSH=/usr/bin/ssh
+#export ENSCP=/usr/bin/scp

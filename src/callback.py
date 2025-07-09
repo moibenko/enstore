@@ -43,6 +43,7 @@ import checksum
 import host_config
 from en_eval import en_eval
 import Interfaces
+import ports_to_use
 
 MSG_LEN_POSITIONS = 12
 MSG_LEN_POSITIONS_OLD = 8
@@ -151,7 +152,7 @@ class FIFOError(OSError):
 def hex8(x):
     s = hex(x)[2:]  # kill the 0x
     if s.endswith('L'):
-        s = s[:-1]  # kill the L                                                
+        s = s[:-1]  # kill the L
     l = len(s)
     if l > 8:
         raise_(OverflowError, x)
@@ -326,8 +327,11 @@ def log_socket_state(sock):
 
 # get an unused tcp port for control communication
 
-
-def get_callback(ip=None):
+def get_callback(ip=None, ports=None):
+    '''
+    ip - ip to communicate on
+    ports - list of of ports to select and bind to
+    '''
     config = host_config.get_config()
     if ip is None:
         if config:
@@ -335,12 +339,38 @@ def get_callback(ip=None):
         if not ip:
             ip = host_config.get_default_interface_ip()
     address_family = socket.getaddrinfo(ip, None)[0][0]
-    s = socket.socket(address_family, socket.SOCK_STREAM)
-    s.bind((ip, 0))
+    cnt = 0
+    failure = False
+    if not ports:
+        # get ports if defined in environment variable
+        ports = ports_to_use.get_ports()
+
+    while cnt < 1000:
+        if ports:
+            inport = random.randint(min(ports), max(ports))
+        else:
+            inport = 0
+        s = socket.socket(address_family, socket.SOCK_STREAM)
+        try:
+            s.bind((ip, inport))
+            break
+        except Exception as e:
+            Trace.log(e_errors.WARNING, 'port {} in use. Retrying'.format(inport))
+            if inport == 0:
+                failure = e
+                break
+            else:
+                Trace.log(e_errors.WARNING, 'port {} in use: {}. Retrying'.format(inport, e))
+                cnt += 1
+                s.close()
+                if cnt > 1000:
+                    failure = e
+                    break
+    if failure:
+        Trace.log(e_errors.ERROR, "Can not get port for socket {}".format(failure))
+        raise sys.exc_info()
     host, port = s.getsockname()[0:2]
-
     return host, port, s
-
 
 def connect_to_callback(ip_addr, interface_ip=None, timeout=30):
     hostinfo = socket.getaddrinfo(ip_addr[0], None)
@@ -537,12 +567,12 @@ def write_raw(sock, msg, timeout=15*60):
         e, err_msg = _send_raw(sock, msg_msg_len.encode(), msg_len_len, timeout)
         if e:
             return e, err_msg
- 
+
         #This time write out the 'signature'.
         e, err_msg = _send_raw(sock, msg_signature.encode(), msg_signature_len, timeout)
         if e:
             return e, err_msg
- 
+
         #Write the payload to the socket.
         ptr = 0
         while ptr < msg_len:
@@ -683,7 +713,7 @@ def read_raw(fd, timeout=15*60):
         error_string = "%s; read_raw: wrong message type (%d) '%s'" % \
                        (error_string, len(tmp), type(tmp))
         return "", error_string
-    
+
     tmp = bytes(tmp).decode()
     len_tmp = len(tmp)
 

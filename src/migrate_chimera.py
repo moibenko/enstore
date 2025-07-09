@@ -115,7 +115,6 @@ import signal
 import types
 import copy
 import errno
-import exceptions
 import re
 import stat
 import socket
@@ -477,6 +476,37 @@ def search_order_migration(src_bfid, src_file_record,
 
     return use_bfid, alt_bfid, use_file_record, use_alt_file_record
 
+def low_watermark_for_write():
+    global SPOOL_DIR
+    low_watermark = .5 # make it configurable
+    if not SPOOL_DIR:
+        return True
+    try:
+        stats = os.statvfs(SPOOL_DIR)
+        avail = float(stats.f_bavail)
+        total = float(stats.f_blocks)
+        fr_avail = avail / total
+        rc = fr_avail > low_watermark
+    except OSError:
+        rc = True
+    return rc
+
+def high_watermark_for_read():
+    global SPOOL_DIR
+    high_watermark = .7 # make it configurable
+    if not SPOOL_DIR:
+        return True
+    try:
+        stats = os.statvfs(SPOOL_DIR)
+        avail = float(stats.f_bavail)
+        total = float(stats.f_blocks)
+        fr_used = (total - avail) / total
+        rc = fr_used > high_watermark
+    except OSError:
+        rc = True
+    return rc
+
+
 
 # Duplication may override this.
 search_order = search_order_migration
@@ -496,7 +526,8 @@ def init(intf):
     global proc_limit
     global do_vol_assert
     global encp_check_metadata_only
-
+    global csc
+    
     # Make getting debug information from the command line possible.
     if intf.debug:
         debug = intf.debug
@@ -533,12 +564,12 @@ def init(intf):
 
     csc = configuration_client.ConfigurationClient(
         (intf.config_host, intf.config_port))
-
+    csc.dump_and_save()
+    csc.new_config_obj.enable_caching()
+    csc.new_config_obj.disable_update()
+    
     db_info = csc.get('database')
-    if socket.gethostname() == "gccenmvr2a.fnal.gov":
-        dbhost = "gccenmvr2a.fnal.gov"
-    else:
-        dbhost = db_info['dbhost']
+    dbhost = db_info['dbhost']
     dbport = db_info['dbport']
     dbname = db_info['dbname']
     dbuser = db_info['dbuser']
@@ -720,10 +751,14 @@ class Pgdb(pg.DB):
 
 
 def get_csc():
+    global csc
     """get Configuration Client"""
+    """
     config_host = enstore_functions2.default_host()
     config_port = enstore_functions2.default_port()
     return configuration_client.ConfigurationClient((config_host, config_port))
+    """
+    return csc
 
 
 def get_clerks():
@@ -1306,7 +1341,8 @@ def __run_in_thread(function, on_exception, arg_list):
         function(*arg_list)
     except:
         Trace.handle_error()
-        error_log(threading.currentThread().getName(),
+        cur_thread = threading.current_thread()
+        error_log(cur_thread.name,
                   "UNHANDLED EXCEPTION", str(sys.exc_info()[1]))
 
         # Execute this function only if an exception occurs.
@@ -1495,7 +1531,7 @@ def is_deleted_path(filepath):
 
 def is_migration_path(filepath):
     # Make sure this is a string.
-    if type(filepath) != bytes:
+    if not isinstance(filepath, (bytes, str)):
         raise TypeError("Expected string filename.", e_errors.WRONGPARAMETER)
 
     dname, fname = os.path.split(filepath)
@@ -1516,11 +1552,14 @@ def is_migration_path(filepath):
 
 
 def is_library(library):
-        # get its own configuration server client
+    global csc
+    # get its own configuration server client
+    """
     config_host = enstore_functions2.default_host()
     config_port = enstore_functions2.default_port()
     csc = configuration_client.ConfigurationClient((config_host,
                                                     config_port))
+    """
     lm_list = csc.get_library_managers2()
     for lm_conf_dict in lm_list:
         if lm_conf_dict['library_manager'] == library:
@@ -1539,7 +1578,8 @@ def open_log(*args):
     global log_f
 
     ctime = time.ctime()
-    thread_name = threading.currentThread().getName()
+    cur_thread = threading.current_thread()
+    thread_name = cur_thread.name
 
     if len(args) == 1 and type(args[0]) == tuple:
         log_components = (ctime, thread_name) + args[0]
@@ -2438,28 +2478,28 @@ def is_volume_allowed(volume, vcc, db):
 # name now too.
 
 
-def get_media_type(arguement, db):
-    if bfid_util.is_bfid(arguement):
+def get_media_type(argument, db):
+    if bfid_util.is_bfid(argument):
         q = "select media_type from volume,file where " \
             " file.volume = volume.id and file.bfid = '%s';" % \
-            (arguement,)
+            (argument,)
         library = ""  # set empty to skip
-    elif enstore_functions3.is_volume(arguement):
+    elif enstore_functions3.is_volume(argument):
         q = "select media_type from volume where " \
-            " label = '%s';" % (arguement,)
+            " label = '%s';" % (argument,)
         library = ""  # set empty to skip
-    elif is_library(arguement):
-        library = arguement
+    elif is_library(argument):
+        library = argument
         q = "select media_type from volume where " \
             "volume.library = '%s' limit 1;" % (library,)
-    elif chimera.is_chimera_path(arguement, check_name_only=1):
+    elif chimera.is_chimera_path(argument, check_name_only=1):
         try:
-            t = chimera.Tag(arguement)
+            t = chimera.Tag(argument)
             library = t.get_library()
         except (OSError, IOError):
             exc_type, exc_value = sys.exc_info()[:2]
             error_log("get_media_type", str(exc_type),
-                      str(exc_value), arguement)
+                      str(exc_value), argument)
             return None
         q = "select media_type from volume where " \
             "volume.library = '%s' limit 1;" % (library,)
@@ -3098,6 +3138,7 @@ def get_tape_list(my_task, volume, fcc, db, intf, all_files=False):
 
 
 def mark_deleted(my_task, bfid, fcc, db):
+    global csc
     """
     mark bfid deleted in the file table
     """
@@ -3108,10 +3149,12 @@ def mark_deleted(my_task, bfid, fcc, db):
         if res[0][0] != 'y':
             if not fcc:
                 # get its own file clerk client
+                """
                 config_host = enstore_functions2.default_host()
                 config_port = enstore_functions2.default_port()
                 csc = configuration_client.ConfigurationClient((config_host,
                                                                 config_port))
+                """
                 fcc = file_clerk_client.FileClient(csc)
 
             res = fcc.set_deleted('yes', bfid=bfid)
@@ -3127,6 +3170,7 @@ def mark_deleted(my_task, bfid, fcc, db):
 
 
 def mark_undeleted(my_task, bfid, fcc, db):
+    global csc
     """
     mark bfid undeleted in the file table
     """
@@ -3136,10 +3180,12 @@ def mark_undeleted(my_task, bfid, fcc, db):
         if res[0][0] != NO:
             if not fcc:
                 # get its own file clerk client
+                """
                 config_host = enstore_functions2.default_host()
                 config_port = enstore_functions2.default_port()
                 csc = configuration_client.ConfigurationClient((config_host,
                                                                 config_port))
+                """
                 fcc = file_clerk_client.FileClient(csc)
 
             res = fcc.set_deleted('no', bfid=bfid)
@@ -3326,7 +3372,7 @@ def temp_file(file_record):
 class MigrateQueue(object):
 
     def __init__(self, maxsize, notify_every_time=True,
-                 low_watermark=1):
+                 low_watermark=1, name=''):
         self.queue = queue.Queue(maxsize)
 
         self.finished = False  # Flag indicating the SENTINEL is in the queue.
@@ -3335,6 +3381,7 @@ class MigrateQueue(object):
         self.initial_wait = True  # Wait until low_watermark items are queued.
         self.low_watermark = low_watermark
         self.maxsize = maxsize
+        self.qname = name
 
         self.r_pipe, self.w_pipe = os.pipe()  # Used with processes.
 
@@ -3469,21 +3516,23 @@ class MigrateQueue(object):
         if (USE_THREADS or multiprocessing_available): # and \
             #   self.notify_every_time:
             if self.debug:
-                log("acquiring condition lock")
+                log("get: acquiring condition lock", self.qname, "OBJ", self)
             self.cv.acquire()
             if self.debug:
                 log("acquired condition lock")
             if self.notify_every_time:
                 while not self.finished and \
                           ((self.initial_wait and \
-                            self.queue.qsize() < self.low_watermark) \
-                           or self.queue.qsize() == 0):
+                            self.queue.qsize() < self.low_watermark and \
+                            (self.queue.qsize() > 0 and low_watermark_for_write())) \
+                           or self.queue.qsize() == 0 ):
                     if self.debug:
                         log("waiting for condition")
                         log("self.finished", str(self.finished),
                             "self.initial_wait:", str(self.initial_wait),
                             "self.queue.qsize():", str(self.queue.qsize()),
                             "self.low_watermark:", str(self.low_watermark),
+                            "space_available:", low_watermark_for_write(),
                             )
 
                     self.cv.wait()
@@ -3529,7 +3578,6 @@ class MigrateQueue(object):
         #Disable the low_watermark threshold.
         self.initial_wait = False
         self.lock.release()
-
         return job
 
     #On Linux, there is a bug in select()
@@ -3653,7 +3701,7 @@ class MigrateQueue(object):
                    self.notify_every_time) or item == SENTINEL:
                 while 1:
                     if self.debug:
-                        log("acquiring condition lock")
+                        log("put: acquiring condition lock", "queue_name", self.qname, "...", "OBJ", self)
                     self.cv.acquire()
                     if self.debug:
                         log("acquired condition lock")
@@ -3720,6 +3768,7 @@ class MigrateQueue(object):
             callback.write_obj(self.w_pipe, item)
             if self.debug:
                 log("item %s sent on pipe" % (item,))
+        log("put: queue size", str(self.queue.qsize()))
 
 ##########################################################################
 
@@ -4035,6 +4084,7 @@ def __print_header(src_volume, dst_volume):
 
 #Output to standard out the migration status information on a per-file basis.
 def show_status_files(bfid_list, db, intf):
+    global csc
     #bfid_list - A string, or list thereof, of the source or destination bfid.
     #db - A pg.DB() instantiated object.
     #intf - A MigrateInterface() instantiated object.
@@ -4047,9 +4097,11 @@ def show_status_files(bfid_list, db, intf):
 #    fcc = None
 #    vcc = None
     # get its own file clerk client and volume clerk client
+    """
     config_host = enstore_functions2.default_host()
     config_port = enstore_functions2.default_port()
     csc = configuration_client.ConfigurationClient((config_host,config_port))
+    """
     fcc = file_clerk_client.FileClient(csc)
     vcc = volume_clerk_client.VolumeClerkClient(csc)
 
@@ -4084,6 +4136,7 @@ def show_status_files(bfid_list, db, intf):
 
 #Output to standard out the migration status information on a per-volume basis.
 def show_status_volumes(volume_list, db, intf):
+    global csc
     #volume_list - A string, or list thereof, of the source or destination
     #            volumes.
     #db - A pg.DB() instantiated object.
@@ -4097,9 +4150,11 @@ def show_status_volumes(volume_list, db, intf):
 #    fcc = None
 #    vcc = None
     # get its own file clerk client and volume clerk client
+    """
     config_host = enstore_functions2.default_host()
     config_port = enstore_functions2.default_port()
     csc = configuration_client.ConfigurationClient((config_host,config_port))
+    """
     fcc = file_clerk_client.FileClient(csc)
     vcc = volume_clerk_client.VolumeClerkClient(csc)
 
@@ -5693,7 +5748,7 @@ def read_files(my_task, read_jobs, encp, intf):
 
     if debug:
         cmd = ' '.join(argv)
-        log(my_task, "cmd =", cmd)
+        log(my_task, "cmd2 =", cmd)
 
     try:
         res = encp.get(argv)
@@ -6178,7 +6233,7 @@ def copy_file(file_record, volume_record, encp, intf, vcc, fcc, db):
 # through copy_queue
 def copy_files(thread_num, file_records, volume_record, copy_queue,
                deleted_copy_queue, grab_lock, release_lock, intf):
-
+    global csc
     my_task = "COPYING_TO_DISK"
 
     # if files is not a list, make a list for it
@@ -6188,22 +6243,31 @@ def copy_files(thread_num, file_records, volume_record, copy_queue,
     # get a db connection
     db = pg.DB(host=dbhost, port=dbport, dbname=dbname, user=dbuser)
     # get its own file clerk client and volume clerk client
+    """
     config_host = enstore_functions2.default_host()
     config_port = enstore_functions2.default_port()
     csc = configuration_client.ConfigurationClient((config_host,
                                                     config_port))
+    """
     fcc = file_clerk_client.FileClient(csc)
     vcc = volume_clerk_client.VolumeClerkClient(csc)
 
     # get an encp
     name_ending = "_0"
     if thread_num:
-        name_ending = "_%s" % (thread_num,)
-    threading.currentThread().setName("READ%s" % (name_ending,))
-    encp = encp_wrapper.Encp(tid = "READ%s" % (name_ending,))
+        name_ending = "_{}".format(thread_num)
+    curr_thread = threading.current_thread()
+    curr_thread.name = "READ{}".format(name_ending)
+    encp = encp_wrapper.Encp(tid = "READ{}".format(name_ending))
 
     # copy files one by one
     for file_record in file_records:
+        # suspend reading till there is space available
+        while high_watermark_for_read():
+            if debug:
+                log(my_task, "suspending reads for a minute")
+            time.sleep(60)
+
         if grab_lock:  # and release_lock:
             grab_lock.acquire()
             release_lock.release()
@@ -6772,7 +6836,7 @@ def _move_package_file(src,volume,src_chimera_file):
     except:
         exc = sys.exc_info()
         # file has been moved on previous run?
-        if exc[0] is exceptions.OSError and exc[1][0] == errno.ENOENT :
+        if exc[0] is OSError and exc[1][0] == errno.ENOENT :
             # does the destination file exist?
             try:
                 statinfo = file_utils.get_stat(dest)
@@ -7421,7 +7485,7 @@ def write_file(my_task,
 
     if debug:
         cmd = ' '.join(argv)
-        log(my_task, 'cmd =', cmd)
+        log(my_task, 'cmd3 =', cmd)
 
     log(my_task, "copying %s %s %s" % (src_bfid, tmp_path, mig_path))
 
@@ -7544,11 +7608,11 @@ def write_new_file(job, encp, vcc, fcc, intf, db):
                 try:
                     # build migration path from pnfsid in dst file record
                     mig_path = chimera_get_path(dst_file_record['pnfsid'])
-#                    mig_path = pnfs_find(active_bfid, inactive_bfid,
-#                                         src_file_record['pnfsid'],
-#                                         file_record = active_file_record,
-#                                         alt_file_record = dst_file_record,
-#                                         intf = intf)
+                    # mig_path = pnfs_find(active_bfid, inactive_bfid,
+                    # src_file_record['pnfsid'],
+                    # file_record = active_file_record,
+                    # alt_file_record = dst_file_record,
+                    # intf = intf)
                     if not is_migration_path(mig_path):
                     #Need to make sure this is a migration path in case
                     # duplication is interupted.
@@ -7863,6 +7927,7 @@ def write_new_file(job, encp, vcc, fcc, intf, db):
 # write_new_files() -- second half of migration, driven by copy_queue
 def write_new_files(thread_num, copy_queue, scan_queue, intf,
                     deleted_files = NO):
+    global csc
     if deleted_files == YES:
         my_task = "COPYING_DELETED_TO_TAPE"
     else:
@@ -7882,18 +7947,21 @@ def write_new_files(thread_num, copy_queue, scan_queue, intf,
     # get an encp
     name_ending = "_0"
     if thread_num:
-        name_ending = "_%s" % (thread_num,)
-
+        name_ending = "_{}".format(thread_num)
     if deleted_files == YES:
-        name_ending = "%s_DEL" % (name_ending,)
-    threading.currentThread().setName("WRITE%s" % (name_ending,))
-    encp = encp_wrapper.Encp(tid = "WRITE%s" % (name_ending,))
+        name_ending = "{}_DEL".format(name_ending)
+
+    cur_tread =  threading.current_thread()
+    cur_tread.name = "WRITE{}".format(name_ending)
+    encp = encp_wrapper.Encp(tid = "WRITE{}".format(name_ending))
 
     #Get a file and volume clerk clients.
+    """
     config_host = enstore_functions2.default_host()
     config_port = enstore_functions2.default_port()
     csc = configuration_client.ConfigurationClient(
             (config_host, config_port))
+    """
     fcc = file_clerk_client.FileClient(csc)
     vcc = volume_clerk_client.VolumeClerkClient(csc)
 
@@ -8020,7 +8088,7 @@ def _scan_bfid(my_task,dst_bfid,src_path,wr_path,intf,encp,override_deleted=Fals
 
     if debug:
         cmd = ' '.join(argv)
-        log(my_task, "cmd =", cmd)
+        log(my_task, "cmd4 =", cmd)
 
     # Read the file.
     try:
@@ -8471,7 +8539,8 @@ def _scan_dest(my_task,dst_file_record,encp,intf,fcc,vcc,db):
 # Scan list of destination bfids.
 def final_scan_files(dst_bfids, intf):
     my_task = "FINAL_SCAN"
-    threading.currentThread().setName('FINAL_SCAN')
+    cur_tread = threading.current_thread()
+    cur_tread.name = 'FINAL_SCAN'
     encp = encp_wrapper.Encp(tid='FINAL_SCAN')
 
     (fcc,vcc) = get_clerks()
@@ -8504,12 +8573,13 @@ def final_scan(thread_num, scan_list, intf, deleted_files = NO):
     # set thread name
     name_ending = "_0"
     if thread_num:
-        name_ending = "_%s" % (thread_num,)
+        name_ending = "_{}".format(thread_num)
     if deleted_files == YES:
-        name_ending = "%s_DEL" % (name_ending,)
-    threading.currentThread().setName("FINAL_SCAN%s" % (name_ending,))
+        name_ending = "{}_DEL".format(name_ending)
+    cur_tread = threading.current_thread()
+    cur_tread.name = "FINAL_SCAN{}".format(name_ending)
 
-    encp = encp_wrapper.Encp(tid = "FINAL_SCAN%s" % (name_ending,))
+    encp = encp_wrapper.Encp(tid = "FINAL_SCAN{}".format(name_ending))
 
     with Pgdb() as db:
         #Loop over the files ready for scanning.
@@ -8542,7 +8612,8 @@ def final_scan_volume(vol, intf):
     my_task = "FINAL_SCAN_VOLUME"
 
     # get an encp
-    threading.currentThread().setName('FINAL_SCAN')
+    cur_thread = threading.current_thread()
+    cur_thread.name = 'FINAL_SCAN'
     encp = encp_wrapper.Encp(tid='FINAL_SCAN')
     volume_assert = volume_assert_wrapper.VolumeAssert(tid='FINAL_SCAN')
     (fcc,vcc) = get_clerks()
@@ -8928,11 +8999,11 @@ def migrate(file_records, intf, volume_record=None):
 
         #Active file queue.
         copy_queue = MigrateQueue(copy_queue_size,
-                                  low_watermark = proceed_number)
+                                  low_watermark = proceed_number, name='copy_queue')
         copy_queue.debug = debug
         #Deleted file queue.
         deleted_copy_queue = MigrateQueue(copy_queue_size,
-                                  low_watermark = proceed_number)
+                                          low_watermark = proceed_number , name='deleted_copy_queue')
         deleted_copy_queue.debug = debug
 
         # Start the reading in parallel.
@@ -9051,12 +9122,15 @@ def migrate(file_records, intf, volume_record=None):
     return errors
 
 def migrate_files(bfids, intf):
+    global csc
     my_task = "%s_FILES" % (IN_PROGRESS_STATE.upper(),)
 
     # get its own fcc
+    """
     config_host = enstore_functions2.default_host()
     config_port = enstore_functions2.default_port()
     csc = configuration_client.ConfigurationClient((config_host, config_port))
+    """
     fcc = file_clerk_client.FileClient(csc)
 
     file_record_list = []
@@ -9080,15 +9154,18 @@ def migrate_volume(vol, intf):
     global INHIBIT_STATE, IN_PROGRESS_STATE
     global set_system_migrating_func, set_system_migrated_func
     global pid_list
+    global csc
 
     my_task = "%s_VOLUME" % (IN_PROGRESS_STATE.upper(),)
     log(my_task, "start", IN_PROGRESS_STATE, "volume", vol, "...")
 
     db = pg.DB(host=dbhost, port=dbport, dbname=dbname, user=dbuser)
     # get its own vcc
+    """
     config_host = enstore_functions2.default_host()
     config_port = enstore_functions2.default_port()
     csc = configuration_client.ConfigurationClient((config_host,config_port))
+    """
     vcc = volume_clerk_client.VolumeClerkClient(csc)
     fcc = file_clerk_client.FileClient(csc)
 
@@ -9157,12 +9234,8 @@ def migrate_volume(vol, intf):
         media_type = get_media_type(intf.library, db )
         media_types = [media_type]
     else:
-        for file_record in tape_list:
-        #FIXME: (further invesigate) we do not update pnfs_name0 anymore;
-        # the file can be on different media type already.
-            media_type = search_media_type(file_record['pnfs_name0'], db)
-            if media_type and media_type not in media_types:
-                media_types.append(media_type)
+        # use media type of the source volume
+        media_types = [volume_record['media_type']]
 
     # Is it Cloning job?
     if len(media_types) == 1 and media_types[0] == volume_record['media_type']:
@@ -10060,16 +10133,19 @@ def restore_package(dst_file_record, dst_bfid, dst_path,
 # restore_files(bfids) -- restore pnfs entries using file records
 def restore_files(bfids, intf, src_volume_record=None):
     global errors
+    global csc
 
     __pychecker__ = "unusednames=intf" #Remove when intf is used.
 
     my_task = "RESTORE"
     db = pg.DB(host=dbhost, port=dbport, dbname=dbname, user=dbuser)
     # get its own file clerk client and volume clerk client
+    """
     config_host = enstore_functions2.default_host()
     config_port = enstore_functions2.default_port()
     csc = configuration_client.ConfigurationClient((config_host,
                                                     config_port))
+    """
     fcc = file_clerk_client.FileClient(csc)
     vcc = volume_clerk_client.VolumeClerkClient(csc)
     if type(bfids) != type([]):
@@ -10090,7 +10166,8 @@ def restore_files(bfids, intf, src_volume_record=None):
 # restore_volume(vol) -- restore all migrated files on original volume
 def restore_volume(vol, intf):
     global errors
-
+    global csc
+    
     my_task = "RESTORE_VOLUME"
     log(my_task, "restoring", vol, "...")
 
@@ -10098,10 +10175,12 @@ def restore_volume(vol, intf):
     db = pg.DB(host=dbhost, port=dbport, dbname=dbname, user=dbuser)
 
     # get its own volume clerk client
+    """
     config_host = enstore_functions2.default_host()
     config_port = enstore_functions2.default_port()
     csc = configuration_client.ConfigurationClient((config_host,
                                                     config_port))
+    """
     vcc = volume_clerk_client.VolumeClerkClient(csc)
 
     #Get the current data and make sure the tape is available.
@@ -10265,7 +10344,7 @@ class MigrateInterface(option.Interface):
             "output extra debugging information",
             option.VALUE_USAGE:option.IGNORED,
             option.VALUE_TYPE:option.INTEGER,
-            option.USER_LEVEL:option.HIDDEN,
+            #option.USER_LEVEL:option.HIDDEN,
             option.DEFAULT_VALUE:1,
             option.VALUE_NAME:'debug_level',
             option.VALUE_TYPE:option.INTEGER,
@@ -10535,16 +10614,19 @@ def get_targets(bfid_list_queue, volume_list_queue, isc, intf):
     volume_list_queue.put(SENTINEL, block=True)
 
 def main(intf):
+    global csc
     init(intf)
 
     if intf.migrated_from:
         # get a db connection
         db = pg.DB(host=dbhost, port=dbport, dbname=dbname, user=dbuser)
         # get its own volume clerk client
+        """
         config_host = enstore_functions2.default_host()
         config_port = enstore_functions2.default_port()
         csc = configuration_client.ConfigurationClient((config_host,
                                                         config_port))
+        """
         vcc = volume_clerk_client.VolumeClerkClient(csc)
 
         show_migrated_from(intf.args, vcc, db)
@@ -10556,10 +10638,12 @@ def main(intf):
         # get a db connection
         db = pg.DB(host=dbhost, port=dbport, dbname=dbname, user=dbuser)
         # get its own volume clerk client
+        """
         config_host = enstore_functions2.default_host()
         config_port = enstore_functions2.default_port()
         csc = configuration_client.ConfigurationClient((config_host,
                                                         config_port))
+        """
         vcc = volume_clerk_client.VolumeClerkClient(csc)
 
         show_migrated_to(intf.args, vcc, db)
@@ -10585,10 +10669,12 @@ def main(intf):
         # get a db connection
         db = pg.DB(host=dbhost, port=dbport, dbname=dbname, user=dbuser)
         # get its own file clerk client and volume clerk client
+        """
         config_host = enstore_functions2.default_host()
         config_port = enstore_functions2.default_port()
         csc = configuration_client.ConfigurationClient((config_host,
                                                         config_port))
+        """
         fcc = file_clerk_client.FileClient(csc)
         vcc = volume_clerk_client.VolumeClerkClient(csc)
 
@@ -10603,10 +10689,12 @@ def main(intf):
         # get a db connection
         db = pg.DB(host=dbhost, port=dbport, dbname=dbname, user=dbuser)
         # get its own file clerk client and volume clerk client
+        """
         config_host = enstore_functions2.default_host()
         config_port = enstore_functions2.default_port()
         csc = configuration_client.ConfigurationClient((config_host,
                                                         config_port))
+        """
         fcc = file_clerk_client.FileClient(csc)
         vcc = volume_clerk_client.VolumeClerkClient(csc)
 
@@ -10623,10 +10711,12 @@ def main(intf):
         rtn = 0  #return code
 
         # get its own info client
+        """
         config_host = enstore_functions2.default_host()
         config_port = enstore_functions2.default_port()
         csc = configuration_client.ConfigurationClient((config_host,
                                                         config_port))
+        """
         #Someday this probably could be done by the migration clerk.
         isc = info_client.infoClient(csc)
 
@@ -10721,10 +10811,12 @@ def main(intf):
                 # get a db connection
                 db = pg.DB(host=dbhost, port=dbport, dbname=dbname, user=dbuser)
                 # get its own file clerk client and volume clerk client
+                """
                 config_host = enstore_functions2.default_host()
                 config_port = enstore_functions2.default_port()
                 csc = configuration_client.ConfigurationClient((config_host,
                                                                 config_port))
+                """
                 vcc = volume_clerk_client.VolumeClerkClient(csc)
                 rtn = rtn + migrate_remaining_volumes(vcc, db, intf)
 

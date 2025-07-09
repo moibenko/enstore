@@ -1,25 +1,32 @@
 #! /usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 
+from __future__ import print_function
+from __future__ import absolute_import
 from downloadCommon import DownloadCommon, getSeqName
 from DdlCommonInterface import DdlCommonInterface
+import sys
 import re
+
 
 class PgDownloader(DownloadCommon):
     """ Silly me, I didn't know about INFORMATION_SCHEMA """
+
     def __init__(self):
         self.strDbms = 'postgres'
 
     def connect(self, info):
         try:
             import psycopg2
-        except:
-            print "Missing PostgreSQL support through psycopg2"
+        except BaseException:
+            print("Missing PostgreSQL support through psycopg2")
             return
 
-        self.conn = psycopg2.connect('host=%(host)s dbname=%(dbname)s user=%(user)s password=%(pass)s port=%(port)s' % info)
+        self.conn = psycopg2.connect(
+            'host=%(host)s dbname=%(dbname)s user=%(user)s password=%(pass)s port=%(port)s' %
+            info)
         self.cursor = self.conn.cursor()
-        #self.doSomeTests()
+        # self.doSomeTests()
 
     def useConnection(self, con, version):
         self.conn = con
@@ -29,12 +36,12 @@ class PgDownloader(DownloadCommon):
         sql = "select tablename from pg_tables where tablename in %s"
         inList = (('sample', 'companies', 'table1'), )
         self.cursor.execute(sql, inList)
-        print self.cursor.fetchall()
+        print(self.cursor.fetchall())
 
         sql = "select tablename from pg_tables where tablename = %(tbl)s"
-        inDict = {  'tbl' : 'sample' }
+        inDict = {'tbl': 'sample'}
         self.cursor.execute(sql, inDict)
-        print self.cursor.fetchall()
+        print(self.cursor.fetchall())
 
         sys.exit(-1)
 
@@ -51,8 +58,10 @@ class PgDownloader(DownloadCommon):
 
     def getTables(self, tableList):
         """ Returns the list of tables as a array of strings """
-        self.cursor.execute("select tablename from pg_tables where schemaname not in ('pg_catalog', 'information_schema')")
-        return self._confirmReturns([x[0] for x in self.cursor.fetchall() ], tableList)
+        self.cursor.execute(
+            "select tablename from pg_tables where schemaname not in ('pg_catalog', 'information_schema')")
+        return self._confirmReturns(
+            [x[0] for x in self.cursor.fetchall()], tableList)
 
     def getTableColumnsStandard(self, strTable):
         """ Returns column in this format
@@ -88,7 +97,14 @@ class PgDownloader(DownloadCommon):
                 default = ''
                 bAutoIncrement = True
 
-            ret.append((name, type, size, numprec, attnotnull, default, bAutoIncrement))
+            ret.append(
+                (name,
+                 type,
+                 size,
+                 numprec,
+                 attnotnull,
+                 default,
+                 bAutoIncrement))
 
         return ret
 
@@ -96,6 +112,7 @@ class PgDownloader(DownloadCommon):
         """ Returns column in this format
             (strColumnName, strColType, nColSize, nColPrecision, bNotNull, strDefault, bAutoIncrement)
         """
+        print("getTableColumns for {}".format(strTable))
         strSql = """
             SELECT pa.attnum, pa.attname, pt.typname, pa.atttypmod, pa.attnotnull, pa.atthasdef, pc.oid
             FROM pg_attribute pa, pg_type pt, pg_class pc
@@ -108,7 +125,14 @@ class PgDownloader(DownloadCommon):
         self.cursor.execute(strSql, [strTable])
         rows = self.cursor.fetchall()
 
-        specialCols = ['cmax', 'cmin', 'xmax', 'xmin', 'oid', 'ctid', 'tableoid']
+        specialCols = [
+            'cmax',
+            'cmin',
+            'xmax',
+            'xmin',
+            'oid',
+            'ctid',
+            'tableoid']
         ret = []
         for row in rows:
             attnum, name, type, attlen, attnotnull, atthasdef, clasoid = row
@@ -119,27 +143,38 @@ class PgDownloader(DownloadCommon):
                 default = None
                 bAutoIncrement = False
                 if atthasdef:
-                    default = self.getColumnDefault(clasoid, attnum)
-                    if default == "nextval('%s')" % (getSeqName(strTable, name)):
-                        default = ''
-                        bAutoIncrement = True
+                    try:
+                        default = self.getColumnDefault(clasoid, attnum)
+                        if default == "nextval('%s')" % (
+                                getSeqName(strTable, name)):
+                            default = ''
+                            bAutoIncrement = True
 
-                ret.append((name, type, attlen, precision, attnotnull, default, bAutoIncrement))
+                            ret.append(
+                                (name,
+                                 type,
+                                 attlen,
+                                 precision,
+                                 attnotnull,
+                                 default,
+                                 bAutoIncrement))
+                    except Exception as e:
+                        print("Exception converting {}: {}".format(strTable, e))
 
         return ret
 
     def _fixTypeNames(self, type):
         fixNames = {
-            'int4'    : 'integer',
-            'int'     : 'integer',
-            'bool'    : 'boolean',
-            'float8'  : 'double precision',
-            'int8'    : 'bigint',
-            'serial8' : 'bigserial',
-            'serial4' : 'serial',
-            'float4'  : 'real',
-            'int2'    : 'smallint',
-            'character varying' : 'varchar',
+            'int4': 'integer',
+            'int': 'integer',
+            'bool': 'boolean',
+            'float8': 'double precision',
+            'int8': 'bigint',
+            'serial8': 'bigserial',
+            'serial4': 'serial',
+            'float4': 'real',
+            'int2': 'smallint',
+            'character varying': 'varchar',
         }
         if type in fixNames:
             return fixNames[type]
@@ -147,19 +182,21 @@ class PgDownloader(DownloadCommon):
         return type
 
     def decodeLength(self, type, atttypmod):
-        # gleamed from http://www.postgresql-websource.com/psql713/source-format_type.htm
+        # gleamed from
+        # http://www.postgresql-websource.com/psql713/source-format_type.htm
         VARHDRSZ = 4
 
         if type == 'varchar':
-            #print atttypmod - VARHDRSZ, atttypmod, VARHDRSZ
+            # print atttypmod - VARHDRSZ, atttypmod, VARHDRSZ
             # added by litvinse@fnal.gov
-            if atttypmod - VARHDRSZ < 0 : return (None, None)
+            if atttypmod - VARHDRSZ < 0:
+                return (None, None)
             return (atttypmod - VARHDRSZ, None)
 
         if type == 'numeric':
             atttypmod -= VARHDRSZ
-            #return  ( (atttypmod >> 16) & 0xffff, atttypmod & 0xffff)
-            return  (None,None)
+            # return  ( (atttypmod >> 16) & 0xffff, atttypmod & 0xffff)
+            return (None, None)
 
         if type == 'varbit' or type == 'bit':
             return (atttypmod, None)
@@ -168,7 +205,9 @@ class PgDownloader(DownloadCommon):
 
     def getColumnDefault(self, clasoid, attnum):
         """ Returns the default value for a comment or None """
-        strSql = "SELECT adsrc FROM pg_attrdef WHERE adrelid = %s AND adnum = %s"
+        ## Changed by A.N.Moibenko 25.10.2024 based on pstgresql v >= 12 requrements
+        
+        strSql = "SELECT adbin FROM pg_attrdef WHERE adrelid = %s AND adnum = %s"
         self.cursor.execute(strSql, [clasoid, attnum])
         rows = self.cursor.fetchall()
         if not rows:
@@ -188,7 +227,6 @@ class PgDownloader(DownloadCommon):
         rows = self.cursor.fetchall()
         if rows:
             return rows[0][0]
-
         return None
 
     def getColumnCommentStandard(self, strTableName, strColumnName):
@@ -227,8 +265,14 @@ class PgDownloader(DownloadCommon):
 
         for row in rows:
             (strIndexName, strColumns, bIsUnique, bIsPrimary, bIsClustered) = row
-            colList = self._fetchTableColumnsNamesByNums(strTableName, strColumns.split())
-            ret.append((strIndexName, colList, bIsUnique, bIsPrimary, bIsClustered))
+            colList = self._fetchTableColumnsNamesByNums(
+                strTableName, strColumns.split())
+            ret.append(
+                (strIndexName,
+                 colList,
+                 bIsUnique,
+                 bIsPrimary,
+                 bIsClustered))
 
         return ret
 
@@ -254,13 +298,20 @@ class PgDownloader(DownloadCommon):
             return ret
 
         for row in rows:
-            (strConstraintName, cols, fk_table, fkeys, chUpdateType, chDelType) = row
-            #cols = cols[1:-1] (Dmitry Litvinsev litvinse@fnal.gov)
+            (strConstraintName, cols, fk_table,
+             fkeys, chUpdateType, chDelType) = row
+            # cols = cols[1:-1] (Dmitry Litvinsev litvinse@fnal.gov)
 #            colList = self._fetchTableColumnsNamesByNums(strTableName, cols.split(','))
             colList = self._fetchTableColumnsNamesByNums(strTableName, cols)
-            #fkeys = fkeys[1:-1]   (Dmitry Litvinsev litvinse@fnal.gov)
+            # fkeys = fkeys[1:-1]   (Dmitry Litvinsev litvinse@fnal.gov)
             fkColList = self._fetchTableColumnsNamesByNums(fk_table, fkeys)
-            ret.append((strConstraintName, colList, fk_table, fkColList, chUpdateType, chDelType))
+            ret.append(
+                (strConstraintName,
+                 colList,
+                 fk_table,
+                 fkColList,
+                 chUpdateType,
+                 chDelType))
 
         return ret
 
@@ -285,7 +336,8 @@ class PgDownloader(DownloadCommon):
         return ret
 
     def _decodeLength(self, type, atttypmod):
-        # gleamed from http://www.postgresql-websource.com/psql713/source-format_type.htm
+        # gleamed from
+        # http://www.postgresql-websource.com/psql713/source-format_type.htm
         VARHDRSZ = 4
 
         if type == 'varchar':
@@ -293,7 +345,7 @@ class PgDownloader(DownloadCommon):
 
         if type == 'numeric':
             atttypmod -= VARHDRSZ
-            return  ( (atttypmod >> 16) & 0xffff, atttypmod & 0xffff)
+            return ((atttypmod >> 16) & 0xffff, atttypmod & 0xffff)
 
         if type == 'varbit' or type == 'bit':
             return (atttypmod, None)
@@ -309,15 +361,16 @@ class PgDownloader(DownloadCommon):
             WHERE schemaname not in ('pg_catalog', 'information_schema')
             AND   viewname not in ('pg_logdir_ls')""")
 
-        return self._confirmReturns([x[0] for x in self.cursor.fetchall() ], viewList)
+        return self._confirmReturns(
+            [x[0] for x in self.cursor.fetchall()], viewList)
 
     def getViewsStandard(self, viewList):
-        strQuery =  """SELECT TABLE_NAME
+        strQuery = """SELECT TABLE_NAME
         FROM INFORMATION_SCHEMA.TABLES
         WHERE TABLE_SCHEMA not in ('pg_catalog', 'information_schema')
         AND   TABLE_NAME NOT LIKE 'pg_%' AND
         TABLE_TYPE = 'VIEW'"""
-        #TODO add viewList constraint
+        # TODO add viewList constraint
         self.cursor.execute(strQuery)
         rows = self.cursor.fetchall()
         if rows:
@@ -336,7 +389,7 @@ class PgDownloader(DownloadCommon):
 
     def getFunctions(self, functionList):
         """ Returns functions """
-        #TODO: Add function list constraint
+        # TODO: Add function list constraint
         # commented by litvinse@fnal.gov
 #        strQuery = """SELECT proname
 #        FROM pg_proc pp, pg_language pl
@@ -354,8 +407,6 @@ class PgDownloader(DownloadCommon):
         AND  lower(pl.lanname) not in ('internal')
         """
 
-
-
         self.cursor.execute(strQuery)
         rows = self.cursor.fetchall()
         if rows:
@@ -365,7 +416,7 @@ class PgDownloader(DownloadCommon):
 
     def getFunctionsStandard(self, functionList):
         """ Returns functions """
-        #TODO: Add function list constraint
+        # TODO: Add function list constraint
 
         strQuery = """SELECT SPECIFIC_NAME
         FROM INFORMATION_SCHEMA.ROUTINES
@@ -401,7 +452,8 @@ class PgDownloader(DownloadCommon):
         params = []
         for typeNum in argTypes:
             # condition below is added by litvinse@fnal.gov
-            if not typeNum : continue
+            if not typeNum:
+                continue
             self.cursor.execute(strQuery, [typeNum])
             row = self.cursor.fetchone()
             if row:
@@ -414,16 +466,20 @@ class PgDownloader(DownloadCommon):
             argnames = self.cursor.fetchone()
             if argnames:
                 argnames = argnames[0]
-                if argnames != None:
+                if argnames is not None:
                     # 2 lines below are commented out by litvinse@fnal.gov
-                    #argnames = argnames[1:-1]
-                    #argnames = argnames.split(',')
+                    # argnames = argnames[1:-1]
+                    # argnames = argnames.split(',')
                     for nIndex, argName in enumerate(argnames):
                         params[nIndex] += ' ' + argName
 
         # Cleanup definition by removing the stuff we added.
-        #strDefinition = re.compile('|'.join(repList), re.DOTALL | re.MULTILINE).sub('', strDefinition)
-        strDefinition = re.compile(r'\s*DECLARE\s+.*BEGIN', re.DOTALL | re.MULTILINE).sub('BEGIN', strDefinition)
+        # strDefinition = re.compile('|'.join(repList), re.DOTALL | re.MULTILINE).sub('', strDefinition)
+        strDefinition = re.compile(
+            r'\s*DECLARE\s+.*BEGIN',
+            re.DOTALL | re.MULTILINE).sub(
+            'BEGIN',
+            strDefinition)
         return (strRoutineName, params, retType, strLanguage, strDefinition)
 
     def getFunctionDefinitions(self, strSpecifiName):
@@ -436,19 +492,20 @@ class PgDownloader(DownloadCommon):
         AND  pl.oid = pp.prolang"""
         self.cursor.execute(strQuery, [strSpecifiName])
         rows = self.cursor.fetchall()
-        goodies=[]
+        goodies = []
         if not rows:
             return goodies.append([None, None, None, None, None])
 
         for row in rows:
-            strRoutineName, strDefinition, retType, strLanguage, strArgTypes = row;
+            strRoutineName, strDefinition, retType, strLanguage, strArgTypes = row
             retType = self._fixTypeNames(retType)
             argTypes = strArgTypes.split()
             strQuery = """SELECT typname FROM pg_type WHERE oid = %s"""
             params = []
             for typeNum in argTypes:
                 # condition below is added by litvinse@fnal.gov
-                if not typeNum : continue
+                if not typeNum:
+                    continue
                 self.cursor.execute(strQuery, [typeNum])
                 r = self.cursor.fetchone()
                 if r:
@@ -460,31 +517,37 @@ class PgDownloader(DownloadCommon):
                 argnames = self.cursor.fetchone()
                 if argnames:
                     argnames = argnames[0]
-                    if argnames != None:
+                    if argnames is not None:
                         # lines below commented by litvinse@fnal.gov
-                        #argnames = argnames[1:-1]
-                        #argnames = argnames.split(',')
+                        # argnames = argnames[1:-1]
+                        # argnames = argnames.split(',')
                         for nIndex, argName in enumerate(argnames):
                             params[nIndex] += ' ' + argName
 
             # Cleanup definition by removing the stuff we added.
-            #strDefinition = re.compile('|'.join(repList), re.DOTALL | re.MULTILINE).sub('', strDefinition)
-            strDefinition = re.compile(r'\s*DECLARE\s+.*BEGIN', re.DOTALL | re.MULTILINE).sub('BEGIN', strDefinition)
-            goodies.append([strRoutineName, params, retType, strLanguage, strDefinition])
+            # strDefinition = re.compile('|'.join(repList), re.DOTALL | re.MULTILINE).sub('', strDefinition)
+            strDefinition = re.compile(
+                r'\s*DECLARE\s+.*BEGIN',
+                re.DOTALL | re.MULTILINE).sub(
+                'BEGIN',
+                strDefinition)
+            goodies.append([strRoutineName, params, retType,
+                           strLanguage, strDefinition])
         return goodies
+
 
 class DdlPostgres(DdlCommonInterface):
     def __init__(self, strDbms):
         DdlCommonInterface.__init__(self, strDbms)
 
-        self.params['max_id_len'] = { 'default' : 63 }
+        self.params['max_id_len'] = {'default': 63}
 
         if self.dbmsType == 'postgres7':
             self.params['change_col_type'] = [
-                    'ALTER TABLE %(table_name)s ADD tmp_%(column_name)s %(column_type)s',
-                    'UPDATE %(table_name)s SET tmp_%(column_name)s = %(column_name)s',
-                    'ALTER TABLE %(table_name)s DROP %(column_name)s',
-                    'ALTER TABLE %(table_name)s RENAME tmp_%(column_name)s TO %(column_name)s',
+                'ALTER TABLE %(table_name)s ADD tmp_%(column_name)s %(column_type)s',
+                'UPDATE %(table_name)s SET tmp_%(column_name)s = %(column_name)s',
+                'ALTER TABLE %(table_name)s DROP %(column_name)s',
+                'ALTER TABLE %(table_name)s RENAME tmp_%(column_name)s TO %(column_name)s',
             ]
 
         self.params['keywords'] = """
@@ -495,7 +558,8 @@ class DdlPostgres(DdlCommonInterface):
             OFF OLD ON ONLY OR ORDER OUTER OVERLAPS PRIMARY REFERENCES RIGHT SELECT SESSION_USER SIMILAR SOME TABLE
             THEN TO TRAILING TRUE UNION UNIQUE USER USING VERBOSE WHEN WHERE""".split()
 
-    def addFunction(self, strNewFunctionName, argumentList, strReturn, strContents, attribs, diffs):
+    def addFunction(self, strNewFunctionName, argumentList,
+                    strReturn, strContents, attribs, diffs):
         newArgs = []
         declares = []
 
@@ -503,22 +567,28 @@ class DdlPostgres(DdlCommonInterface):
             for nIndex, arg in enumerate(argumentList):
                 oneArg = arg.strip().split()
                 newArgs.append(oneArg[-1])
-                declares.append('    %s ALIAS FOR $%d;' % (oneArg[0], nIndex + 1))
+                declares.append(
+                    '    %s ALIAS FOR $%d;' %
+                    (oneArg[0], nIndex + 1))
         else:
             newArgs = argumentList
 
         if len(declares) > 0:
-            match = re.compile('(\s*declare)(.*)', re.IGNORECASE | re.MULTILINE | re.DOTALL).match(strContents)
+            match = re.compile(
+                '(\\s*declare)(.*)',
+                re.IGNORECASE | re.MULTILINE | re.DOTALL).match(strContents)
             if match:
-                strContents = match.group(1) + '\n' + '\n'.join(declares) + match.group(2)
+                strContents = match.group(
+                    1) + '\n' + '\n'.join(declares) + match.group(2)
             else:
-                strContents = 'DECLARE\n' + '\n'.join(declares) + "\n" + strContents
+                strContents = 'DECLARE\n' + \
+                    '\n'.join(declares) + "\n" + strContents
 
         info = {
-            'functionname' : self.quoteName(strNewFunctionName),
-            'arguments'  : ', '.join(newArgs),
-            'returns'  : strReturn,
-            'contents' : strContents.replace("'", "''"),
+            'functionname': self.quoteName(strNewFunctionName),
+            'arguments': ', '.join(newArgs),
+            'returns': strReturn,
+            'contents': strContents.replace("'", "''"),
         }
         if 'language' not in attribs:
             info['language'] = ' LANGUAGE plpgsql'
@@ -526,5 +596,5 @@ class DdlPostgres(DdlCommonInterface):
             info['language'] = ' LANGUAGE %s' % (attribs['language'])
 
         diffs.append(('Add view',  # OR REPLACE
-            "CREATE FUNCTION %(functionname)s(%(arguments)s) RETURNS %(returns)s AS '\n%(contents)s'%(language)s" % info )
-        )
+                      "CREATE FUNCTION %(functionname)s(%(arguments)s) RETURNS %(returns)s AS '\n%(contents)s'%(language)s" % info)
+                     )

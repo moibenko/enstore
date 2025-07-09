@@ -230,7 +230,7 @@ def setup_signal_handling():
     # on a given system.  On Linux 2.6 the greatest normal signal is 31 and
     # SIGRTMIN is 34, which is why 32 and 33 need to be handled special.
     max_regular_signal = 0
-    
+
     for key in signal.valid_signals():
         try:
             value = key.value

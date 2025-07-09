@@ -75,8 +75,8 @@ def __get_callback(host, port):
         else:
             error_message = msg.args[1]
 
-        sys.stdout.write("MY %s %s %s %s %s \n" %
-                         (error_message, host, port, hostinfo, address_family))
+        #sys.stdout.write("MY %s %s %s %s %s \n" %
+        #                 (error_message, host, port, hostinfo, address_family))
         raise_(socket.error, error_message)
     if address_family == socket.AF_INET6:
         host, port, junk, junk = sock.socket.getsockname()

@@ -386,6 +386,7 @@ if __name__ == "__main__":   # pragma: no cover
 
     fc = fp.files_to_purge()
     if fc and purge:
+        import cache.messaging.md_client as md_client
         for item in fc:
             md_purge_command = md_client.MDCPurge(item.file_list)
             md_purge_command.properties["disk_library"] = item.disk_library

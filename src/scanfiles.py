@@ -51,7 +51,7 @@ class ThreadWithResult(threading.Thread):
         self.is_joinable = False
 
     def get_args(self):
-        return copy.deepcopy(self._Thread__args)
+        return copy.deepcopy(self._args)
 
     def get_result(self):
         try:
@@ -62,7 +62,7 @@ class ThreadWithResult(threading.Thread):
     def run(self):
         # do my stuff here that generates results
         try:
-            self.result = self._Thread__target(*self._Thread__args)
+            self.result = self._target(*self._args)
         except (KeyboardInterrupt, SystemExit):
             pass
         except BaseException:
@@ -100,9 +100,9 @@ class ThreadWithResult(threading.Thread):
                     time.sleep(0.1)
 
     def reset(self, *pargs):
-        self._Thread__args = pargs
-        self._Thread__started = 0
-        self._Thread__stopped = 0
+        self._args = pargs
+        self._Thread_started = 0
+        self._Thread_stopped = 0
         self.result = None
 
 

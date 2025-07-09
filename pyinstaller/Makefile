@@ -73,7 +73,6 @@ post_encp_cmd:
 	chmod -R ug+rw $(ENCP_BIN_DIR)/
 
 post_encp_cmd_for_dcache:
-	$(CP) $(ENSTORE_DIR)/modules/ddencp             $(ENSTORE_BIN_DCACHE)/
 	$(CP) $(ENSTORE_DIR)/modules/ecrc               $(ENSTORE_BIN_DCACHE)/
 	$(CP) $(ENSTORE_DIR)/modules/enroute2           $(ENSTORE_BIN_DCACHE)/
 	$(CP) $(ENSTORE_DIR)/sbin/EPS                   $(ENSTORE_BIN_DCACHE)/
@@ -162,15 +161,16 @@ pre_enstore:
 	mkdir -p $(ENSTORE_TARGET_DIR)/crontabs
 	mkdir -p $(ENSTORE_TARGET_DIR)/external_distr
 	mkdir -p $(ENSTORE_TARGET_DIR)/tools
+	cp $(ENSTORE_DIR)/xml2ddl/xml2ddl/*.py $(ENSTORE_DIR)/src
 
 post_enstore: install_enstore
-	$(MV) $(ENSTORE_SBIN_DIR)/encp_admin   $(ENSTORE_BIN_DIR)/encp
-	$(MV) $(ENSTORE_SBIN_DIR)/enstore_admin $(ENSTORE_BIN_DIR)/enstore
-	$(MV) $(ENSTORE_SBIN_DIR)/ensync_admin $(ENSTORE_BIN_DIR)/ensync
-	$(MV) $(ENSTORE_SBIN_DIR)/enmv_admin   $(ENSTORE_BIN_DIR)/enmv
-	$(MV) $(ENSTORE_SBIN_DIR)/migrate_chimera   $(ENSTORE_BIN_DIR)/migrate
-	$(MV) $(ENSTORE_SBIN_DIR)/duplicate_chimera   $(ENSTORE_BIN_DIR)/duplicate
-	$(MV) $(ENSTORE_SBIN_DIR)/volume_assert   $(ENSTORE_BIN_DIR)/
+	$(MV) $(ENSTORE_SBIN_DIR)/encp_admin   $(ENSTORE_SBIN_DIR)/encp
+	$(MV) $(ENSTORE_SBIN_DIR)/enstore_admin $(ENSTORE_SBIN_DIR)/enstore
+	$(MV) $(ENSTORE_SBIN_DIR)/ensync_admin $(ENSTORE_SBIN_DIR)/ensync
+	$(MV) $(ENSTORE_SBIN_DIR)/enmv_admin   $(ENSTORE_SBIN_DIR)/enmv
+	$(MV) $(ENSTORE_SBIN_DIR)/migrate_chimera   $(ENSTORE_SBIN_DIR)/migrate
+	$(MV) $(ENSTORE_SBIN_DIR)/duplicate_chimera   $(ENSTORE_SBIN_DIR)/duplicate
+	$(MV) $(ENSTORE_SBIN_DIR)/enstore_database_server $(ENSTORE_BIN_DIR)
 
 	$(CP) $(ENSTORE_DIR)/modules/enroute2		$(ENSTORE_BIN_DIR)
 	$(CP) $(ENSTORE_DIR)/modules/ddencp		$(ENSTORE_BIN_DIR)
@@ -197,12 +197,14 @@ install_enstore:
 SERVER_LIST=configuration_server log_server event_relay library_manager media_changer udp_server
 SERVER_HTMLGEN_LIST=alarm_server inquisitor ratekeeper monitor_server
 SERVER_SQL_LIST=file_clerk volume_clerk info_server accounting_server drivestat_server
-SERVER_SFA_LIST=dispatcher lm_director
 WEB_SERVER = web_server
 ENSTORE_SYSTEM = make_enstore_system
 
 # for mover need a special spec file
 MOVER=mover
+DISPATCHER=dispatcher
+LM_DIRECTOR=lm_director
+MIGRATOR=migrator
 #mover media_changer
 MISC_LIST=get_cron_title udp_client log_start_event log_finish_event
 CRON_LIST=plotter_main summary_plots log_trans_fail recent_files_on_tape inventory plotter fill_slot_usage \
@@ -214,8 +216,9 @@ enstore_log_file_search_cgi enstore_recent_files_on_tape_cgi \
 enstore_sfa_files_in_transition_cgi enstore_sfa_hud_cgi \
 enstore_sfa_show_cached_files_cgi enstore_show_inventory_cgi enstore_show_inv_summary_cgi \
 enstore_user_cgi enstore_utils_cgi show_file_cgi show_volume_cgi
+XML2DDL=diffxml2ddl downloadXml xml2ddl xml2html
 SBIN:=$(shell ls -1 ../sbin/*.py | grep -v make_enstore_system | sed -e "s^.py^^g" -e "s^../sbin/^^g"| tr '\n' ' ')
-BIN:=$(shell ls -1 ../bin/*.py | sed -e "s^.py^^g" -e "s^../sbin/^^g"| tr '\n' ' ')
+BIN:=$(shell ls -1 ../bin/*.py | sed -e "s^.py^^g" -e "s^../bin/^^g"| tr '\n' ' ')
 TOOLS:=$(shell ls -1 ../tools/*.py | sed -e "s^.py^^g" -e "s^../tools/^^g"| tr '\n' ' ')
 EXT_DISTR:=$(shell ls -1 ../external_distr/*.py | sed -e "s^.py^^g" -e "s^../external_distr/^^g"| tr '\n' ' ')
 
@@ -237,13 +240,16 @@ $(FULL_SERVER_LIST): $$@
 	pyi-makespec --specpath specs --hidden-import enroute ../src/$@.py
 	echo $@ >> spec_list
 $(FULL_CLIENT_LIST): $$@
-	pyi-makespec --specpath specs --hidden-import enroute ../src/$@.py
+	pyi-makespec --specpath specs --hidden-import enroute --hidden-import rabbitmq_cache.messaging.file_list ../src/$@.py
 	echo $@	>> spec_list
 
 $(CRON_LIST): $$@
 	pyi-makespec --specpath specs --hidden-import enroute ../src/$@.py
 	echo $@	>> spec_list
 $(MISC_LIST): $$@
+	pyi-makespec --specpath specs --hidden-import enroute ../src/$@.py
+	echo $@ >> spec_list
+$(XML2DDL): $$@
 	pyi-makespec --specpath specs --hidden-import enroute ../src/$@.py
 	echo $@ >> spec_list
 
@@ -276,10 +282,19 @@ $(EXT_DISTR): $$@
 	pyi-makespec --specpath specs --hidden-import enroute ../external_distr/$@.py
 	echo $@	>> spec_list
 $(MOVER):
-	pyi-makespec --specpath specs --hidden-import enroute --hidden-import media_changer --hidden-import cpio_odc_wrapper --hidden-import cern_wrapper --hidden-import null_wrapper ../src/mover.py
+	pyi-makespec --specpath specs --hidden-import enroute --hidden-import media_changer --hidden-import cpio_odc_wrapper --hidden-import cern_wrapper --hidden-import null_wrapper --hidden-import ftt ../src/mover.py
 	echo mover >> spec_list
+$(LM_DIRECTOR):
+	pyi-makespec --specpath specs --hidden-import enroute ../src/lm_director.py
+	echo lm_director >> spec_list
+$(DISPATCHER):
+	pyi-makespec --paths ../src/rabbitmq_cache/servers --paths ../src/rabbitmq_cache/messaging --paths ../src/rabbitmq_cache/en_logging --specpath specs --hidden-import enroute --hidden-import rabbitmq_cache.servers.migration_dispatcher --hidden-import rabbitmq_cache.servers.mw --hidden-import rabbitmq_cache.messaging.pe_client --hidden-import rabbitmq_cache.messaging.mw_client --hidden-import rabbitmq_cache.messaging.file_list --hidden-import rabbitmq_cache.messaging.client --hidden-import rabbitmq_cache.en_logging.en_logging ../src/rabbitmq_cache/servers/dispatcher.py
+	echo dispatcher >> spec_list
+$(MIGRATOR):
+	pyi-makespec --paths ../src/rabbitmq_cache/servers --paths ../src/rabbitmq_cache/messaging --paths ../src/rabbitmq_cache/en_logging --specpath specs --hidden-import enroute --hidden-import rabbitmq_cache.servers.migration_dispatcher --hidden-import rabbitmq_cache.servers.mw --hidden-import rabbitmq_cache.messaging.pe_client --hidden-import rabbitmq_cache.messaging.mw_client --hidden-import rabbitmq_cache.messaging.file_list --hidden-import rabbitmq_cache.messaging.client --hidden-import rabbitmq_cache.en_logging.en_logging ../src/rabbitmq_cache/servers/migrator.py
+	echo migrator >> spec_list
 
-spec_files: $(FULL_SERVER_LIST) $(MOVER) $(FULL_CLIENT_LIST) $(MISC_LIST) $(CRON_LIST) $(SBIN) $(TOOLS) $(EXT_DISTR)
+spec_files: $(FULL_SERVER_LIST) $(MOVER) $(LM_DIRECTOR) $(DISPATCHER) $(MIGRATOR) $(FULL_CLIENT_LIST) $(MISC_LIST) $(CRON_LIST) $(SBIN) $(BIN) $(TOOLS) $(EXT_DISTR) $(XML2DDL)
 
 clear_spec_files:
 	$(RM) spec_list

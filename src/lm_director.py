@@ -178,6 +178,8 @@ class LMD(dispatching_worker.DispatchingWorker,
             exc, msg, tb = sys.exc_info()
             Trace.handle_error(exc, msg, tb)
             del (tb)
+            result['status'] = (e_errors.ERROR, 'See log file')
+            return result
 
         Trace.trace(10, "lmd_decision2 rc=%s lm=%s" % (rc, new_library,))
         if rc:

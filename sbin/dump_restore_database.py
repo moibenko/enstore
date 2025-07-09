@@ -146,8 +146,8 @@ def restore_database(dbname, dbuser, dbport, backup_file):
     return os.system(cmd)
 
 
-def help():
-    txt = "usage %prog [options] database_name ["
+def help(prog):
+    txt = "{} [options] database_name [".format(prog)
     for db in name_to_servermap.keys():
         txt = txt + db + ", "
     txt = txt[:-2]

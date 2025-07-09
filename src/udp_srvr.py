@@ -6,6 +6,7 @@
 
 from __future__ import print_function
 import socket
+import sys
 import dispatching_worker
 
 
@@ -13,9 +14,12 @@ class Server(dispatching_worker.DispatchingWorker):
 
     def __init__(self):
         self.hostname = socket.gethostname()
-        print("host", self.hostname, "port", 6700)
+        port = 6700
+        if len(sys.argv) > 0:
+            port = int(sys.argv[1])
+        print("host", self.hostname, "port", port)
         dispatching_worker.DispatchingWorker.__init__(self, (self.hostname,
-                                                             6700))
+                                                             port))
 
     def echo(self, ticket):
         print("received %s len %s" % (ticket, len(ticket)))

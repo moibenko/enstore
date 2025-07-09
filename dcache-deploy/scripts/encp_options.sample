@@ -1,0 +1,9 @@
+# Additional encp options to use in real-encp.sh
+# Use this file with accuracy.
+# Before adding options here, consult with real-encp.sh to check what options are already set there. 
+# 
+# Put legal encp options here ether like
+# --file-family-width 5 --file-family my_ff
+# or
+# --file-family-width 5
+# --file-family my_f

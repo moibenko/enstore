@@ -15,6 +15,8 @@ import log_client
 import e_errors
 import cleanUDP
 import enstore_functions2
+import generic_server
+import configuration_client
 
 DEFAULT_PORT = enstore_constants.EVENT_RELAY_PORT
 heartbeat_interval = enstore_constants.EVENT_RELAY_HEARTBEAT
@@ -218,9 +220,18 @@ class Relay(object):
                         self.ev_print("    ERROR: unknown")
                         self.handle_error(addr, msg)
 
+class RelayInterface(generic_server.GenericServerInterface):
+    pass
+
 
 if __name__ == "__main__":   # pragma: no cover
+    intf = RelayInterface()
+    csc = configuration_client.ConfigurationClient((intf.config_host, intf.config_port))
+    myconf = csc.get(my_name)
     print("EVENT RELAY STARTING")
-    R = Relay()
+    if myconf and isinstance(myconf, dict):
+        R = Relay(my_port=int(myconf['port']))
+    else:
+        R = Relay()
     #R.do_print({'levels':range(5, 400)})
     R.mainloop()

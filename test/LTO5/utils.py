@@ -1,22 +1,26 @@
 #!/usr/bin/env python
 
-import time
-import sys
-import os
-import threading
-import subprocess
-import socket
-import uuid
-import random
-import pnfs
-
-import ConfigParser
-
-import configuration_client
+from __future__ import print_function
 import enstore_functions2
+import configuration_client
+import configparser
+import pnfs
+import random
+import uuid
+import socket
+import subprocess
+import threading
+import os
+import sys
+import time
+from builtins import range
+from future import standard_library
+standard_library.install_aliases()
+
 
 print_lock = threading.Lock()
-STOP_FILE="/tmp/STOP"
+STOP_FILE = "/tmp/STOP"
+
 
 def print_wrapper(func):
     print_lock.acquire()
@@ -25,45 +29,76 @@ def print_wrapper(func):
     finally:
         print_lock.release()
 
+
 def check_stop_file():
     if os.path.exists(STOP_FILE):
-        print_message("Found %s file, Stopping ..."%(STOP_FILE,))
+        print_message("Found %s file, Stopping ..." % (STOP_FILE,))
         return True
     return False
 
+
 def log(text):
-    sys.stdout.write(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(time.time()))+" : " +threading.current_thread().getName()+" : " +text+"\n")
+    sys.stdout.write(
+        time.strftime(
+            "%Y-%m-%d %H:%M:%S",
+            time.localtime(
+                time.time())) +
+        " : " +
+        threading.current_thread().getName() +
+        " : " +
+        text +
+        "\n")
     sys.stdout.flush()
 
+
 def e_log(text):
-    sys.stderr.write(time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(time.time()))+" : " +threading.current_thread().getName()+" : "+text+"\n")
+    sys.stderr.write(
+        time.strftime(
+            "%Y-%m-%d %H:%M:%S",
+            time.localtime(
+                time.time())) +
+        " : " +
+        threading.current_thread().getName() +
+        " : " +
+        text +
+        "\n")
     sys.stderr.flush()
+
 
 def print_message(txt):
     print_wrapper(log(txt))
 
+
 def print_error(txt):
     print_wrapper(e_log(txt))
 
+
 def execute_command(cmd):
-    p = subprocess.Popen(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
+    p = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=True)
     output, errors = p.communicate()
-    rc=p.returncode
+    rc = p.returncode
     if rc:
-        print_error("Command \"%s\" failed: rc=%d, error=%s"%(cmd,rc,errors.replace('\n',' ')))
-        if errors.find("Stale NFS file handle") != -1 :
-            print_error("Retrying in 10 seconds");
+        print_error("Command \"%s\" failed: rc=%d, error=%s" %
+                    (cmd, rc, errors.replace('\n', ' ')))
+        if errors.find("Stale NFS file handle") != -1:
+            print_error("Retrying in 10 seconds")
             time.sleep(10)
-            rc=0
-        elif errors.find("File exists: Layer 1 and layer 4 are already set") != -1 :
-            print_error("Retrying in 10 seconds");
+            rc = 0
+        elif errors.find("File exists: Layer 1 and layer 4 are already set") != -1:
+            print_error("Retrying in 10 seconds")
             time.sleep(10)
-            rc=0
+            rc = 0
     return rc
 
+
 def create_source(name):
-    sz=random.gauss(5120.,1024.)
-    return execute_command("./createfile %f %s"%(sz,name))
+    sz = random.gauss(5120., 1024.)
+    return execute_command("./createfile %f %s" % (sz, name))
+
 
 def set_tags(dirname,
              library,
@@ -74,98 +109,110 @@ def set_tags(dirname,
     p.set_file_family(file_family, dirname)
     p.set_file_family_width(file_family_width, dirname)
 
+
 def execute(l, func, i, job_config):
     try:
-        func(i,job_config)
+        func(i, job_config)
     finally:
         l.acquire()
         l.notifyAll()
         l.release()
 
-def do_proceed() :
+
+def do_proceed():
     return not os.path.exists(STOP_FILE)
 
 
-def main(func,number_of_threads):
+def main(func, number_of_threads):
     job_config = {}
-    cp = ConfigParser.ConfigParser()
+    cp = configparser.ConfigParser()
     cp.read('lto5.cf')
-    path=cp.get('io','pnfs_path','/pnfs/data1/test/litvinse/NULL')
-    job_config['storage_group']         = cp.get('general','storage_group','none')
-    job_config['pnfs_path']             = path
-    job_config['number_of_full_passes'] = int(cp.get('full_pass_test','number_of_full_passes',10))
-    job_config['number_of_days'] = int(cp.get('random_read_test','number_of_days',20))
-    job_config['number_of_mounts']      = int(cp.get('mount_dismount_test','number_of_mounts',8000))
-    job_config['read_movers']           = cp.get('random_read_test','read_movers').split(',')
-    job_config['mount_movers']          = cp.get('mount_dismount_test','mount_movers').split(',')
+    path = cp.get('io', 'pnfs_path', '/pnfs/data1/test/litvinse/NULL')
+    job_config['storage_group'] = cp.get('general', 'storage_group', 'none')
+    job_config['pnfs_path'] = path
+    job_config['number_of_full_passes'] = int(
+        cp.get('full_pass_test', 'number_of_full_passes', 10))
+    job_config['number_of_days'] = int(
+        cp.get('random_read_test', 'number_of_days', 20))
+    job_config['number_of_mounts'] = int(
+        cp.get('mount_dismount_test', 'number_of_mounts', 8000))
+    job_config['read_movers'] = cp.get(
+        'random_read_test', 'read_movers').split(',')
+    job_config['mount_movers'] = cp.get(
+        'mount_dismount_test',
+        'mount_movers').split(',')
 
-    hostname=socket.gethostname().split('.')[0]
-    csc   = configuration_client.ConfigurationClient((enstore_functions2.default_host(),
-                                                      enstore_functions2.default_port()))
+    hostname = socket.gethostname().split('.')[0]
+    csc = configuration_client.ConfigurationClient((enstore_functions2.default_host(),
+                                                    enstore_functions2.default_port()))
     #
     # find library running on this host
     #
-    lms=csc.get_library_managers()
-    library=None
-    library_manager=None
-    for name, lm in lms.iteritems():
+    lms = csc.get_library_managers()
+    library = None
+    library_manager = None
+    for name, lm in lms.items():
         lm_host = lm.get('address')[0].split('.')[0]
-        if lm_host == hostname and name != 'LTO3' and name != 'null2' :
+        if lm_host == hostname and name != 'LTO3' and name != 'null2':
             library = name
             library_manager = lm
             break
 
     if not library:
-        print_error("LM is not running on host %s. Quitting."%(hostname))
+        print_error("LM is not running on host %s. Quitting." % (hostname))
         sys.exit(1)
 
     if os.path.exists(STOP_FILE):
         os.unlink(STOP_FILE)
 
-    job_config['library']=library
-    job_config['hostname']=hostname
-    job_config['database'] =csc.get("database", {})
-    job_config['csc']=csc
+    job_config['library'] = library
+    job_config['hostname'] = hostname
+    job_config['database'] = csc.get("database", {})
+    job_config['csc'] = csc
 
     #
     # find mover running on this host
     #
-    mover_list=csc.get_movers(library_manager.get('name'))
-    if len(mover_list) == 0 :
-        print_error("No movers associated with %s"%(library_manager.get('name')))
+    mover_list = csc.get_movers(library_manager.get('name'))
+    if len(mover_list) == 0:
+        print_error(
+            "No movers associated with %s" %
+            (library_manager.get('name')))
         sys.exit(1)
     mover = None
     for m in mover_list:
         m_host = socket.gethostbyaddr(m.get('address')[0])[0].split('.')[0]
-        if m_host == hostname :
+        if m_host == hostname:
             mover = m
             break
-    if not mover :
-         print_error("No movers associated with %s on this host %s"%(library_manager.get('name'),hostname))
-         sys.exit(1)
+    if not mover:
+        print_error(
+            "No movers associated with %s on this host %s" %
+            (library_manager.get('name'), hostname))
+        sys.exit(1)
     #
     # get info about the mover
     #
     mover_info = csc.get(mover.get('mover'))
     mover_info.update(mover)
 
-    job_config['mover']=mover_info
+    job_config['mover'] = mover_info
 
-    print job_config
+    print(job_config)
 
-    lock=threading.Condition(threading.Lock())
-    returns={}
+    lock = threading.Condition(threading.Lock())
+    returns = {}
 
     for num in range(number_of_threads):
-        t=threading.Thread(target=execute, args=(lock, func,num, job_config),
-                           name="Thread-%d"%(num,), kwargs={})
+        t = threading.Thread(target=execute, args=(lock, func, num, job_config),
+                             name="Thread-%d" % (num,), kwargs={})
         t.start()
 
     while True:
         lock.acquire()
         lock.wait(60)
-        if  threading.activeCount() <= 1 : break
+        if threading.activeCount() <= 1:
+            break
         lock.release()
 
     sys.exit(0)
-

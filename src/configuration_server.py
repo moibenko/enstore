@@ -41,13 +41,14 @@ import callback
 import udp_client
 import host_config
 import delete_at_exit
+import ports_to_use
 
 MY_NAME = enstore_constants.CONFIGURATION_SERVER  # "CONFIG_SERVER"
 SEQUENTIAL_QUEUE_SIZE = enstore_constants.SEQUENTIAL_QUEUE_SIZE
 PARALLEL_QUEUE_SIZE = enstore_constants.PARALLEL_QUEUE_SIZE
 MAX_THREADS = enstore_constants.MAX_THREADS
 
-configdict = {} # define as global, otherwise exec in Pyhton 3 does not work 
+configdict = {} # define as global, otherwise exec in Pyhton 3 does not work
 
 class ConfigurationDict(object):
     """
@@ -491,6 +492,9 @@ class ConfigurationServer(ConfigurationDict, dispatching_worker.DispatchingWorke
         :arg configfile: configuration file
         """
 
+        # set udp client to send alarms
+        port_range = ports_to_use.get_ports()
+        self.udpc = udp_client.UDPClient(port_range=port_range)
         # make a configuration dictionary
         ConfigurationDict.__init__(self)
         # load the config file user requested
@@ -782,10 +786,8 @@ class ConfigurationServer(ConfigurationDict, dispatching_worker.DispatchingWorke
         ticket['text'] = args
         log_msg = "%s, %s (severity : %s)"%(root_error, args, severity)
 
-        u = udp_client.UDPClient()
-
         #u.send(ticket, alarm_server, rcv_timeout=10)
-        u.send_no_wait(ticket, alarm_server)
+        self.udpc.send_no_wait(ticket, alarm_server)
 
         # send e-mail
         # stolen from operation.py

@@ -27,6 +27,7 @@ import enstore_constants
 import enstore_functions2
 import callback
 import hostaddr
+import ports_to_use
 
 # Receive defaults
 DEFAULT_TIMEOUT = 0
@@ -137,7 +138,8 @@ class GenericClient(object):
 
     def __init__(self, csc, name, server_address=None, flags=0, logc=None,
                  alarmc=None, rcv_timeout=DEFAULT_TIMEOUT,
-                 rcv_tries=DEFAULT_TRIES, server_name=None):
+                 rcv_tries=DEFAULT_TRIES, server_name=None,
+                 port_range=None):
         """Sets up server information
         Parameters
         ----------
@@ -156,18 +158,24 @@ class GenericClient(object):
             Max receive retries
         server_name: string, optional
             Human-readable server name
+        port_range - min, max list of client (self) ports
 
         Returns
         -------
         None
         """
         # import pdb; pdb.set_trace()
+        # check if port_range is defined
+        if not port_range:
+            # try to get from environment variable
+            port_range = ports_to_use.get_ports()
+
         self.name = name  # Abbreviated client instance name
         # try to make it capital letters
         # not more than 8 characters long.
         if not flags & enstore_constants.NO_UDP and not self.__dict__.get(
                 'u', 0):
-            self.u = udp_client.UDPClient()
+            self.u = udp_client.UDPClient(port_range=port_range)
 
         # self.__dict__.get('is_config', 0):
         if name == enstore_constants.CONFIGURATION_CLIENT:

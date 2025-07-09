@@ -1,9 +1,4 @@
-#!/bin/bash
-# $Id$
-# specify bash not sh to run on SunOS
-# Fermilab internal enstore system use ups / upd product installation and setup
-# utilities
-# outside fermilab we do not have this environment
+#!/usr/bin/sh
 # this is to replace the functionality, provided by corresponding utility that uses ups/upd
 # the default place os this utility is /usr/local/etc/setups.sh
 # fakes setup function for products enstore, python and ftt for anything else uses ups

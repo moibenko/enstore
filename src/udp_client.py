@@ -15,6 +15,7 @@ import time
 import os
 import errno
 import sys
+import random
 try:
     import threading
     import _thread
@@ -62,20 +63,46 @@ class UDPClient(object):
     UDP client
     """
 
-    def __init__(self):
+    def __init__(self, receiver_ip=None, port_range=None):
+        '''
+        port range
+        set of min port #, max port # to select port number from
+        '''
 
         self.thread_specific_data = threading.local()  # Thread-specific data
+        self.reinit(receiver_ip, port_range)
 
-        self.reinit()
-
-    def reinit(self, receiver_ip=None):
+    def reinit(self, receiver_ip=None, port_range=None):
         """
         Create new set of TSD parameters
         """
         # Obtain necessary values.
         pid = os.getpid()
-        host, port, socket = udp_common.get_default_callback(
-            receiver_ip=receiver_ip)
+        cnt = 0
+        failure = False
+        while cnt < 1000:
+            if port_range:
+                inport = random.randint(min(port_range), max(port_range))
+            else:
+                inport = 0
+            try:
+                host, port, socket = udp_common.get_default_callback(
+                    use_port=inport,
+                    receiver_ip=receiver_ip)
+                break
+            except Exception as e:
+                if inport == 0:
+                    failure = e
+                    break
+                else:
+                    cnt += 1
+                    if cnt > 1000:
+                        failure = e
+                        break
+        if failure:
+            Trace.log(e_errors.ERROR, "Can not get port for socket {}".format(failure))
+            raise sys.exc_info()
+
         if thread_support:
             tid = _thread.get_ident()  # Obtain unique identifier.
         else:
@@ -438,7 +465,6 @@ class UDPClient(object):
         # Make the target a list of txn_id to consider.
         if not isinstance(txn_ids, list):
             txn_ids = [txn_ids]
-
         tsd = self.get_tsd()
         for txn_id in txn_ids:
             if txn_id in tsd.reply_queue:
@@ -635,9 +661,9 @@ if __name__ == "__main__":   # pragma: no cover
         global status
 
         tsd = udp_c.get_tsd()
-
+        cur_thread = threading.current_thread()
         print("Sending message %s to %s in %s thread using callback %s."
-              % (msg, address, threading.current_thread().getName(), (tsd.host, tsd.port)))
+              % (msg, address, cur_thread.name, (tsd.host, tsd.port)))
 
         try:
             if "deferred" in sys.argv:
@@ -686,15 +712,17 @@ if __name__ == "__main__":   # pragma: no cover
 
     # get a UDP client
     u = UDPClient()
+    cur_thread = threading.current_thread()
     print(
         "Default client callback for %s thread: %s" %
-        (threading.current_thread().getName(), (u.get_tsd().host, u.get_tsd().port)))
+        (cur_thread.name, (u.get_tsd().host, u.get_tsd().port)))
     message = {'message': "TEST MESSAGE"}
     # To test big data transfers consider the following:
     # data = open("big_text_file", "r").readlines() where big_text_file size is < enstore_constants.MAX_UDP_PACKET_SIZE,
     # and > 16KB
     # message = {'message':data}
     address = ("localhost", 7700)
+    address = (sys.argv[1], int(sys.argv[2]))
     Trace.do_print([5, 6, 10])
 
     test_thread = threading.Thread(target=send_test,

@@ -6,5 +6,5 @@ if [ "${1:-}" = "-x" ] ; then set -xv; shift; fi
 source $ENSTORE_DIR/sbin/krb5_ticket_sourceme
 
 get_krb5_ticket
-$ENSTORE_DIR/src/cache/servers/migrator.py $1
+$ENSTORE_DIR/src/rabbitmq_cache/servers/migrator.py $1
 destroy_krb5_ticket

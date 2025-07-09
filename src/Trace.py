@@ -135,7 +135,7 @@ def get_threadname():
     # thread_lock.acquire()
     if include_threadname:
         thread = threading.current_thread()
-        th_name = thread.getName()
+        th_name = thread.name
     else:
         th_name = ""
     # thread_lock.release()
@@ -508,9 +508,9 @@ def format_trace_message(severity, raw_message):
     tm = b.join(a)
     new_msg = raw_message
     if include_threadname:
-        thread = threading.currentThread()
+        thread = threading.current_thread()
         if thread:
-            th_name = thread.getName()
+            th_name = thread.name
         else:
             th_name = ''
     else:

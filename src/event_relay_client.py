@@ -14,13 +14,15 @@ import socket
 import os
 import sys
 import select
+import random
 
 import enstore_erc_functions
 import event_relay_messages
 import enstore_constants
 import e_errors
 import host_config
-
+import ports_to_use
+import Trace
 import inspect
 
 DEFAULT_PORT = 55510
@@ -117,13 +119,59 @@ def set_max_recv_buffersize(sock):
 
         current_size = int(current_size / 2.0)
 
+# stolen from callback.py
+def get_callback(ip=None, ports=None):
+    '''
+    ip - ip to communicate on
+    ports - list of of ports to select and bind to
+    '''
+    config = host_config.get_config()
+    if ip is None:
+        if config:
+            ip = config.get('hostip')
+        if not ip:
+            ip = host_config.get_default_interface_ip()
+    address_family = socket.getaddrinfo(ip, None)[0][0]
+    cnt = 0
+    failure = False
+    if not ports:
+        # try to get port range
+        ports = ports_to_use.get_ports()
+
+    while cnt < 1000:
+        if ports:
+            inport = random.randint(min(ports), max(ports))
+        else:
+            inport = 0
+        s = socket.socket(address_family, socket.SOCK_DGRAM)
+        try:
+            s.bind((ip, inport))
+            break
+        except Exception as e:
+            Trace.log(e_errors.WARNING, 'port {} in use. Retrying'.format(inport))
+            if inport == 0:
+                failure = e
+                break
+            else:
+                Trace.log(e_errors.WARNING, 'port {} in use: {}. Retrying'.format(inport, e))
+                cnt += 1
+                s.close()
+                if cnt > 1000:
+                    failure = e
+                    break
+    if failure:
+        Trace.log(e_errors.ERROR, "Can not get port for socket {}".format(failure))
+        raise sys.exc_info()
+    host, port = s.getsockname()[0:2]
+    return host, port, s
+
 
 class EventRelayClient(object):
 
     SUCCESS = 1
     ERROR = 0
 
-    def setup(self, sock=None):
+    def setup(self, sock=None, event_relay_host=None, event_relay_port=None):
         self.invalid = 0
         self.error_msg = ""
         if sock:
@@ -131,12 +179,16 @@ class EventRelayClient(object):
         else:
             self.sock = None
             try:
+                self.host, self.port, self.sock = get_callback()
+                """
                 default_ip = host_config.get_default_interface_ip()
+
                 address_family = socket.getaddrinfo(default_ip, None)[0][0]
                 self.sock = socket.socket(address_family, socket.SOCK_DGRAM)
+                """
                 set_max_recv_buffersize(self.sock)
                 # default_ip = host_config.get_default_interface_ip()
-                self.sock.bind((default_ip, 0))    # let the system pick a port
+                #self.sock.bind((default_ip, 0))    # let the system pick a port
             except socket.error as msg:
                 # this can happen rarely, it can mean too many open files
                 self.invalid = 1
@@ -145,24 +197,25 @@ class EventRelayClient(object):
                     self.sock.close()
                 return self.ERROR
 
-        self.addr = self.sock.getsockname()
-        self.host = self.addr[0]
-        self.port = self.addr[1]
+        #self.addr = self.sock.getsockname()
+        #self.host = self.addr[0]
+        #self.port = self.addr[1]
         self.subscribe_time = 0
         self.notify_msg = None
         self.unsubscribe_msg = None
 
         # get the address of the event relay process.
-        import configuration_client
-        if not self.event_relay_host:
+        if not event_relay_host:
+            import configuration_client
             self.csc = configuration_client.ConfigurationClient()
-            self.event_relay_host = get_event_relay_host(self.csc)
-            if not self.event_relay_host:
+            host, port =  get_event_relay_addr(self.csc)
+            if host:
+                self.event_relay_host = host
+                self.event_relay_port = int(port)
+            else:
                 self.event_relay_host = os.environ.get(
                     "ENSTORE_CONFIG_HOST", "")
-        if not self.event_relay_port:
-            # try to get it from the config file
-            self.event_relay_port = DEFAULT_PORT
+                self.event_relay_port = DEFAULT_PORT
         self.event_relay_addr = (self.event_relay_host, self.event_relay_port)
         self.invalid = 0
         return self.SUCCESS
@@ -196,7 +249,7 @@ class EventRelayClient(object):
             self.do_select_fd = 0
         else:
             self.do_select_fd = 1
-        self.setup(sock)
+        self.setup(sock, event_relay_host=self.event_relay_host, event_relay_port=self.event_relay_port)
 
     # return fileno for socket.select() processing.
     def fileno(self):
@@ -215,7 +268,7 @@ class EventRelayClient(object):
     def start(self, subscribe_msgs=None, resubscribe_rate=600, sock=None):
         if self.invalid:
             # we could not bind to a socket, try again.
-            self.setup(sock)
+            self.setup(sock, event_relay_host=self.event_relay_host, event_relay_port=self.event_relay_port)
             if self.invalid:
                 # nope, didn't work
                 return self.ERROR

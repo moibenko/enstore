@@ -66,7 +66,7 @@ for entry in entries:
     ell = f_entry['location_cookie'].split('_')
     l = len(ell[1])
     ell[1] = '0' * l
-    new_cookie ='_' 
+    new_cookie ='_'
     new_cookie = new_cookie.join(tuple(ell))
     print("changing location cookie for %s. Was:%s. Will be:%s" %
           (entry['file'], f_entry['location_cookie'], new_cookie))

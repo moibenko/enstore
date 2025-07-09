@@ -534,7 +534,7 @@ def thread_is_running(thread_name):
 
     threads = threading.enumerate()
     for thread in threads:
-        if ((thread.getName() == thread_name) and thread.is_alive()):
+        if ((thread.name == thread_name) and thread.is_alive()):
             return True
     else:
         return False

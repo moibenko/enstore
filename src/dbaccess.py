@@ -274,6 +274,7 @@ class DatabaseAccess(object):
             db.close()
             return res
         except psycopg2.Error as msg:
+            Trace.log(e_errors.ERROR, "DBACC ERR {}".format(msg))
             try:
                 if db:
                     db.rollback()

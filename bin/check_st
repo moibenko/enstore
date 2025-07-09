@@ -1,0 +1,39 @@
+#!/bin/sh
+# In AL9 st driver was modified so that it returns Input/output error after it is loaded
+# This script attempts to fix this problem until st module is fixed
+
+#set -u  # force better programming and ability to use check for not set
+if [ "${1:-}" = "-x" ] ; then set -xv; shift; fi
+if [ "`whoami`" != "root" ]; then
+    echo "Must be root to run this script"
+    exit 1
+fi
+echo "Checking for tape devices"
+lsscsi -g | grep tape
+if [ $? -ne 0 ]; then
+   echo "No tape devices were found"
+   exit 1
+fi
+echo "Checking st version"
+#modinfo st | grep rhelversion | while read i; do echo " aaa ${i} aaaa";done
+RH_VERSION=`modinfo st | grep rhelversion | awk '{print $2}' | awk -F '.' '{print $1}'`
+echo "OS version ${RH_VERSION}"
+if [ ${RH_VERSION} -ne "9" ]; then
+    echo "Will not make any actions"
+    exit 0
+fi
+i=0
+while [ $i -le 5 ]; do
+    echo "Checking nst devices"
+    sg_map 2>&1 | grep "device /dev/nst" | grep "Input/output error"
+    if [ $? -ne 0 ]; then
+	echo "No action is needed"
+	exit 0
+    fi
+    echo "Reloadig st driver"
+    rmmod st
+    modprobe st
+    let i=i+1
+done
+exit 1
+

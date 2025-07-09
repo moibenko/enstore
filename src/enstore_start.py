@@ -27,6 +27,7 @@ import pwd
 import time
 import subprocess
 import select
+import signal
 
 # enstore imports
 import setpath
@@ -241,7 +242,7 @@ def is_in_cluster():
     # directly.
     if os.environ['ENSTORE_CONFIG_HOST'] in this_host():
         # do not know why, but sometimes enstore_functions.get_config_dict() returns dict istead of object
-        # so instead of just doing 
+        # so instead of just doing
         # conf_dict = enstore_functions.get_config_dict().configdict
         # do the following
         conf_dict = enstore_functions.get_config_dict()
@@ -270,7 +271,8 @@ def is_in_cluster():
 def start_server(cmd, servername):
     cmd_list = cmd.split()
 
-    if (os.fork() == 0):
+    pid = os.fork()
+    if pid == 0:
         # Is the child.
 
         # Send stdout and strerr to the output file.
@@ -301,7 +303,14 @@ def start_server(cmd, servername):
             #    #subprocess.Popen(cmd_list, stdout=fd)
         else:
             os.execvp(cmd_list[0], cmd_list)
-        
+    else:
+        # parent process
+        if any (s in cmd for s in ('media_changer', 'mover')):
+            time.sleep(3)
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except Exception as e:
+                pass
 
 # If the system is in a production cluster make in run as user enstore
 # if possible.

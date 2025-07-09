@@ -833,7 +833,7 @@ def vol_labels(vol_label, ticket={}, own_id=OWNER):
     uvl1 = UVL1()
     uvl2 = UVL2(ticket.get(DECLARATION_DATE, -1),
                 ticket.get(VOLUME_FAMILY, " "))
-    return "%s%s%s" % (vol1, uvl1, uvl2)
+    return ("{}{}{}".format(vol1, uvl1, uvl2)).encode()
 
 
 if __name__ == "__main__":   # pragma: no cover

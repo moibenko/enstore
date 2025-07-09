@@ -30,6 +30,7 @@ GNUPLOT_HEADER = """
          set title \"{} {}\"
          set xrange [ : ]
          set size 1.5,1
+         set colorsequence classic
          set grid
          set ylabel \"{}\"
          set xlabel \"{}\"

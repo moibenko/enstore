@@ -56,6 +56,7 @@ import cleanUDP
 import udp_common
 import checksum
 import file_cache_status
+import ports_to_use
 
 KB = enstore_constants.KB
 MB = enstore_constants.MB
@@ -118,7 +119,7 @@ def thread_is_running(thread_name):
 
     threads = threading.enumerate()
     for thread in threads:
-        if ((thread.getName() == thread_name) and thread.is_alive()):
+        if ((thread.name == thread_name) and thread.is_alive()):
             return True
     else:
         return False
@@ -1196,9 +1197,10 @@ class LibraryManagerMethods(object):
             # the following insertion is for antispoofing
             if 'route_selection' in ticket and ticket['route_selection']:
                 ticket['mover_ip'] = host
+                port_range = ports_to_use.get_ports()
                 # bind control socket to data ip
                 control_socket.bind((host, 0))
-                u = udp_client.UDPClient()
+                u = udp_client.UDPClient(port_range=port_range)
                 Trace.trace(self.trace_level + 10, "sending IP %s to %s" %
                             (host, ticket['routing_callback_addr']))
                 try:
@@ -1673,9 +1675,8 @@ class LibraryManagerMethods(object):
         :rtype: :obj:`dict` {'status': :obj:`tuple` (:obj:`str` - status, :obj:`None`)}
         """
 
-        Trace.trace(
-    self.trace_level + 2, 'is_vol_available %s' %
-     (self.known_volumes,))
+        Trace.trace(self.trace_level + 2, 'is_vol_available %s' %
+                    (self.known_volumes,))
         # is this mover, volume in suspect mover list?
         if mover is not None:
             suspect_v, suspect_mv = self.is_mover_suspect(mover, label)
@@ -1695,9 +1696,8 @@ class LibraryManagerMethods(object):
                 ret_stat = (record["system_inhibit"][0], None)
             else:
                 if work == 'read_from_hsm':
-                    Trace.trace(
-    self.trace_level + 2,
-     "is_vol_available: reading")
+                    Trace.trace(self.trace_level + 2,
+                                "is_vol_available: reading")
                     # if system_inhibit is NOT in one of the following
                     # states it is NOT available for reading
                     if record['system_inhibit'][0] != 'none' and \
@@ -1716,9 +1716,8 @@ class LibraryManagerMethods(object):
                     else:
                         ret_stat = (e_errors.OK, None)
                 elif work == 'write_to_hsm':
-                    Trace.trace(
-    self.trace_level + 2,
-     "is_vol_available: writing")
+                    Trace.trace(self.trace_level + 2,
+                                "is_vol_available: writing")
                     if record['system_inhibit'][0] != 'none':
                         ret_stat = (record['system_inhibit'][0], None)
                     elif enstore_functions2.is_migration_state(record['system_inhibit'][1]):
@@ -1753,10 +1752,10 @@ class LibraryManagerMethods(object):
                 else:
                     ret_stat = (e_errors.UNKNOWN, None)
                 Trace.trace(
-    self.trace_level + 2, "is_vol_available: ret2 %s" %
-     (ret_stat,))
+                    self.trace_level + 2, "is_vol_available: ret2 %s" %
+                    (ret_stat,))
                 rticket = {'status': ret_stat}
-            return rticket
+                return rticket
         else:
             self.set_vcc(vol_server_address)
             Trace.trace(self.trace_level + 2,
@@ -4084,7 +4083,8 @@ class LibraryManager(dispatching_worker.DispatchingWorker,
         lock_file.close()
 
     def set_udp_client(self):
-        self.udpc = udp_client.UDPClient()
+        port_range = ports_to_use.get_ports()
+        self.udpc = udp_client.UDPClient(port_range=port_range)
         self.rcv_timeout = 10  # set receive timeout
 
     def access_granted(self, ticket):
@@ -5014,8 +5014,8 @@ class LibraryManager(dispatching_worker.DispatchingWorker,
                 debugging.
                 threads = threading.enumerate()
                 for thread in threads:
-                    if thread.isAlive():
-                        thread_name = thread.getName()
+                    if thread.is_alive():
+                        thread_name = thread.name
                         Trace.trace(5, "active threads: %s"%(thread_name,))
                 """
                 self.postponed_bound_requests.put(mticket)

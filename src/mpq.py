@@ -104,7 +104,7 @@ if __name__ == "__main__":   # pragma: no cover
         So define it here
         """
         return (a > b) - (a < b)
-    
+
     def compare_priority(r1, r2):
         return -cmp(r1.priority, r2.priority)
 

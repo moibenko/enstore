@@ -34,7 +34,10 @@ class LibraryManagerClient(generic_client.GenericClient):
     # '9940.library_manager'.
     def __init__(self, csc, name="", flags=0, logc=None, alarmc=None,
                  rcv_timeout=RCV_TIMEOUT, rcv_tries=RCV_TRIES,
-                 server_address=None):
+                 server_address=None, port_range=None):
+        '''
+        port_range - min, max list of client (self) ports
+        '''
         self.name = name  # This gets clobbered in generic_client???
         self.library_manager = name
         self.log_name = "C_" + name.replace(".library_manager",
@@ -46,7 +49,8 @@ class LibraryManagerClient(generic_client.GenericClient):
                                               rcv_timeout=rcv_timeout,
                                               rcv_tries=rcv_tries,
                                               server_name=name,
-                                              server_address=server_address)
+                                              server_address=server_address,
+                                              port_range=port_range)
         self.send_to = rcv_timeout
         self.send_tries = rcv_tries
         # self.server_address = self.get_server_address(name,

@@ -123,10 +123,10 @@ WHERE f.bfid=fit.bfid
 isSFA = False
 
 try:
-    import cache.messaging.client as qpid_client
+    import rabbitmq_cache.messaging.client as amqp_client
 
     try:
-        import cache.messaging.pe_client as pe_client
+        import rabbitmq_cache.messaging.pe_client as pe_client
 
         isSFA = True
     except ImportError as msg:
@@ -135,7 +135,7 @@ try:
      (str(msg),))
         pass
     try:
-        import cache.en_logging.en_logging
+        import rabbitmq_cache.en_logging.en_logging
     except ImportError as msg:
         Trace.log(
     e_errors.INFO, "Failed to import cache.en_logging.en_logging: %s" %
@@ -1155,7 +1155,7 @@ class FileClerkMethods(FileClerkInfoMethods):
             brand = os.uname()[1].split(".")[0][:2].upper() + 'MS'
             Trace.log(e_errors.INFO,
                       "No brand is found, using '%s'" % (brand,))
-        self.en_qpid_client = None
+        self.en_amqp_client = None
         self.amqp_broker_dict = None
         if isSFA:
             self.amqp_broker_dict = self.csc.get(AMQP_BROKER, None)
@@ -1169,21 +1169,19 @@ class FileClerkMethods(FileClerkInfoMethods):
                     except NameError as msg:
                         # import error already reported
                         pass
-                    fc_queue = "%s; {create: always}" % (
-                        dispatcher_conf['queue_reply'],)
-                    pe_queue = "%s; {create: always}" % (
-                        dispatcher_conf['queue_work'],)
-                    self.en_qpid_client = qpid_client.EnQpidClient((self.amqp_broker_dict['host'],
+                    fc_queue = dispatcher_conf['queue_reply']
+                    pe_queue = dispatcher_conf['queue_work']
+                    self.en_amqp_client = amqp_client.EnAMQPClient((self.amqp_broker_dict['host'],
                                                                     self.amqp_broker_dict['port']),
-                                                                   fc_queue,
-                                                                   pe_queue,
+                                                                   my_queue=fc_queue,
+                                                                   target_queue=pe_queue,
                                                                    authentication=authentication_mechanism)
                     try:
-                        self.en_qpid_client.start()
+                        self.en_amqp_client.start()
                     except:
                         exc, msg = sys.exc_info()[:2]
                         Trace.alarm(e_errors.ALARM,
-                                    "file_clerk failed to start, failed to connect to qpid server, reason: {}".format(
+                                    "file_clerk failed to start, failed to connect to server, reason: {}".format(
                                         str((str(exc), str(msg)))))
                         raise_(sys.exc_info()[0], sys.exc_info()[1], sys.exc_info()[2])
                 else:
@@ -1606,7 +1604,7 @@ class FileClerkMethods(FileClerkInfoMethods):
         # send event to PE
         #
 
-        if self.en_qpid_client:
+        if self.en_amqp_client:
             if "mover_type" in ticket["fc"] and ticket["fc"].get("mover_type") == "DiskMover":
 
                 try:
@@ -1614,7 +1612,7 @@ class FileClerkMethods(FileClerkInfoMethods):
                     record["file_family"] = ticket["vc"]["file_family"]
                     record["wrapper"] = ticket["vc"]["wrapper"]
                     event = pe_client.evt_cache_written_fc(ticket, record)
-                    self.en_qpid_client.send(event)
+                    self.en_amqp_client.send(event)
                 except:
                     ticket["status"] = (str(sys.exc_info()[0]), str(sys.exc_info()[1]))
 
@@ -1825,11 +1823,11 @@ class FileClerkMethods(FileClerkInfoMethods):
         #
         # send event to PE
         #
-        if self.en_qpid_client:
+        if self.en_amqp_client:
             if ticket["fc"].get("mover_type", None) == "DiskMover":
                 event = pe_client.evt_cache_written_fc(ticket, record)
                 try:
-                    self.en_qpid_client.send(event)
+                    self.en_amqp_client.send(event)
                 except:
                     ticket["status"] = (str(sys.exc_info()[0]), str(sys.exc_info()[1]))
 
@@ -1869,10 +1867,10 @@ class FileClerkMethods(FileClerkInfoMethods):
         ticket["fc"]["disk_library"] = record["library"]
         ticket["status"] = (e_errors.OK, None)
 
-        if self.en_qpid_client:
+        if self.en_amqp_client:
             event = pe_client.evt_cache_miss_fc(ticket, record)
             try:
-                self.en_qpid_client.send(event)
+                self.en_amqp_client.send(event)
             except Exception as e:
                 Trace.log(e_errors.ERROR,
                           "open_bitfile: failed to send cache miss event for bfid {} : {}".format(bfid, str(e)))
@@ -1979,10 +1977,10 @@ class FileClerkMethods(FileClerkInfoMethods):
             self.reply_to_caller(ticket)
             return
 
-        if self.en_qpid_client:
+        if self.en_amqp_client:
             event = pe_client.evt_cache_miss_fc(ticket, record)
             try:
-                self.en_qpid_client.send(event)
+                self.en_amqp_client.send(event)
             except:
                 Trace.log(e_errors.ERROR,
                           "open_bitfile_for_package: failed to send cache miss event for bfid {} : {}".format(bfid, str(
@@ -2700,14 +2698,14 @@ class FileClerk(FileClerkMethods, generic_server.GenericServer):
                                                            }
                                                     }, record)
             try:
-                self.en_qpid_client.send(event)
+                self.en_amqp_client.send(event)
                 Trace.log(e_errors.INFO, "Succesfully replayed CACHE_WRITTEN event for %s" % (bfid,))
-            except:
-                Trace.log(e_errors.INFO, "Failed replay CACHE_WRITTEN event for %s" % (bfid,))
-                pass
+            except Exception as e:
+                Trace.log(e_errors.INFO, "Failed replay CACHE_WRITTEN event for %s. Exception %s" % (bfid, e))
+                raise(e)
 
     def replay(self, ticket):
-        if self.en_qpid_client:
+        if self.en_amqp_client:
             func_name = "self." + ticket.get("func")
             func = eval(func_name)
             arg = ticket.get("args")
@@ -2717,7 +2715,7 @@ class FileClerk(FileClerkMethods, generic_server.GenericServer):
             except:
                 ticket["status"] = (str(sys.exc_info()[0]), str(sys.exc_info()[1]))
         else:
-            ticket["status"] = (e_errors.ERROR, "No qpid client defined, check configuration")
+            ticket["status"] = (e_errors.ERROR, "No amqp client defined, check configuration")
         self.reply_to_caller(ticket)
 
     def __check_files_in_transition(self, query, filename):
@@ -2746,7 +2744,11 @@ class FileClerk(FileClerkMethods, generic_server.GenericServer):
                 inq_d = self.csc.get(enstore_constants.INQUISITOR, {})
                 html_dir = inq_d.get("html_file", enstore_files.default_dir)
                 html_host = inq_d.get("host", "localhost")
-                cmd = "$ENSTORE_DIR/sbin/enrcp %s %s:%s" % (f.name, html_host, html_dir)
+                this_host = hostaddr.gethostinfo()
+                if html_host in this_host:
+                    cmd = "/bin/cp {} {}".format(f.name, html_dir)
+                else:
+                    cmd = "$ENSTORE_DIR/sbin/enrcp %s %s:%s" % (f.name, html_host, html_dir)
                 rc = enstore_functions2.shell_command2(cmd)
                 failed = False
                 if rc:

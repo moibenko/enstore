@@ -104,7 +104,7 @@ class EncpRateMultiPlotterModule(enstore_plotter_module.EnstorePlotterModule):
 
         # tape
         plot_fp.write("set origin 0.5,0.0\n")
-        plot_fp.write("set title '%s: driver encp %s rate'\n"
+        plot_fp.write("set title '%s: drive encp %s rate'\n"
                       % (storage_group, direction))
         plot_fp.write("plot '%s' using 1:11 t '' with impulses lw 5\n"
                       % (data_filename,))

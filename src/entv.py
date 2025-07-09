@@ -2123,7 +2123,8 @@ def setup_networking(system_name, intf):
     else:
         # When called from the main thread, after menu selection, set this
         # placeholder for the networking thread to do the setup.
-        if intf.threaded and threading.current_thread().getName() == MAIN_NAME:
+        cur_thread = threading.current_thread()
+        if intf.threaded and cur_thread.name == MAIN_NAME:
             reserve_setup_of_erc(system_name)
             return
 
@@ -2531,7 +2532,7 @@ def create_menubar(menu_defaults, system_defaults, master, intf):
     # by default is to have the BooleanVar variable be a member
     # of the class.  Having it as a local variable does not want to
     # work (though I don't know why that would be).
-    
+
     master.entv_option_menu.add_checkbutton(
         label="Animate",
         indicatoron=tkinter.TRUE,
@@ -2540,9 +2541,9 @@ def create_menubar(menu_defaults, system_defaults, master, intf):
         variable=master.entv_do_animation,
         command=toggle_animation,
     )
-    
+
     master.entv_option_menu.add_separator()
-    
+
     master.entv_option_menu.add_radiobutton(
         label="Connections use client color",
         indicatoron=tkinter.TRUE,
@@ -2550,7 +2551,7 @@ def create_menubar(menu_defaults, system_defaults, master, intf):
         variable=master.connection_color,
         command=toggle_connection_color,
     )
-    
+
     master.entv_option_menu.add_radiobutton(
         label="Connections use library color",
         indicatoron=tkinter.TRUE,
@@ -2558,7 +2559,7 @@ def create_menubar(menu_defaults, system_defaults, master, intf):
         variable=master.connection_color,
         command=toggle_connection_color,
     )
-    
+
     master.entv_option_menu.add_separator()
     master.entv_option_menu.add_radiobutton(
         label="Linear layout",
@@ -2567,7 +2568,7 @@ def create_menubar(menu_defaults, system_defaults, master, intf):
         variable=master.layout,
         command=toggle_layout,
     )
-    
+
     master.entv_option_menu.add_radiobutton(
         label="Circular layout",
         indicatoron=tkinter.TRUE,
@@ -2576,7 +2577,7 @@ def create_menubar(menu_defaults, system_defaults, master, intf):
         command=toggle_layout,
     )
     master.entv_option_menu.add_separator()
-    
+
     master.entv_option_menu.add_checkbutton(
         label="Show Waiting Clients",
         indicatoron=tkinter.TRUE,
@@ -2585,9 +2586,9 @@ def create_menubar(menu_defaults, system_defaults, master, intf):
         variable=master.show_waiting_clients,
         command=toggle_clients,
     )
-    
+
     master.enstore_systems_enabled = {}
-    
+
     for system_name, on_off in list(system_defaults.items()):
         master.enstore_systems_enabled[system_name] = tkinter.BooleanVar()
         master.enstore_systems_enabled[system_name].set(on_off)
@@ -2599,9 +2600,9 @@ def create_menubar(menu_defaults, system_defaults, master, intf):
             variable=master.enstore_systems_enabled[system_name],
             command=toggle_systems_enabled,
         )
-    
+
     master.enstore_library_managers_enabled = {}
-    
+
     # Added the menus to there respective parent widgets.
     master.entv_menubar.add_cascade(label="options",
                                     menu=master.entv_option_menu)
@@ -2617,13 +2618,14 @@ def create_menubar(menu_defaults, system_defaults, master, intf):
                                         menu=master.enstore_systems_menu)
     master.entv_menubar.add_cascade(label="library managers",
                                     menu=master.enstore_library_managers_menu)
-    
+
     master.config(menu=master.entv_menubar)
 
 def add_library_managers_to_menu(
         system_name, library_manager_defaults, display):
+    cur_thread = threading.current_thread()
     for lm, on_off in list(library_manager_defaults.items()):
-        if threading.current_thread().getName() == MAIN_NAME:
+        if  cur_thread.name == MAIN_NAME:
             # If this function is called from the main thread, we need to
             # update the display directly.
             command_list = ["menu", "library_managers", lm, str(on_off)]
@@ -2878,7 +2880,8 @@ def main(intf):
     global old_messages_id
 
     # Setup trace levels with thread names.
-    threading.currentThread().setName(MAIN_NAME)
+    cur_thread = threading.current_thread()
+    cur_thread.name = MAIN_NAME
     Trace.init("ENTV", True)
     for x in range(0, intf.verbose + 1):
         Trace.do_print(x)

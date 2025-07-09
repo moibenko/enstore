@@ -1,9 +1,15 @@
-#!/bin/sh
+#!/usr/bin/bash
+
+# This is a good enough working instance
+# It is recommended to review this instance and modify it
+# specifically
+# 1. location of $E_H here it is /opt/ehome
+# 2. location of setup-enstore here it is /opt/ehome/site_specific/config
 
 set -u
 
-OVERRIDE_PATH=1  # 1 to enable, 0 to disable the --override-path
-version=m
+OVERRIDE_PATH=0  # 1 to enable, 0 to disable the --override-path
+version=n
 
 # get example
 # ~enstore/dcache-deploy/scripts/real-encp.sh  get 000200000000000000007A80  /tmp/x1 '-si=size=312;new=true;stored=false;sClass=test.dcache;cClass=-;hsm=enstore;alloc-size=309155;onerror=default;timeout=-1;flag-c=1:34677ad2;uid=5744;;path=<Unknown>;group=test;family=dcache;bfid=<Unknown>;volume=<unknown>;location=<unknown>;' -pnfs=/pnfs/fs -command=/home/enstore/dcache-deploy/scripts/real-encp2.sh
@@ -16,6 +22,13 @@ version=m
 # /usr/local/bin/real-encp.sh put 00005FBD8F37A25941CBA3AB3AE25873B5E0 /diska/write-pool-1/data/00005FBD8F37A25941CBA3AB3AE25873B5E0 -si=size=83886080;new=true;stored=false;sClass=test.dcache;cClass=-;hsm=enstore;accessLatency=NEARLINE;retentionPolicy=CUSTODIAL;uid=-1;path=/pnfs/fnal.gov/usr/test/litvinse/go/fnisd1_c6f54a2e493411e2a3460019b9037377.data;gid=-1;StoreName=sql;;path=<Unknown>;group=test;family=dcache;bfid=<Unknown>;volume=<unknown>;location=<unknown>; -pnfs=/pnfs/fs -command=/usr/local/bin/real-encp.sh'
 # remove example
 #/usr/local/bin/real-encp.sh  remove -uri=enstore://enstore/?volume=VON589&location_cookie=0000_000000000_0075148&size=1024&file_family=dcache&original_name=/pnfs/fnal.gov/usr/eagle/dcache-tests/yujun/1kfile.1.2013Mar19145325&map_file=&pnfsid_file=0000AB4A74D3B1694EC49AA30D50211140C7&pnfsid_map=&bfid=CDMS136374786500000&origdrive=enmvr035:/dev/rmt/tps4d0n:1310260228&crc=0 -pnfs=/pnfs/fs -command=/usr/local/bin/real-encp.sh
+if [[ ! -v E_H ]]; then
+    export E_H=/opt/ehome
+fi
+
+if [ ! -d $E_H ]; then
+    mkdir -p $E_H
+fi
 
 f=/tmp/tmpOK$$
 touch $f
@@ -34,16 +47,6 @@ exec >>$out 2>&1 <&-
 
 set -xv
 
-if [ -z "${E_H:-}" ]; then
-   f=/usr/local/bin/ENSTORE_HOME
-   if [ -r $f ]; then
-      . $f
-   else
-      echo "ABORT: Cannot figure out E_H path to enstore home"
-      exit 1
-  fi
-fi
-
 if [ -d "${LOG_DIR:-}" ]; then
     LOGFILE=$LOG_DIR/real-encp.log
     ERROR=$LOG_DIR/real-encp-error.log
@@ -52,6 +55,10 @@ else
     LOGFILE=$E_H/dcache-log/real-encp.log
     ERROR=$E_H/dcache-log/real-encp-error.log
     SUCCESS=$E_H/dcache-log/real-encp-success.log
+fi
+log_dir=`dirname $LOGFILE`
+if [ ! -d $ ]; then
+    mkdir -p $log_dir
 fi
 
 args="$*"
@@ -76,51 +83,6 @@ pathfinder() {
 # TODO : be able to extract constants from somewhere (dcache configuration)
 #
 
-DCAP_DOOR=pnfs://fndca1.fnal.gov
-DCAP_PORT=24125
-DCAP_URL=${DCAP_DOOR}:${DCAP_PORT}
-ADMIN_DOOR=fndca.fnal.gov
-ADMIN_PORT=24223
-
-#
-# check if file is online
-#
-dc_check() {
-    pnfs_id=$1
-    dccp -P -t -1 ${DCAP_URL}/${pnfs_id} > /dev/null 2>&1
-}
-
-#
-# pre-stage a file
-#
-dc_stage() {
-    pnfs_id=$1
-    dccp -P ${DCAP_URL}/${pnfs_id}
-}
-
-#
-# admin interface
-#
-TMP=/tmp/$$.cmd
-
-cmd="ssh -1 -x -o StrictHostKeyChecking=no -i $E_H/.ssh-dcache/identity -l enstore -c blowfish -p ${ADMIN_PORT} ${ADMIN_DOOR}"
-
-admin_interface() {
-    for i in "$@"
-    do
-      echo "$i" >> ${TMP}
-    done
-    echo ".."     >> ${TMP}
-    echo "logoff" >> ${TMP}
-    $cmd < $TMP 2>/dev/null | tr -d '\r'
-    rm -f ${TMP}
-}
-
-rc_ls() {
-    admin_interface "cd PoolManager" "rc ls ${1}.*" | grep -v "PoolManager" | grep "$1"
-}
-
-
 atrap1() { say real-encp trapped SIGHUP; }
 atrap2() { say real-encp trapped SIGINT; }
 atrap3() { say real-encp trapped SIGQUIT; exit 1; }
@@ -138,11 +100,22 @@ P_bfid()   { (cd $pnfs_root >/dev/null 2>&1;  cat ".(access)($1)(1)" ); sP_bfid=
 P_size()   { (cd $pnfs_root >/dev/null 2>&1; stat ".(access)($1)" 2>/dev/null| grep Size: | awk '{print $2}' ); }
 P_ls ()    { (cd $pnfs_root >/dev/null 2>&1;   ls ".(access)($1)" 2>/dev/null ); sP_ls=$?; }
 
+read_encp_options() {
+    opt_file=$E_H/site_specific/config/encp_options
+    if [ -r $opt_file ]; then
+	while read l;do
+	    if [ ! -z "${l}" ]; then
+		addtl_options="${addtl_options} ${l}";
+	    fi;
+	done < <(grep -v "^#\|^$" $opt_file)
+    fi;
+}
+    
 node=`uname -n| sed -e 's/\([^\.]\)\..*/\1/'`
 
-#
-# attempt to find RPM encp first
-#
+# add path to encp
+rpm_dir=`rpm -ql encp_dcache_bin | head -1`
+export PATH=$rpm_dir/bin:$PATH
 ENCP=`which encp 2>/dev/null`
 #
 # above should succeed already, but just in case
@@ -151,32 +124,18 @@ ENCP=`which encp 2>/dev/null`
 # execute setup anytime, cuz it might have been changed
 # while dcache is running
 #
-ENCP_SETUP_FILE=/etc/profile.d/encp.sh
+ENCP_SETUP_FILE=$E_H/site_specific/config/setup-enstore
 if [ -r ${ENCP_SETUP_FILE} ]; then
 	. ${ENCP_SETUP_FILE}
-	ENCP=`which encp 2>/dev/null`
-fi
-
-
-if [ -z "$ENCP" ]; then
-    #
-    # RPM apparently has not been found. Try ups/upd
-    # this means that upsupdbootstrup should be available
-    #
-    possibleLocations="/fnal/ups/etc/setups.sh /local/ups/etc/setups.sh  /usr/local/etc/setups.sh"
-    for i in $possibleLocations; do
-	if [ -r $i ]; then
-	    set +u; . $i; set -u
-	    break
-	fi
-    done
-    setup encp -q dcache >/dev/null 2>&1
-    ENCP=`which encp 2>/dev/null`
+else
+    say $0 $* Can not find $ENCP_SETUP_FILE; exit 1;
 fi
 
 if [ -z "$ENCP" ]; then say $0 $* Can not find encp in our path; exit 1; fi
 
-options="--verbose=4 --threaded --bypass-filesystem-max-filesize-check"
+addtl_options=''
+read_encp_options
+options="--verbose=4 --threaded --bypass-filesystem-max-filesize-check $addtl_options"
 
 if [ $# -lt 3 ] ;then
     say Not enough arguments  $0 $args
@@ -352,18 +311,40 @@ except:
 	   #
 	   file_path=`echo ${uri_location_cookie} | sed -e 's/^\///g'`
 	   #
+	   echo "file path000 =  ${filepath}"
 	   # dcap preload library
 	   #
-	   export LD_PRELOAD=/usr/lib64/libpdcap.so.1
+	   #export DCACHE_DEBUG=255
+	   #export LD_PRELOAD=/usr/lib64/libpdcap.so.1
 	   #
 	   # extract file from tar
+	   echo "file path =  ${filepath}"
 	   #
 	   file_dir=`dirname ${filepath}`
+	   echo "file dir ${file_dir}"
 	   #
 	   # start timer to measure transfer time
 	   #
 	   t0=`date +"%s"`
-	   (cd ${file_dir} && tar --seek --record-size=512 --strip-components 5 --force-local -xf ${package_path} ${file_path})  >>$LOGFILE 2>&1
+	   
+	   #(cd ${file_dir} && tar --seek --record-size=512 --strip-components 5 --force-local -xf ${package_path} ${file_path})  >>$LOGFILE 2>&1
+	   cd ${file_dir}
+	   echo "FD ${file_dir}"
+	   echo "pack path ${package_path}}"
+	   echo "FP ${file_path}"
+	   if [ ! -f $package_pnfsid ]; then # stage file
+	       say g1 $ENCP $options --age-time 60 --delpri 10 --skip-pnfs --get-bfid ${package_id} $package_pnfsid
+	       nice -n -3 $ENCP $options --age-time 60 --delpri 10 --skip-pnfs --get-bfid ${package_id} $package_pnfsid >>$LOGFILE 2>&1
+	       PACK_ENCP_EXIT=$?
+	       say encp --get-bfid ${package_id} $package_pnfsid, rc=$PACK_ENCP_EXIT
+	       if [ $PACK_ENCP_EXIT -eq 0 ]; then
+		   sayS g2s get, rc=$PACK_ENCP_EXIT
+	       else
+		   sayE g2e get, rc=$PACK_ENCP_EXIT
+		   exit $PACK_ENCP_EXIT
+	       fi
+	   fi
+	   tar --seek --record-size=512 --strip-components 5 --force-local -xf $package_pnfsid ${file_path} >>$LOGFILE 2>&1
 	   rc=$?
 	   if [ $rc -eq 0 ]; then
 	       pnfsid_in_loc=`basename ${file_path}`
@@ -383,11 +364,10 @@ except:
 	       exit 0
 	   else
 	       rm -f ${filepath}
-	       say Failed to untar file ${pnfsid}
+	       say Failed to untar file $package_pnfsid
 	       exit 1
 	   fi
        fi
-       unset LD_PRELOAD
    fi
    #
    # if crc is known, do not calculate it, check it later

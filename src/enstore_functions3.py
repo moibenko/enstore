@@ -8,15 +8,13 @@ a minimum.
 # system imports
 from pnfs import is_pnfsid
 from future.utils import raise_
-import types
 import re
 import sys
 import os
 
 # enstore modules
 import charset
-import Trace
-import e_errors
+
 #######################################################################
 
 
@@ -46,7 +44,8 @@ def is_volume_tape(volume):
         elif re.search("^[A-Z0-9]{6}(L|M)[0-9]{1}(.deleted){0,1}$", volume):
             # LTO1,2 have L1 or L2 suffix
             return 1
-        elif re.search("^[A-Z0-9]{6}(JC|JY|J)(.deleted){0,1}$", volume):
+        elif re.search("^[A-Z0-9]{6}(J[C-Y])(.deleted){0,1}$", volume):
+            #elif re.search("^[A-Z0-9]{6}(JC|JY|J)(.deleted){0,1}$", volume):
             # KIAE has 3592 tapes labeled as A00188JC. There also could be JY
             # or just J
             return 1
@@ -143,7 +142,6 @@ def is_ip_addr(address):
     return 0
 
 def extract_file_number(location_cookie):
-    Trace.log(e_errors.INFO, "extract_file_number %s" % (location_cookie,))
     if is_location_cookie_tape(location_cookie):
         try:
             # Return just third integer portion of the string.

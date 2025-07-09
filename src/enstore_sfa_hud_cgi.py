@@ -249,10 +249,8 @@ def main():
         for k, v in list(areas.items()):
             if v == key:
                 stats = os.statvfs(value)
-                avail = int(stats[statvfs.F_BAVAIL]) * \
-                    stats[statvfs.F_BSIZE] / KB
-                total = int(stats[statvfs.F_BLOCKS]) * \
-                    stats[statvfs.F_BSIZE] / KB
+                avail = stats.f_bavail * stats.f_bsize / KB
+                total = stats.f_blocks * stats.f_bsize / KB
                 summary[k] = {'used': total - avail,
                               'total': total}
                 break

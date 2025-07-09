@@ -27,7 +27,7 @@ stop)
 start)
 	echo "" >>$OUT 2>&1
 	echo "`date`: Starting monitor server" >>$OUT 2>&1
-	python $ENSTORE_DIR/src/monitor_server.py >>$OUT 2>&1 </dev/null &
+	$ENSTORE_DIR/sbin/monitor_server >>$OUT 2>&1 </dev/null &
 	sleep 2 #wait for monitor_server to start
 	EPS | grep monitor_server  >>$OUT 2>&1
 	echo "" >>$OUT 2>&1

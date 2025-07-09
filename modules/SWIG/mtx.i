@@ -3,15 +3,6 @@
   char *device;
   int absolute_addressing;
 
-typedef struct {
-        int num_args;
-        char *name;
-        void (*command)(void);
-        int need_device;
-        int need_status;
-} command_table_struct;
-command_table_struct command_table[22];
-
 %}
 
 %include cpointer.i
@@ -56,8 +47,7 @@ $1[i] = PyBytes_AS_STRING(PyList_GetItem($input,i));
 %inline %{
  void status()
 {
-  extern command_table_struct command_table[22];
-  execute_command(&command_table[1]);
+  execute_status_command();
   return;
 }
 
@@ -65,8 +55,7 @@ $1[i] = PyBytes_AS_STRING(PyList_GetItem($input,i));
 
 char *device;
 int absolute_addressing;
-command_table_struct command_table[22];
-void execute_command(struct command_table_struct *command);
+void execute_status_command(void);
 void open_device(void);
 void Move(int src, int dest);
 void set_scsi_timeout(int timeout);

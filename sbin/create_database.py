@@ -18,9 +18,7 @@ import os
 import time
 import grp
 import pwd
-import string
-
-from optparse import OptionParser
+import argparse
 
 import configuration_client
 import enstore_constants
@@ -139,7 +137,7 @@ def find_pid(cmd, arg):
 
 
 def modify_pg_hba_file(filename, dbname, dbuser, dbuser_reader):
-    cmd = "/sbin/ifconfig | grep \"inet addr:\" | grep -v 127.0.0.1 | awk \'{print $2}\' | cut -d\":\" -f 2"
+    cmd = "/sbin/ifconfig | grep \"inet \" | grep -v 127.0.0.1 | awk \'{print $2}\' | cut -d\":\" -f 2"
     fp = open(filename, "a")
     for ip in os.popen(cmd).readlines():
         fp.write("host %s %s %s/24 trust \n" % (dbname, dbuser, ip.strip()))
@@ -185,7 +183,7 @@ def init_database(dbarea):
 
 
 def create_schema(dbport, dbname, schema_file):
-    return os.system("psql -p %d %s -f %s" % (dbport, dbname, schema_file))
+    return os.system("psql -a -p %d %s -f %s" % (dbport, dbname, schema_file))
 
 
 if __name__ == "__main__":
@@ -197,13 +195,23 @@ if __name__ == "__main__":
         dump_restore_database.print_error(
             "ENSTORE_DIR variable is not defined, please setup enstore first")
         sys.exit(1)
-    ourhost = string.split(os.uname()[1], '.')[0]
-    parser = OptionParser(usage=dump_restore_database.help())
-    (options, args) = parser.parse_args()
-    if len(args) != 1:
-        parser.print_help()
+    ourhost = os.uname()[1].split(".")[0]
+    #parser = argparse.ArgumentParser(prog=dump_restore_database.help(sys.argv[0]), add_help=False)
+    parser = argparse.ArgumentParser(usage=dump_restore_database.help(sys.argv[0]))
+    parser.add_argument('database_name', help='[enstoredb, accounting, drivestat, operation]')
+    parser.add_argument('-s', '--schema', help='schema file path')
+    parser.add_argument('-a', '--add_db', action="store_true", dest="add_db", default=False, help='add database to existing server')
+    args = parser.parse_args()
+    print(args)
+    if args.database_name in ('enstoredb', 'accounting', 'drivestat', 'operation'):
+        dbname = args.database_name
+    else:
+        dump_restore_database.print_error('Wrong DB name')
+        print(dump_restore_database.help(sys.argv[0]))
         sys.exit(1)
-    dbname = args[0]
+    schema_file = None
+    if args.schema:
+        schema_file = args.schema
     #
     # Need to extract data defining database
     #
@@ -245,23 +253,24 @@ if __name__ == "__main__":
     enstore_gid = enstore_user_data[3]
     if not dbarea:
         dump_restore_database.print_error(
-            "Failed to extract database are for database %s" %
+            "Failed to extract database area for database %s" %
             (dbname))
         sys.exit(1)
-    schema_file = name_to_schema_map.get(dbname, None)
     if not schema_file:
-        dump_restore_database.print_error(
-            "Failed to find schema file for database %s (%s)" %
-            (dbname, schema_file))
-        sys.exit(1)
-    schema_file = os.path.join(enstore_dir, schema_file)
+        schema_file = name_to_schema_map.get(dbname, None)
+        if not schema_file:
+            dump_restore_database.print_error(
+                "Failed to find schema file for database %s (%s)" %
+                (dbname, schema_file))
+            sys.exit(1)
+            schema_file = os.path.join(enstore_dir, schema_file)
     if not os.path.exists(schema_file):
         dump_restore_database.print_error(
             "Schema file %s does not exist" %
             (schema_file))
         sys.exit(1)
     pid = find_pid(dbserver_cmd, dbarea)
-    if pid:
+    if pid and not args.add_db:
         dump_restore_database.print_error(
             "ERROR: database server is still running.")
         dump_restore_database.print_error("%d" % (pid))
@@ -271,31 +280,45 @@ if __name__ == "__main__":
         dump_restore_database.print_error(
             "ERROR: stop above database server first!")
         sys.exit(1)
+    
     if os.path.exists(dbarea):
-        dump_restore_database.print_message(
-            "Database area %s already exists" % (dbarea))
-        dump_restore_database.print_message("Moving it on the side")
-        if move_directory(dbarea, dbarea) != 0:
+        if not args.add_db:
+            dump_restore_database.print_message(
+                "Database area %s already exists" % (dbarea))
+            dump_restore_database.print_message("Moving it on the side")
+            if move_directory(dbarea, os.path.dirname(dbarea)) != 0:
+                sys.exit(1)
+    if not args.add_db:
+        try:
+            dump_restore_database.print_message(
+                "Creating database area %s" % (dbarea))
+            os.makedirs(dbarea, 0o777)
+        except BaseException:
+            dump_restore_database.print_error(
+                "Failed to create database area %s" %
+                (dbarea))
             sys.exit(1)
-    try:
+        try:
+            dump_restore_database.print_message(
+                "chown to uid=%d gid=%d" %
+                (uid, gid))
+            os.chown(dbarea, uid, gid)
+        except BaseException:
+            dump_restore_database.print_error(
+                "Failed to chown to uid=%d gid=%d" %
+                (uid, gid))
+            sys.exit(1)
+    if not os.path.exists("/var/run/postgresql"):
         dump_restore_database.print_message(
-            "Creating database area %s" % (dbarea))
-        os.makedirs(dbarea, 0o777)
-    except BaseException:
-        dump_restore_database.print_error(
-            "Failed to create database area %s" %
-            (dbarea))
-        sys.exit(1)
-    try:
-        dump_restore_database.print_message(
-            "chown to uid=%d gid=%d" %
-            (uid, gid))
-        os.chown(dbarea, uid, gid)
-    except BaseException:
-        dump_restore_database.print_error(
-            "Failed to chown to uid=%d gid=%d" %
-            (uid, gid))
-        sys.exit(1)
+        "creating /var/run/postgresql")
+        try:
+            os.mkdir("/var/run/postgresql")
+            os.chmod("/var/run/postgresql", 0o777)
+        except Exception as e:
+            dump_restore_database.print_error(
+                "Failed to create /var/run/postgresql : {}".format(e))
+            sys.exit(1)
+
     if dbname == "enstoredb":
         for d in ["db_dir", "jou_dir"]:
             value = server.get(d, None)
@@ -324,27 +347,6 @@ if __name__ == "__main__":
                         (d, value, enstore_uid, enstore_gid))
                     sys.exit(1)
     pg_hba = os.path.join(enstore_dir, "databases/control_files/pg_hba.conf")
-    #
-    # take care of Fermi specific setups
-    #
-    if ourhost.startswith("cdfen"):
-        pg_hba = os.path.join(
-            enstore_dir,
-            "databases/control_files/pg_hba.conf-stken-%s" %
-            (dbname))
-    elif ourhost.startswith("d0en"):
-        pg_hba = os.path.join(
-            enstore_dir,
-            "databases/control_files/pg_hba.conf-d0en-%s" %
-            (dbname))
-    elif ourhost.startswith("cdfen"):
-        pg_hba = os.path.join(
-            enstore_dir,
-            "databases/control_files/pg_hba.conf-cdfen-%s" %
-            (dbname))
-    else:
-        pg_hba = os.path.join(enstore_dir,
-                              "databases/control_files/pg_hba.conf")
     if not os.path.exists(pg_hba):
         dump_restore_database.print_error(
             "pg_hba %s does not exist" % (pg_hba))
@@ -354,36 +356,37 @@ if __name__ == "__main__":
     #
     os.setgid(gid)
     os.setuid(uid)
-    #
-    # run initdb
-    #
-    if init_database(dbarea) != 0:
-        dump_restore_database.print_error("Failed to initdb %s" % (dbarea))
-        sys.exit(1)
-    #
-    # copy pg_hba in place
-    #
-    dst = os.path.join(dbarea, os.path.basename(pg_hba))
-    if copy_file(pg_hba, dst) != 0:
-        sys.exit(1)
-    #
-    # modify pg_hba in place
-    #
-    pg_hba = dst
-    modify_pg_hba_file(pg_hba, dbname, dbuser, dbuser_reader)
-    start_database(dbarea, dbport)
-    if check_database(dbport, dbserverowner) != 0:
-        sys.exit(1)
-    if create_database_user(dbport, dbuser) != 0:
-        dump_restore_database.print_error(
-            "Failed to create database user %s" %
-            (dbuser))
-        sys.exit(1)
-    if create_database_read_user(dbport, dbuser_reader) != 0:
-        dump_restore_database.print_error(
-            "Failed to create database read user %s" %
-            (dbuser_reader))
-        sys.exit(1)
+    if not args.add_db: 
+        #
+        # run initdb
+        #
+        if init_database(dbarea) != 0:
+            dump_restore_database.print_error("Failed to initdb %s" % (dbarea))
+            sys.exit(1)
+        #
+        # copy pg_hba in place
+        #
+        dst = os.path.join(dbarea, os.path.basename(pg_hba))
+        if copy_file(pg_hba, dst) != 0:
+            sys.exit(1)
+        #
+        # modify pg_hba in place
+        #
+        pg_hba = dst
+        modify_pg_hba_file(pg_hba, dbname, dbuser, dbuser_reader)
+        start_database(dbarea, dbport)
+        if check_database(dbport, dbserverowner) != 0:
+            sys.exit(1)
+        if create_database_user(dbport, dbuser) != 0:
+            dump_restore_database.print_error(
+                "Failed to create database user %s" %
+                (dbuser))
+            sys.exit(1)
+        if create_database_read_user(dbport, dbuser_reader) != 0:
+            dump_restore_database.print_error(
+                "Failed to create database read user %s" %
+                (dbuser_reader))
+            sys.exit(1)
     if create_database(dbport, dbname) != 0:
         dump_restore_database.print_error(
             "Failed to create database %s" % (dbname))

@@ -23,7 +23,7 @@ import errno
 import time
 
 import Trace
-# import e_errors
+import e_errors
 import multiple_interface
 import enroute
 import runon
@@ -152,15 +152,26 @@ def get_default_interface_ip(preferred_ip=None):
         try:
             index = 0
             ips = socket.getaddrinfo(socket.getfqdn(), None)
+            ips_len = len(ips)
             if preferred_ip:
                 address_family = socket.getaddrinfo(preferred_ip, None)[0][0]
                 for e in ips:
                     if e[0] == address_family:
                         index = ips.index(e)
                         break
-
-            default = ips[index][4][0]
-            break
+            for k in range(ips_len):
+                ip_info = ips[index]
+                default = ip_info[4][0]
+                # check if selected interface can work
+                # for this try to bind it
+                try:
+                    s1 = socket.socket(ip_info[0])
+                    s1.bind((default, 0))
+                    break
+                except OSError as e:
+                    index += 1
+                finally:
+                    s1.close()
         except socket.error as msg:
             if msg.args[0] == errno.EAGAIN or msg.args[0] == errno.EINTR:
                 time.sleep(1)

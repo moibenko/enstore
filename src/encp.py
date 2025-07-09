@@ -293,6 +293,7 @@ __logc = None
 __alarmc = None
 __pac = None
 __lmc = None
+__port_range = None
 
 # Constants for the max file size.  Currently this assumes the max for the
 # cpio_odc wrapper format.  The -1s are necessary since that is the size
@@ -1310,7 +1311,7 @@ def is_read(ticket_or_interface):
                       "Inconsistent file types:" + str(ticket_or_interface))
             raise EncpError(errno.EINVAL, "Inconsistent file types.",
                             e_errors.BROKEN, ticket_or_interface)
- 
+
     # If the type is an interface class...
     elif isinstance(ticket_or_interface, object):
         intype = getattr(ticket_or_interface, 'intype', "")
@@ -2249,7 +2250,7 @@ def get_acc(intf=None):
 
 def get_lmc(library, use_lmc_cache=True, intf=None):
     global __lmc
-
+    global __port_range
     # If the shortname was supplied, make it the longname.
     if library[-16:] != ".library_manager":
         lib = library + ".library_manager"
@@ -2283,7 +2284,8 @@ def get_lmc(library, use_lmc_cache=True, intf=None):
 
             __lmc = library_manager_client.LibraryManagerClient(
                 csc, lib, logc=__logc, alarmc=__alarmc,
-                rcv_timeout=5, rcv_tries=20, server_address=server_address)
+                rcv_timeout=5, rcv_tries=20,
+                server_address=server_address, port_range=__port_range)
 
     return __lmc
 
@@ -2389,6 +2391,7 @@ def clients(intf):
     global __logc
     global __alarmc
     global __pac
+    global __port_range
 
     # get a configuration server client
     csc_addr = (getattr(intf, "enstore_config_host",
@@ -2442,6 +2445,8 @@ def clients(intf):
         log_server_address = None
         alarm_server_address = None
 
+    encp = csc.get('encp', {})
+    __port_range=encp.get('port_range')
     # Get a logger client, this will set the global log client Trace module
     # variable.  If this is not done here, it would get done while
     # creating the client classes for the csc, vc, fc, etc.  This however
@@ -2950,9 +2955,13 @@ def get_callback_addresses(encp_intf):
 
 
 def get_callback_addr(ip=None):  # encp_intf, ip=None):
-    # get a port to talk on and listen for connections
+    '''
+    get a port to talk on and listen for connections
+    '''
+    global __port_range ## list of min max client (my) udp port numbers for
+                        ## server to commumicate on
     try:
-        (host, port, listen_socket) = callback.get_callback(ip)
+        (host, port, listen_socket) = callback.get_callback(ip, __port_range)
         listen_socket.listen(4)
     except socket.error:
         # Most likely, there are no more sockets/files left to open.
@@ -3326,7 +3335,7 @@ def inputfile_check(work_list, e):
             # this will cause the 2nd to just overwrite the 1st
             try:
                 match_index = inputlist[:i].index(inputlist[i])
-                
+
                 raise EncpError(None,
                                 'Duplicate entry %s' % (
                                     inputlist[match_index],),
@@ -4227,7 +4236,7 @@ def get_uinfo(e=None):
         uinfo['uname'] = pwd.getpwuid(uinfo['uid'])[0]
     except (ValueError, AttributeError, TypeError, IndexError, KeyError):
         uinfo['uname'] = 'unknown'
-    uinfo['machine'] = tuple(s for s in os.uname()) 
+    uinfo['machine'] = tuple(s for s in os.uname())
 
     return uinfo
 
@@ -4570,7 +4579,6 @@ def open_control_socket(listen_socket, mover_timeout):
         Trace.message(TIME_LEVEL, message)
 
         time_to_read_control_socket = time.time()
-
         try:
             # Set the timeout for this part to 30 seconds.  On 12-3-2009,
             # it was observed that movers where unable to establish
@@ -5585,7 +5593,6 @@ def submit_one_request_recv(transaction_id, work_ticket, lmc, encp_intf):
     message = "[1] Time to receive first request: %s sec." % \
               (time.time() - submit_one_request_recv_start_time,)
     Trace.message(TIME_LEVEL, message)
-
     return __submit_request_recv(response_ticket), transaction_id
 
 
@@ -6303,7 +6310,7 @@ def verify_file_size(ticket, encp_intf = None):
     except (TypeError) as detail:
         ticket['status'] = (e_errors.OK, "No files sizes to verify.")
         return
-
+    pnfs_inode = None
     try:
         if ticket.get('fc', {}).get('deleted', None) == "yes" \
             and encp_intf and encp_intf.override_deleted:
@@ -7758,7 +7765,7 @@ def verify_write_request_consistancy(request_list, e):
                 raise EncpError(msg.args, str(msg), e_errors.NET_ERROR,
                                 {'infilepath': request['infilepath'],
                                  'outfilepath': request['outfilepath']})
-        
+
         if request['outfile'] not in ["/dev/null", "/dev/zero",
                                       "/dev/random", "/dev/urandom"]:
             if not request['wrapper']['inode']:
@@ -8303,7 +8310,7 @@ def create_write_request(work_ticket, file_number,
                          sfs, t, e, tinfo):
 
     if e.put_cache:
-
+        ofullname = None
         if e.shortcut and e.override_path:
                #If the user specified a pathname (with --override-path)
                # on the command line use that name.  Otherwise if just
@@ -8323,7 +8330,6 @@ def create_write_request(work_ticket, file_number,
                           {'onfilepath': ofullname_list})
 
         # Determine the access path name.
-        # oaccessname = namespace.StorageFS(ofullname).access_file(
         oaccessname = sfs.access_file(get_directory_name(ofullname),
                                       e.put_cache)
 
@@ -8932,7 +8938,7 @@ def write_hsm_file(work_ticket, control_socket, data_path_socket,
 
 
 def prepare_write_to_hsm(tinfo, e):
-    
+
     done_ticket, listen_socket, callback_addr, \
         udp_serv, udp_callback_addr = get_callback_addresses(e)
     if not e_errors.is_ok(done_ticket):
@@ -9011,7 +9017,7 @@ def prepare_write_to_hsm(tinfo, e):
         Trace.handle_error()
         return {'status': (e.errno, str(msg))}, listen_socket, \
             udp_serv, request_list
-        
+
     # If we are only going to check if we can succeed, then the last
     # thing to do is see if the LM is up and accepting requests.
     if e.check:
@@ -9080,7 +9086,7 @@ def write_to_hsm(e, tinfo):
 
     done_ticket, listen_socket, unused, request_list = \
     prepare_write_to_hsm(tinfo, e)
-  
+
     if not e_errors.is_ok(done_ticket) or e.check:
         return done_ticket
 
@@ -9352,7 +9358,7 @@ def cookie_to_int(cookie):
 
 def get_cookie(r):
     cookie = r.get('fc', {}).get('location_cookie', "")
-    try: 
+    try:
         rc = cookie_to_int(cookie)
     except Exception:
         rc = cookie
@@ -11127,7 +11133,7 @@ def read_from_hsm(e, tinfo):
     if len(vols) > 1:
         vols.sort()
     for vol in vols:
-        
+
         # Report how many files are still to go.
         Trace.message(TO_GO_LEVEL, "FILES LEFT: %s" %
                       all_requests_outstanding(requests_per_vol))

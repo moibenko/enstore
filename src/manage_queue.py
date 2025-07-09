@@ -37,7 +37,7 @@ def cmp(a,b):
     if isinstance(a, int) and isinstance(b, str):
         b = enstore_functions3.cookie_to_int(b)
     if isinstance(b, int) and isinstance(a, str):
-        a = enstore_functions3.cookie_to_int(b)
+        a = enstore_functions3.cookie_to_int(a)
     try:
         return (a > b) - (a < b)
     except TypeError:
@@ -201,7 +201,7 @@ class SortedList(object):
         :type name: :obj:`str`
         :arg name: list name (to make debugging easier)
         """
-        Trace.trace(423, "name %s by_pri %s comparison func %s" % 
+        Trace.trace(423, "name %s by_pri %s comparison func %s" %
                     (name, by_pri,comparison_function)) # REMOVE
         self.sorted_list = mpq.MPQ(comparison_function)
         self.last_aging_time = 0
@@ -1802,9 +1802,9 @@ class Request_Queue(object):
         # Trace.trace(TR+50, "Request_Queue.get: Queue: %s" % (self.sprint(),))
         Trace.trace(TR + 22, 'Request_Queue.get: key %s location %s next %s use_admin_queue %s active %s hosts %s' %
                     (key, location, next, use_admin_queue, active_volumes, disabled_hosts))
+        time_to_check = 0
         if key:
             if use_admin_queue and self.process_admin_queue != 0:
-                time_to_check = 0
                 # get came with key info, hence it is from
                 # have bound volume
                 # see if there is a time to check hi_pri requests

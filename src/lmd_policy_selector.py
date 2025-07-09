@@ -113,7 +113,7 @@ class Selector(object):
         # tickets to lmd_policy engine may come via qpid
         # so, all strings are in UTF-8
         # convert them into regular strings
-        flat_ticket = dict_u2a.convert_dict_u2a(flat_ticket)
+        #flat_ticket = dict_u2a.convert_dict_u2a(flat_ticket) # do not do this for rabbitmq
         return flat_ticket
 
     # @param - ticket to match

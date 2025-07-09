@@ -556,7 +556,6 @@ class FTTDriver(generic_driver.Driver):
                 return {0:e_errors.READ_BADSWMOUNT, 1:e_errors.WRITE_BADSWMOUNT}[mode], None
             try:
                 nbytes = self.read(buf, 0, expected_length)
-                print("NB", nbytes, "DATA", buf) 
             except Exception as detail:
                 Trace.log(e_errors.ERROR, "verify_label returned: %s"%(detail,))
                 nbytes = 0
@@ -567,9 +566,7 @@ class FTTDriver(generic_driver.Driver):
             Trace.trace(25, "verify_label: read %s" % (buf,))
             if buf[:4] != b"VOL1":
                 return {0:e_errors.READ_VOL1_MISSING, 1:e_errors.WRITE_VOL1_MISSING}[mode], None
-            print("11111")
             rtn = self.check_addtl_hdrs(nbytes, buf, mode)
-            print("22222", rtn)
             if rtn:
                 if isinstance(rtn, bytes):
                     rtn.decode()

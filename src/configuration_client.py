@@ -41,6 +41,7 @@ class ConfigFlag(object):
     def __init__(self):
         self.new_config_file = self.MSG_NO
         self.do_caching = self.DISABLE
+        self.update = True
 
     def is_caching_enabled(self):
         """bool: Whether or not caching is enabled"""
@@ -72,6 +73,14 @@ class ConfigFlag(object):
     def enable_caching(self):
         self.do_caching = self.ENABLE
 
+    def disable_update(self):
+        self.update = False
+
+    def enable_update(self):
+        self.update = False
+
+    def is_update_enabled(self):
+        return self.update
 
 class ConfigurationClient(generic_client.GenericClient):
     """
@@ -124,6 +133,10 @@ class ConfigurationClient(generic_client.GenericClient):
           bool: Whether the currently cached config is the same as what
           is loaded in the configuration server.
         """
+
+        if not self.new_config_obj.is_update_enabled():
+            return True
+
         if self.config_load_timestamp is None:
             return False
 
@@ -361,7 +374,6 @@ class ConfigurationClient(generic_client.GenericClient):
 
         if not self.new_config_obj or self.new_config_obj.have_new_config() \
                 or not self.is_config_current():
-
             config_ticket = self.dump(timeout=timeout, retry=retry)
             if e_errors.is_ok(config_ticket):
                 self.saved_dict = config_ticket['dump'].copy()

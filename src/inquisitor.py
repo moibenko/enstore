@@ -1791,7 +1791,7 @@ class InquisitorMethods(dispatching_worker.DispatchingWorker):
                       thread_name=None):
         if thread_name:
             for thread in threading.enumerate():
-                if thread.getName() == thread_name:
+                if thread.name == thread_name:
                     if thread.is_alive():
                         Trace.trace(
                             e_errors.WARNING, "thread %s is already runnnig, skipping execution of %s" %
@@ -1805,9 +1805,9 @@ class InquisitorMethods(dispatching_worker.DispatchingWorker):
         thread = threading.Thread(group=None, target=self.thread_wrapper,
                                   args=_args, kwargs={})
         if thread_name:
-            thread.setName(thread_name)
+            thread.name = thread_name
         enstore_functions.inqTrace(enstore_constants.INQTHREADDBG,
-                                   "starting thread name=%s" % (thread.getName()))
+                                   "starting thread name=%s" % (thread.name))
         try:
             thread.start()
         except BaseException:

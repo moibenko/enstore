@@ -26,3 +26,8 @@ summary_plots
 get_total_bytes_counter
 fill_slot_usage
 plotter
+inventory
+plotter_main
+web_server
+log_start_event
+log_finish_event

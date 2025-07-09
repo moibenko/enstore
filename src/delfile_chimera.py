@@ -158,7 +158,7 @@ def main(intf):
                             success = False
                         else:
                             success = delete_trash_record(db, pnfsid, itype)
-                            
+
 
                 elif ilocation == '\n':
                     success = delete_trash_record(db, pnfsid, itype)

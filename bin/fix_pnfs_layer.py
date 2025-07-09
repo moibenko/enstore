@@ -32,7 +32,7 @@ def get_l4(filename):
     try:
         l4['external_label'] = l4_raw[0][:-1]  # volume
         l4['location_cookie'] = l4_raw[1][:-1]  # location cookie
-        l4['size'] = long(l4_raw[2][:-1])  # file size
+        l4['size'] = int(l4_raw[2][:-1])  # file size
         l4['file_family'] = l4_raw[3][:-1]  # file family
         l4['pnfs_name0'] = l4_raw[4][:-1]  # file name
         l4['pnfs_mapname'] = l4_raw[5][:-1]  # volmap name
@@ -49,10 +49,8 @@ def write_layer(fullname, layer, value):
     (dir, file) = os.path.split(fullname)
     fname = "%s/.(use)(%s)(%s)" % (dir, layer, file)
     f = open(fname, 'w')
-
-
-if not isinstance(value, type('')):
-    value = str(value)
+    if not isinstance(value, str):
+        value = str(value)
     f.write(value)
     f.close()
 
@@ -201,7 +199,7 @@ if __name__ == "__main__":
     if bfinfo['bfid'] != l1:
         print("l1 %s bfid %s" % (l1, bfinfo['bfid']))
         if interactive:
-            fix_it = raw_input("fix? [y/n]")
+            fix_it = input("fix? [y/n]")
         else:
             fix_it = 'y'
         if fix_it == 'y':
@@ -221,7 +219,7 @@ if __name__ == "__main__":
         print("l4 %s bfinfo %s" % (l4, bfinfo))
         print("file family", ff)
         if interactive:
-            fix_it = raw_input("fix? [y/n]")
+            fix_it = input("fix? [y/n]")
         else:
             fix_it = 'y'
         if fix_it == 'y':

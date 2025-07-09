@@ -260,8 +260,8 @@ class RawUDP(object):
 
     def set_out_file(self):
         if DEBUG:
-            thread = threading.currentThread()
-            thread_name = thread.getName()
+            thread = threading.current_thread()
+            thread_name = thread.name
             dirpath = os.path.join(os.environ.get("ENSTORE_OUT", ""),"tmp/%s"%(pwd.getpwuid(os.geteuid())[0],))
             if not os.path.exists(dirpath):
                 os.makedirs(dirpath)
@@ -360,8 +360,8 @@ def fetch(RawUDP_obj):
 def _receiver(RawUDP_obj):
     print("I am rawUDP_p", os.getpid(), RawUDP_obj.replace_keyword)
     if DEBUG:
-        thread = threading.currentThread()
-        thread_name = thread.getName()
+        thread = threading.current_thread()
+        thread_name = thread.name
         dirpath = os.path.join(os.environ.get("ENSTORE_OUT", ""),"tmp/%s"%(pwd.getpwuid(os.geteuid())[0],))
         if not os.path.exists(dirpath):
             os.makedirs(dirpath)

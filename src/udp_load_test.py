@@ -34,7 +34,7 @@ def run_in_thread(function, args=()):
     # function, args)
     thread = threading.Thread(group=None, target=function,
                               args=args, kwargs={})
-    print("starting thread name=%s" % (thread.getName(),))
+    print("starting thread name=%s" % (thread.name,))
     try:
         thread.start()
     except BaseException:
@@ -54,8 +54,8 @@ def send_message(address, message):
             transfers = transfers + 1
             lock.release()
         except (socket.error, select.error, e_errors.EnstoreError) as detail:
-            thread = threading.currentThread()
-            print("%s %s" % (thread.getName(), detail))
+            thread = threading.current_thread()
+            print("%s %s" % (thread.name, detail))
 
 
 if __name__ == "__main__":   # pragma: no cover

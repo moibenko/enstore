@@ -72,7 +72,7 @@ class accDB(object):
                     "volume, state from tape_mounts_tmp " \
                     "where volume = %s and state = 'm'"
                 res2 = self.db.query_dictresult(q, (volume,))[0]
-                
+
                 self.db.update("update tape_mounts_tmp set id=%s where oid=%s", (res['oid'],
                                                                                  res2['oid_tape_mounts_tmp'],))
             except BaseException:

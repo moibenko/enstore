@@ -15,11 +15,14 @@ extern int errno;
 #include <winioctl.h>
 
 int ftt_translate_error_WIN();
+#define popen _popen
+#define pclose _pclose
 
 #else
 #include <ctype.h>
 #include <sys/file.h>
 #include <unistd.h>
+
 #endif
 
 #ifndef FNONBLOCK
@@ -106,12 +109,16 @@ ftt_matches( const char *s1, const char *s2 ) {
 ftt_descriptor
 ftt_open_logical(const char *name, char *os, char *drivid, int rdonly) {
     static char buf[512];
+    static char cmd[512];
+    char *bp;
+    static char output[512];
     static union { int n; char s[512];} s1, s2, s3;
     static ftt_descriptor_buf d;
     char *basename;
-    int i,j;
+    int i,j,rc;
     ftt_descriptor pd;
     char *lastpart;
+    FILE *pf;
 
     /* find device type and os in table */
 
@@ -126,7 +133,7 @@ ftt_open_logical(const char *name, char *os, char *drivid, int rdonly) {
 	ftt_errno=FTT_ENOTSUPPORTED;
 	return 0;
     }
-
+    DEBUG3(stderr, "name %s basename %s\n", name, basename);
     /* look up in table, note that table order counts! */
     drivid = ftt_unalias(drivid);
     i = ftt_findslot(basename, os, drivid, &s1, &s2, &s3);
@@ -190,8 +197,23 @@ ftt_open_logical(const char *name, char *os, char *drivid, int rdonly) {
             sprintf(lastpart, devtable[i].devs[j].device_name, s1.n, s2.n,s3.n);
 	}
 
-	d.devinfo[j].device_name = strdup(buf);
-
+	if (strstr(buf, "sg_map") != NULL) {
+	  bp = buf;
+	  bp++;
+	  strcpy(cmd, bp);
+	  pf = popen(cmd, "r");
+	    if (pf != 0) {
+	      rc = fgets(output,512,pf);
+	      pclose(pf);
+	      if (rc !=0) {
+		output[strlen(output)-1] = 0;
+		d.devinfo[j].device_name = strdup(output);
+	      }
+	    }
+	  }
+	else {
+	  d.devinfo[j].device_name = strdup(buf);
+	}
 	if( 0 == d.devinfo[j].device_name ) {
 	    ftt_eprintf("fft_open_logical: out of memory allocating string for \"%s\" errno %d" , buf, errno);
 	    ftt_errno = FTT_ENOMEM;
@@ -206,7 +228,7 @@ ftt_open_logical(const char *name, char *os, char *drivid, int rdonly) {
 	d.devinfo[j].first   = devtable[i].devs[j].first;
         d.devinfo[j].max_blocksize = devtable[i].devs[j].max_blocksize;
     }
-    d.devinfo[j].device_name = 0;
+    //d.devinfo[j].device_name = 0;
 
     pd = malloc(sizeof(ftt_descriptor_buf));
     if (pd == 0) {

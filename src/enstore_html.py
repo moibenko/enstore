@@ -90,9 +90,9 @@ PLOT_INFO = [[enstore_constants.MPH_FILE, "Mounts/Hour (no null mvs)"],
              [enstore_constants.BPD_FILE_R, "Bytes Read/Day (no null mvs)"],
              [enstore_constants.BPD_FILE_W, "Bytes Written/Day (no null mvs)"],
              [enstore_constants.TOTAL_BPD_FILE_W,
-              "CDF/D0/STK Total Bytes Written/Day (30 days)"],
+              "Total Bytes Written/Day (30 days)"],
              [enstore_constants.TOTAL_BPD_FILE,
-              "CDF/D0/STK Total Bytes/Day (30 days)"],
+              "Total Bytes/Day (30 days)"],
              [enstore_constants.BPD_MONTH_FILE,
               "Bytes/Day (30 days) (no null mvs)"],
              [enstore_constants.BPD_FILE_D, "Bytes/Day"],
@@ -2745,6 +2745,8 @@ class EnPlotPage(EnBaseHtmlDoc):
                 plot_table.append(trps2)
                 plot_table.append(empty_row(3))
         # look for anything leftover to add at the bottom
+        """
+        Leave here so far, but these are not needed
         if jpgs or pss:
             # add some space between the extra files and the stamps
             plot_table.append(empty_row(3))
@@ -2754,6 +2756,7 @@ class EnPlotPage(EnBaseHtmlDoc):
             plot_table.append(empty_row(3))
             self.add_leftover_jpgs(plot_table, jpgs, pss)
             self.add_leftover_pss(plot_table, pss)
+        """
         table.append(HTMLgen.TR(HTMLgen.TD(plot_table)))
         self.trailer(table)
         self.append(table)

@@ -107,7 +107,7 @@ def run_in_thread(thread_name, function, args=(), after_function=None):
     if thread_name:
         threads = threading.enumerate()
         for thread in threads:
-            if ((thread.getName() == thread_name) and thread.is_alive()):
+            if ((thread.name == thread_name) and thread.is_alive()):
                 Trace.trace(5, "thread %s is already running" % (thread_name))
                 # We've exceeded the number of thread_name threads, which
                 # is one.  Running it in main thread.
@@ -514,14 +514,11 @@ class DispatchingWorker(udp_server.UDPServer):
             del self.callback[fd]
 
     def read_fd(self, fd):
-        Trace.trace(88, "read_fd")
         raw_bytecount = os.read(fd, 8)
-        Trace.trace(88, f"read_fd1 {raw_bytecount}")
 
         # Read on the number of bytes in the message.
         try:
             bytecount = int(raw_bytecount)
-            Trace.trace(88, f"read_fd2 {bytecount}")
         except ValueError:
             Trace.trace(20,
                         'get_request_select: bad bytecount %s %s'
@@ -532,12 +529,9 @@ class DispatchingWorker(udp_server.UDPServer):
         msg = b""
         while len(msg) <bytecount:
             tmp = os.read(fd, bytecount - len(msg))
-            Trace.trace(88, f"read_fd3 {tmp} {len(tmp)}")
             if not tmp:
                 break
-            Trace.trace(88, "read_fd31")
             msg = msg + tmp
-            Trace.trace(88, f"read_fd32 {len(tmp)}")
 
         # Finish off the communication.
         self.remove_select_fd(fd)
@@ -545,7 +539,6 @@ class DispatchingWorker(udp_server.UDPServer):
 
         # Return the request and an empty address.
         addr = ()
-        Trace.trace(88, f"read_fd4 {msg} {addr}")
         return (msg, addr)
 
     def _get_request_single(self):
@@ -567,7 +560,6 @@ class DispatchingWorker(udp_server.UDPServer):
            time out where there is no string or r.a.
         """
         while True:
-            Trace.trace(88, "_get_request_single")
             r = self.read_fds + [self.server_socket]
             w = self.write_fds
 
@@ -583,9 +575,7 @@ class DispatchingWorker(udp_server.UDPServer):
                 rcv_timeout = max(rcv_timeout, 0)
 
             r, w, x, remaining_time = cleanUDP.Select(r, w, r +w, rcv_timeout)
-            Trace.trace(88, f"_get_request_single {r} {w} {x}")
             if not r + w:
-                Trace.trace(88, "_get_request_single timeout")
                 return ('', ()) #timeout
 
             # handle pending I/O operations first
@@ -595,23 +585,17 @@ class DispatchingWorker(udp_server.UDPServer):
 
             # now handle other incoming requests
             for fd in r:
-                Trace.trace(88, f"_get_request_single fd {fd} {type(fd)} {self.read_fds}")
                 if isinstance(fd, int):
-                    Trace.trace(88, "GOT HERE 000")
                     if fd in self.read_fds and self.callback[fd] ==None:
-                        Trace.trace(88, "GOT HERE 1111")
                         # XXX this is special-case code,
                         # for old usage in media_changer
 
                         (request, addr) = self.read_fd(fd)
-                        Trace.trace(88, f"Request {request} addr {addr} ")
                         return (request, addr)
                     # try anyway:
                     (request, addr) = self.read_fd(fd)
-                    Trace.trace(88, f"request {request} addr {addr} ")
                     return request, addr
                 elif fd == self.server_socket:
-                    Trace.trace(88, "GOT HERE 11111")
                     # Get the 'raw' request and the address from whence it came.
                     (request, addr) = udp_server.UDPServer.get_message(self)
 

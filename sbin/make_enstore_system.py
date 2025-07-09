@@ -74,8 +74,12 @@ if __name__ == "__main__":
             os.path.join(
                 html_dir, enstore_system_html.HTMLFILE), os.path.join(
                 html_dir, "index.html"))
+
     os.system("cp *.gif %s" % html_dir)
     os.system("cp *.html %s" % html_dir)
+    os.system("cp *.pdf %s" % html_dir)
+    os.system("cp *.ps %s" % html_dir)
+    os.system("cp *.ppt %s" % html_dir)
     uid = server.get_server_getpwuid()[2]
     gid = server.get_server_getpwuid()[3]
     try:
@@ -84,6 +88,9 @@ if __name__ == "__main__":
         print("Failed to change ownership of ", html_dir, " to ", uid, gid)
         pass
     cgi_dir = server.get_cgi_directory()
+    if not os.path.exists(cgi_dir):
+        os.makedirs(cgi_dir)
+        rchown(cgi_dir, uid, gid)
     os.system("cp cgi-bin/*cgi* %s" % cgi_dir)
     os.system("cp active_volumes.sh %s" % cgi_dir)
     os.system("cp cgi-bin/enstore_log_file_search_cgi %s/log" % cgi_dir)
@@ -98,3 +105,12 @@ if __name__ == "__main__":
     except BaseException:
         print("Failed to permission  mask of ", cgi_dir, " to ", 0o755)
         pass
+    os.chdir(cgi_dir)
+    pyfiles = []
+    for f in os.listdir():
+        if os.path.isfile(f) and f.endswith('.py'):
+            pyfiles.append(f)
+    for f in pyfiles:
+        f_dst = f.split('.')[0]
+        if not os.path.islink(f_dst):
+            os.symlink(f, f_dst)

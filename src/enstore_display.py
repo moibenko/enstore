@@ -155,18 +155,19 @@ clients_lock = threading.Lock()
 
 def acquire(lock, lock_name="<generic_lock>", blocking=1):
     do_print = 0
+    cur_thread = threading.current_thread()
     if LOCK_LEVEL in Trace.print_levels:
         do_print = 1
 
     if do_print:
         Trace.trace(LOCK_LEVEL,
-                    "%s acquiring %s" % (threading.current_thread().getName(),
+                    "%s acquiring %s" % (cur_thread.name,
                                          lock_name))
     rtn = lock.acquire(blocking)
 
     if do_print:
         Trace.trace(LOCK_LEVEL,
-                    "%s acquired %s" % (threading.current_thread().getName(),
+                    "%s acquired %s" % (cur_thread.name,
                                         lock_name))
     return rtn
 
@@ -175,18 +176,19 @@ def acquire(lock, lock_name="<generic_lock>", blocking=1):
 
 def release(lock, lock_name="<generic_lock>"):
     do_print = 0
+    cur_thread = threading.current_thread()
     if LOCK_LEVEL in Trace.print_levels:
         do_print = 1
 
     if do_print:
         Trace.trace(LOCK_LEVEL,
-                    "%s releasing %s" % (threading.current_thread().getName(),
+                    "%s releasing %s" % (cur_thread.name,
                                          lock_name))
     rtn = lock.release()
 
     if do_print:
         Trace.trace(LOCK_LEVEL,
-                    "%s released %s" % (threading.current_thread().getName(),
+                    "%s released %s" % (cur_thread.name,
                                         lock_name))
     return rtn
 
@@ -2772,7 +2774,8 @@ class Column(object):
         return self.column_limit
 
     def set_max_limit(self, limit):
-        if type(limit) == int and limit > 0 and limit <= MIPC:
+        limit = int(limit)
+        if limit > 0 and limit <= MIPC:
             if self.column_limit == None or self.column_limit < limit:
                 self.column_limit = limit
 

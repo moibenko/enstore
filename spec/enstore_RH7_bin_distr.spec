@@ -1,7 +1,7 @@
 Summary: Enstore: Mass Storage System Binary Distribution
 Name: enstore_bin_distr
 Version: __VERSION__
-Release: __RELEASE__.el7
+Release: __RELEASE__%{?dist}
 License: GPL
 Group: Applications/System
 Source0: %{name}-%{version}.tgz

@@ -136,7 +136,7 @@ fi
 ######
 
 do_update=1
-if [ $check = "-c" -a -r $ENSTORE_DIR/sbin/enstoreCut ]
+if [ $check = "-c" -a -r $ENSTORE_DIR/sbin/volume_audit ]
 then
     # if we wanted to check for the existance of the file
     # and it existed do not update it
@@ -144,8 +144,8 @@ then
 fi
 if [ $do_update -ne 0 ]
 then
-    rm -f $ENSTORE_DIR/sbin/enstoreCut;
-    ln -s $ENSTORE_DIR/sbin/encpCut $ENSTORE_DIR/sbin/enstoreCut
+    rm -f $ENSTORE_DIR/sbin/volume_audit;
+    ln -s $ENSTORE_DIR/sbin/volume_audit.py $ENSTORE_DIR/sbin/volume_audit
 fi
 ######
 
@@ -163,9 +163,8 @@ then
 
 fi
 ######
-
 do_update=1
-if [ $check = "-c" -a -r $ENSTORE_DIR/bin/take_out ]
+if [ $check = "-c" -a -r $ENSTORE_DIR/sbin/update_database_schema ]
 then
     # if we wanted to check for the existance of the file
     # and it existed do not update it
@@ -173,14 +172,16 @@ then
 fi
 if [ $do_update -ne 0 ]
 then
-    rm -f $ENSTORE_DIR/bin/take_out
-    ln -s $ENSTORE_DIR/bin/tape_aid_wrapper  $ENSTORE_DIR/bin/take_out
+    rm -f $ENSTORE_DIR/sbin/update_database_schema
+    ln -s $ENSTORE_DIR/sbin/update_database_schema.py  $ENSTORE_DIR/sbin/update_database_schema
 
 fi
-######
 
+#####
+
+######
 do_update=1
-if [ $check = "-c" -a -r $ENSTORE_DIR/bin/flip_tab ]
+if [ $check = "-c" -a -r $ENSTORE_DIR/sbin/create_database ]
 then
     # if we wanted to check for the existance of the file
     # and it existed do not update it
@@ -188,9 +189,58 @@ then
 fi
 if [ $do_update -ne 0 ]
 then
-    rm -f $ENSTORE_DIR/bin/flip_tab
-    ln -s $ENSTORE_DIR/bin/tape_aid_wrapper  $ENSTORE_DIR/bin/flip_tab
+    rm -f $ENSTORE_DIR/sbin/create_database
+    ln -s $ENSTORE_DIR/sbin/create_database.py  $ENSTORE_DIR/sbin/create_database
 
 fi
+
+#####
+
 ######
+do_update=1
+if [ $check = "-c" -a -r $ENSTORE_DIR/sbin/dump_restore_database ]
+then
+    # if we wanted to check for the existance of the file
+    # and it existed do not update it
+    do_update=0
+fi
+if [ $do_update -ne 0 ]
+then
+    rm -f $ENSTORE_DIR/sbin/dump_restore_database
+    ln -s $ENSTORE_DIR/sbin/dump_restore_database.py  $ENSTORE_DIR/sbin/dump_restore_database
+
+fi
+
+#####
+
+######
+do_update=1
+if [ $check = "-c" -a -r $ENSTORE_DIR/sbin/validate_host ]
+then
+    # if we wanted to check for the existance of the file
+    # and it existed do not update it
+    do_update=0
+fi
+if [ $do_update -ne 0 ]
+then
+    rm -f $ENSTORE_DIR/sbin/validate_host
+    ln -s $ENSTORE_DIR/sbin/validate_host.py  $ENSTORE_DIR/sbin/validate_host
+
+fi
+
+do_update=1
+if [ $check = "-c" -a -r $ENSTORE_DIR/sbin/make_enstore_system ]
+then
+    # if we wanted to check for the existance of the file
+    # and it existed do not update it
+    do_update=0
+fi
+if [ $do_update -ne 0 ]
+then
+    rm -f $ENSTORE_DIR/sbin/make_enstore_system
+    ln -s $ENSTORE_DIR/sbin/make_enstore_system.py  $ENSTORE_DIR/sbin/make_enstore_system
+
+fi
+
+#####
 

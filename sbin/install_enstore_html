@@ -37,9 +37,12 @@ systemctl stop httpd
 cd ${tmpdir}
 cp -p ${ENSTORE_DIR}/etc/*.gif .
 cp -p ${ENSTORE_DIR}/etc/*.html .
-cp -p ${ENSTORE_DIR}/www/*.gif .
-cp -p ${ENSTORE_DIR}/www/*.html .
-
+cp -p ${ENSTORE_DIR}/doc/WWW/*.gif .
+cp -p ${ENSTORE_DIR}/doc/WWW/*.html .
+cp -p ${ENSTORE_DIR}/doc/WWW/*.pdf .
+cp -p ${ENSTORE_DIR}/doc/WWW/*.ppt .
+cp -p ${ENSTORE_DIR}/doc/guides/*.pdf .
+cp -p ${ENSTORE_DIR}/doc/*.pdf .
 
 cp -p ${ENSTORE_DIR}/sbin/active_volumes.sh .
 cp -p ${ENSTORE_DIR}/sbin/deploy_enstore_html .

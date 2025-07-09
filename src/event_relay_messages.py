@@ -32,7 +32,6 @@ HEARTBEAT = "heartbeat"
 
 MSG_FIELD_SEPARATOR = " "
 
-import inspect
 
 def decode_type(msg):
     return msg.split(MSG_FIELD_SEPARATOR, 1)

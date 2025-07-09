@@ -319,15 +319,9 @@ if __name__ == "__main__":   # pragma: no cover
 
     if len(sys.argv) > 1:
         event_relay_host = sys.argv[1]
-    if event_relay_host[:2] == 'd0':
-        event_relay_host = 'd0ensrv2.fnal.gov'
-        system_name = 'd0en'
-    elif event_relay_host[:3] == 'stk':
-        event_relay_host = 'stkensrv2.fnal.gov'
-        system_name = 'stken'
     else:
         event_relay_host = os.environ.get("ENSTORE_CONFIG_HOST")
-        system_name = event_relay_host
+    system_name = event_relay_host
 
     event_relay_port = 55510
 

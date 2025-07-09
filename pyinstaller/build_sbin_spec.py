@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os
 import subprocess
 
 def fill_analysis(src_spec_dir, src_list, out_file):
@@ -71,7 +72,8 @@ def fill_collect(src_list, collection_name, out_file):
         out_file.write("{}\n".format(l))
         
 import sys
-spec_dir = "/home/enstore/enstore_p2p3_stage2_src_only_no_cache/enstore/pyinstaller/specs/"
+root = os.getenv('ENSTORE_DIR')
+spec_dir = "{}/pyinstaller/specs/".format(root)
 src_list = []
 
 with open('spec_list', 'r') as f:

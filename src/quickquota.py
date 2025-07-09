@@ -31,6 +31,7 @@ def get_storage_info(vol_family):
 
 
 detailed = 0
+detailed_output = None
 if len(sys.argv) > 2:
     if sys.argv[1] in ('detailed', 'detail', 'd'):
         detailed = 1

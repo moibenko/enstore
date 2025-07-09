@@ -826,6 +826,7 @@ char *STK_density_trans[MAX_TRANS_DENSITY] = {
 ** and echo the device type as the result
 ** note the %d is filled by a printf first
 */
+
 static char LINUXfind[] =
     "IFS=\" \t\n\";\
      PATH=\"/bin:/usr/bin:/sbin:/usr/sbin\";\
@@ -839,6 +840,16 @@ static char LINUXfind[] =
 		count=`expr $count + 1`; \
 	fi; \
        done";
+
+
+static char LINUXfind_sg[] =
+    "IFS=\" \t\n\";\
+    PATH=\"/bin:/usr/bin:/sbin:/usr/sbin\";\
+    sg_map | while read a b; do \
+        if [ \"$b\" = \"/dev/nst%d\" ] ; then \
+           echo ${a}; exit; \
+        fi; \
+    done";
 
 static char LINUXrmtfind[] =
     "IFS=\" \t\n\";\
@@ -1261,7 +1272,8 @@ ftt_dev_entry devtable[] = {
     /* Default */
        { "dev/nst%d",    6,  0, 0x84, 0,  0,       0,   1, LINUX_MAX_BLKSIZE},
     /* Default, passthru  */
-       { "dev/sg%d",     -1,  0, -1,  1,  0,       0,   1, LINUX_MAX_BLKSIZE},
+       /* { "dev/sg%d",     -1,  0, -1,  1,  0,       0,   1, LINUX_MAX_BLKSIZE}, */
+       { LINUXfind_sg,     -1,  0, -1,  1,  0,       0,   1, LINUX_MAX_BLKSIZE},
     /* Other Densities */
        { "dev/nst%d",    6,  1, 0x85, 0,  0,       0,   0, LINUX_MAX_BLKSIZE},
        { "dev/nst%d",    4,  0, 0x80, 0,  0,       0,   0, LINUX_MAX_BLKSIZE},
@@ -1460,7 +1472,8 @@ ftt_dev_entry devtable[] = {
     /* Default */
        { "dev/nst%d",     0,  0,  0,  0,  0,  0,        1, LINUX_MAX_BLKSIZE},
     /* Default, passthru  */
-       { "dev/sg%d",     -1,  0, -1,  1,  0,  0,        1, LINUX_MAX_BLKSIZE},
+       /* { "dev/sg%d",     -1,  0, -1,  1,  0,  0,        1, LINUX_MAX_BLKSIZE}, */
+       { LINUXfind_sg,     -1,  0, -1,  1,  0,  0,        1, LINUX_MAX_BLKSIZE},
     /* Descriptive */
        { "dev/st%d",      0,  0,  0,  0,  0, FTT_RWOC,  1, LINUX_MAX_BLKSIZE},
        { 0 },
