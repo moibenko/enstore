@@ -8,8 +8,6 @@
 # script that dumps and restores any enstore db
 # based on setup parameters from backup or from local file
 #
-# Author: Dmitry Litvintsev (litvinse@fnal.gov) 01/09
-#
 ###############################################################################
 
 import pg
@@ -33,10 +31,11 @@ createuser = "/usr/sbin/useradd"
 dbserver_cmd = "postmaster"
 pid_file = dbserver_cmd + ".pid"
 
+ENSTORE_DIR=os.getenv('ENSTORE_DIR')
 name_to_schema_map = {
-    "accounting": "databases/schemas/accounting.schema",
-    "drivestat": "databases/schemas/drivestat.schema",
-    "enstoredb": "databases/schemas/enstoredb.schema",
+    "accounting": os.path.join(ENSTORE_DIR, "databases/schemas/accounting.schema"),
+    "drivestat": os.path.join(ENSTORE_DIR, "databases/schemas/drivestat.schema"),
+    "enstoredb": os.path.join(ENSTORE_DIR, "databases/schemas/enstoredb.schema"),
 }
 
 
@@ -320,7 +319,7 @@ if __name__ == "__main__":
             sys.exit(1)
 
     if dbname == "enstoredb":
-        for d in ["db_dir", "jou_dir"]:
+        for d in ["db_dir"]:
             value = server.get(d, None)
             if not value:
                 dump_restore_database.print_error(
