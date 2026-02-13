@@ -254,6 +254,7 @@ class MpdGnuFile(enstore_files.EnFile):
                             "set xrange [ : ]\n" +
                             "set xdata time\n" +
                             "set size 1.5,1\n" +
+                            "set colorsequence classic\n" +
                             "set format x \"%y-%m-%d\"\n" +
                             "set ylabel 'Mounts'\n" +
                             "set grid\n" +
@@ -424,6 +425,7 @@ class XferGnuFile(enstore_files.EnFile):
             "set xdata time\n" + \
             "set xrange [ : ]\n" + \
             "set size 1.5,1\n" + \
+            "set colorsequence classic\n" + \
             "set ylabel 'Bytes per Transfer'\n" + \
             "set grid\n" + \
             "set format x \"%y-%m-%d\"\n" + \
@@ -506,6 +508,7 @@ class BpdGnuFile(enstore_files.EnFile):
                             "set timefmt \"%Y-%m-%d\"\n" +
                             "set xdata time\n" +
                             "set size 1.5,1\n" +
+                            "set colorsequence classic\n" +
                             "set xrange [ : ]\n" +
                             "set ylabel 'Bytes'\n" +
                             "set grid\n" +
@@ -549,6 +552,7 @@ class BpdMoverGnuFile(enstore_files.EnFile):
                             "set timefmt \"%Y-%m-%d\"\n" +
                             "set xdata time\n" +
                             "set size 1.5,1\n" +
+                            "set colorsequence classic\n" +
                             "set xrange [ : ]\n" +
                             "set ylabel 'Bytes'\n" +
                             "set grid\n" +
@@ -899,6 +903,7 @@ class SgGnuFile(enstore_files.EnFile):
                             "set timefmt \"%Y-%m-%d:%H:%M:%S\"\n" +
                             "set xdata time\n" +
                             "set size 1.5,1\n" +
+                            "set colorsequence classic\n" +
                             "set xrange [ : ]\n" +
                             "set yrange [0: ]\n" +
                             "set ylabel 'Storage Group'\n" +
@@ -958,6 +963,7 @@ class TotalBpdGnuFile(enstore_files.EnFile):
                             "set timefmt \"%Y-%m-%d\"\n" +
                             "set xdata time\n" +
                             "set size 1.5,1\n" +
+                            "set colorsequence classic\n" +
                             "set xrange [ : ]\n" +
                             "set ylabel 'Bytes'\n" +
                             "set grid\n" +

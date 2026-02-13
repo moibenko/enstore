@@ -151,7 +151,7 @@ def main(func, number_of_threads):
     lms = csc.get_library_managers()
     library = None
     library_manager = None
-    for name, lm in lms.items():
+    for name, lm in list(lms.items()):
         lm_host = lm.get('address')[0].split('.')[0]
         if lm_host == hostname and name != 'LTO3' and name != 'null2':
             library = name

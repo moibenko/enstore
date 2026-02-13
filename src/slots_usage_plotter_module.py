@@ -49,6 +49,7 @@ class SlotUsagePlotterModule(enstore_plotter_module.EnstorePlotterModule):
             plot_fp.write("set timefmt \"%m-%d-%Y %H:%M:%S\"\n")
             plot_fp.write("set xdata time\n")
             plot_fp.write("set ylabel \"Number of Slots\"\n")
+            plot_fp.write("set colorsequence classic\n")
             plot_fp.write("set grid \n")
             plot_fp.write("set yrange [0: ]\n")
             plot_fp.write("set format x \"%m-%d\"\n")

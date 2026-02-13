@@ -1,0 +1,28 @@
+commit 26e6b424d6b78cbc67d33e822e0f2c031cf53b97
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Oct 3 15:51:12 2025 +0300
+
+    double checksum comes like
+    2:d27677c3916e215d6722ff2941ee84ca,1:b806421d
+    where adler32 is second.
+    This solution extracts adler32 no matter how it comes
+
+M	dcache-deploy/scripts/real-encp.sh
+
+commit 5fc98ace6a2c287541cfe97e1d15141ce264c98d
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 2 14:34:04 2025 +0300
+
+    Check if file with given pnfs id is present just before starting its transfer to mover.
+    This should minimize cases when file has been overwritten in dcache.
+    Such files will not be written to tape, thus saving media space.
+
+M	src/encp.py
+
+commit 68a7ba95e3ba736a01302219ff2b23a0c5914b65
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Sep 23 18:30:20 2025 +0300
+
+    Fixed error introduce in the previous commit
+
+M	src/mover.py

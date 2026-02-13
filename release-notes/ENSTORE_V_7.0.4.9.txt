@@ -1,0 +1,732 @@
+commit 77e986215f5a8fba2bb7d7156a9aa82d35847bc6
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Tue Aug 5 16:13:23 2025 +0300
+
+    Set classic color palette for gnuplot
+
+M	src/mounts_plotter_module.py
+M	src/slots_usage_plotter_module.py
+
+commit f59c6cfbc6380a08467978ccf6cc29a9d658c3b0
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Mon Aug 4 12:10:02 2025 +0300
+
+    Changes needed with new changes of configuration_client.py
+
+M	src/enstore_html.py
+
+commit 171d61c9bbb906792e839367de40b476b59ead61
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Fri Aug 1 20:39:41 2025 +0300
+
+    Fixed typos
+
+M	modules/SWIG/ftt2.i
+
+commit 56be43af8c279f19093219fddcc47b60a5a4ee8d
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Fri Aug 1 20:29:37 2025 +0300
+
+    make configuration client read from local configuration file instead of sending requests
+    to configuration server, if $ENSTORE_CONFIG_HOST points to local to configuration client host.
+
+M	src/configuration_client.py
+A	src/configuration_dictionary.py
+
+commit b80bd97e5b9ad5590e28d730a37cd3e036106abf
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Thu Jul 31 21:40:57 2025 +0300
+
+    Threaded build os swig modules. Old way stopped working
+
+M	modules/SWIG/Makefile
+
+commit 4cfe5ddede845655fcf9f7d3671e8cb22ee6e194
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Thu Jul 31 17:01:05 2025 +0300
+
+    Added ENSTORE_CONFIG_FILE
+
+M	etc/enstore.sudoers
+
+commit fde4a36fd2edc9cb54dfaa27baeee0313f8a4b3f
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Thu Jul 31 16:44:48 2025 +0300
+
+    Fixed typos in type definitions
+
+M	modules/SWIG/ftt2.i
+
+commit aed555b38b927cba9b975a26d0b15fc1b2b85779
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Mon Jul 28 16:18:44 2025 +0300
+
+    Added cron job to check if servers and movers are running
+
+A	crontabs/check_system
+
+commit 5145e086a0dc902c27d13cf0512d8cf26db63824
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Mon Jul 28 14:06:08 2025 +0300
+
+    Fixed symlink
+
+M	external_distr/update_sym_links.sh
+
+commit 3bd125562ece0e486745694bd53eca50ac2afae5
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Jul 25 11:46:35 2025 +0300
+
+    Added yet another symlink
+
+M	external_distr/update_sym_links.sh
+
+commit ff99f2010e3f6012f068c3b5178e0078a44b89c4
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Jul 25 09:45:45 2025 +0300
+
+    Added symlink
+
+M	external_distr/update_sym_links.sh
+
+commit 1bab3e107a5e2bc692f0e7cc3fee097a8bf2e019
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Jul 25 09:28:45 2025 +0300
+
+    Force set classic color schema for gnuplot
+
+M	src/bytes_per_day_plotter_module.py
+M	src/encp_rate_multi_plotter_module.py
+M	src/enstore_plots.py
+M	src/histogram.py
+M	src/makeplot.py
+M	src/mover_summary_plotter_module.py
+
+commit 20cc7ccee68f69810adc94cb3836cfd2fc8e90b4
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 24 15:09:21 2025 +0300
+
+    Commented confusing error condition message. Per tvv.
+
+M	dcache-deploy/scripts/real-encp.sh
+
+commit 3c33e6bae0758fd9c5f9e4adb48accf815c00d05
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 24 15:05:17 2025 +0300
+
+    migrator_client.py - wthout this change inqusitor hangs if migrator is down
+
+M	src/migrator_client.py
+M	src/rabbitmq_cache/messaging/client.py
+
+commit 5083763c0c927c43bf371852be6c6300f46bcd00
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 17 12:47:02 2025 +0300
+
+    removed defattr
+
+M	spec/encp_dcache_bin.spec
+
+commit c6df5fd73addbb92e197faea417d59daa0d4c77b
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 17 12:21:52 2025 +0300
+
+    Activated check option
+
+M	src/delfile_chimera_by_vol.py
+
+commit 95faef0a8508e4108298d46f2531bf02e91ec979
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 17 11:16:20 2025 +0300
+
+    Changed location of source setup-enstore file
+
+M	spec/encp_dcache_bin.spec
+
+commit 3f9c8353c1cfbae2d6bfd581ce2b0c115926a574
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 17 11:11:51 2025 +0300
+
+    removed enstore.enstore
+
+M	spec/encp_dcache_bin.spec
+
+commit dab41a886af3471769fa00c8d29fe80797bf1543
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 17 10:48:25 2025 +0300
+
+    Added delfile_chimera_by_vol. Not checked
+
+M	pyinstaller/Makefile
+A	src/delfile_chimera_by_vol.py
+
+commit 26c13eeec09656887f821ef0e86c225566e9fc4a
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Jul 15 13:21:54 2025 +0300
+
+    Added tag ENSTORE_V_7.0.4 and correspondig release notes.
+
+A	release-notes/ENSTORE_V_7.0.4.txt
+
+commit 8265684f1386b161b4cffaa7cbe29f8d3ba771c5
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Jul 15 13:10:47 2025 +0300
+
+    in Postgresql 12 and higher some statements do not get effect without explicit commit
+
+M	src/dbaccess.py
+
+commit 12c6712d098812f11f390b60a3591ff43c12d14b
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 10 17:20:09 2025 +0300
+
+    python2 -> python3 conversion of some remnants.
+    Some code cleanup.
+
+M	src/enstore_start.py
+M	src/migrate_chimera.py
+M	src/rabbitmq_cache/messaging/normalize_ticket.py
+D	test/CDF_migration/CDF_migrate1
+D	test/CDF_migration/CDF_migrate2
+D	test/CDF_migration/CDF_newtape_list
+D	test/CDF_migration/CDF_tape_list
+D	test/CDF_migration/chk
+D	test/CDF_migration/finalscan
+D	test/CDF_migration/fixfew
+D	test/CDF_migration/getfiles
+D	test/CDF_migration/go
+D	test/CDF_migration/migrate
+D	test/CDF_migration/migrate_tape
+D	test/CDF_migration/migration-setup-enstore
+D	test/CDF_migration/scan
+D	test/CDF_migration/wait_and_go
+D	test/CDF_migration/wf
+D	test/CDF_migration/wm
+M	test/LTO5/utils.py
+M	test/buf_mod_test.py
+M	test/csumrate.py
+M	test/fd_xfer.py
+M	test/fixdb.py
+M	test/ftt_regression.py
+M	test/log_server_stress_test.py
+M	test/mph.py
+M	test/nameserver.py
+M	test/ndup.py
+M	test/parse-EXfer-profile.py
+M	test/ranfile.py
+M	test/remaining_bytes_test.py
+M	test/test-enprint.py
+M	test/torture/get_bfids.py
+M	test/torture/make_pnfs_dir.py
+M	test/torture/read_batch_setup.py
+M	test/torture/write_batch_setup.py
+M	test/udp_peer.py
+M	test/writefm_test.py
+M	volume_import/import_castor_tape.py
+M	volume_import/volume_import.py
+
+commit 328384a20444a154be4973b78754c4775288d7da
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed Jul 9 10:45:15 2025 +0300
+
+    Added watermarks, fixed so far. Make configurable.
+
+M	src/migrate_chimera.py
+
+commit 837a6baa0b0bbe149e1293d9760ff13ec37a371d
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Jul 1 12:59:34 2025 +0300
+
+    Changes to migration to imporove performance.
+
+M	src/configuration_client.py
+M	src/migrate_chimera.py
+M	src/scanfiles.py
+
+commit bc1177fff3e9d341eb338d4c9f673e0e99d5f1f8
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed Jun 25 17:39:16 2025 +0300
+
+    New gnuplot changed color palette.
+    Return it back to what it was
+
+M	src/histogram.py
+
+commit 3ddf4a74da274d376cbc8206e6372f5c978ef906
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Jun 17 15:50:21 2025 +0300
+
+    argument in set_max_limit must be int
+
+M	src/enstore_display.py
+
+commit c1122701a018c6da2b19e3f1ebe602db18082666
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jun 5 10:02:03 2025 +0300
+
+    Removed diagnostic
+
+M	src/enstore_functions3.py
+
+commit 3b8e8608df477ebc7277092a87b8cfb060f462c4
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Jun 3 10:33:03 2025 +0300
+
+    Fixed error
+
+M	src/manage_queue.py
+
+commit 20dc96cf84cb19dcab40f370775d4e762f0d8ffc
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri May 30 12:27:40 2025 +0300
+
+    Fixed error, found by linter
+
+M	bin/fix_pnfs_layer.py
+
+commit 63e9055eee44d90aaf3376b48288f1e01674e7c2
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri May 16 13:13:46 2025 +0300
+
+    Fixed typo
+
+M	dcache-deploy/scripts/real-encp.sh
+
+commit c1881888da7bc7d4fef88abbac407bf6e43c05ed
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu May 15 12:28:41 2025 +0300
+
+    In Al9 (kernel 5.*) the change done to st leads to the following problem:
+    Tape drives are returning an "Input/output error" when a drive, the host, or
+    the bus is reset. This behavior is expected when a tape is present to prevent
+    data loss. However, the driver currently drops these errors even for empty
+    drives. This is fixed in kernel 6.* (Al10). Found temporary resolution.
+    After first load of st driver (initialization, reboot) rty to rmmmod st, modblrobe st.
+    This was proven to work with low statistics, but worked on all reboots.
+
+A	bin/check_st
+M	bin/enstore-boot
+
+commit 4e530c3bab93eab4ba07ea5714f53a3f00b6004a
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon May 12 11:42:07 2025 +0300
+
+    Fixed typo
+
+M	src/mover.py
+
+commit 43a5775645949c2e490bfa1fb97b2e846f6d1b08
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Wed May 7 20:10:15 2025 +0300
+
+    Enable buffered tapemarks throgh configuration.
+    Fix cern wrapper.
+
+M	src/cern_wrapper.py
+M	src/mover.py
+
+commit d35bd35d23448b62291a826383b5905d303d83f0
+Author: Alexander Moibenko <moibenko@jinr.ru>
+Date:   Thu Apr 24 10:08:55 2025 +0300
+
+    Added compiler optimization flag -O3
+
+M	ftt/ftt_lib/Linux/flags
+M	modules/Makefile
+
+commit af5611b5559c1f01d4e78d06817282ef7c0726a0
+Author: Alexander Moibenko <moibenko@jinr.ru>
+Date:   Thu Apr 24 10:02:04 2025 +0300
+
+    Fix sudoers
+
+M	etc/enstore.sudoers
+M	spec/enstore_dev.spec
+
+commit bac849dbd0ee4a6544bdb8a2f78cfd0cd3fac43f
+Author: Alexander Moibenko <moibenko@jinr.ru>
+Date:   Thu Apr 24 09:55:41 2025 +0300
+
+    Do not send message to stdout before raising exception. This hurts callers.
+
+M	src/udp_common.py
+
+commit 47499dba6c1f58c154cb4ea452501ff086a32117
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Apr 11 16:35:27 2025 +0300
+
+    Added release notes
+
+A	release-notes/ENSTORE_V_7.0.3.49.txt
+
+commit 7b2881860dbfa9e0de66ccb022a76da2a12a12e7
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Apr 11 16:27:31 2025 +0300
+
+    Added python bin to secure_path.
+    Otherwise no python could be found when running with sudo
+
+M	etc/enstore.sudoers
+
+commit 0e49b1f39a1b6e2a924e5dc50042ff3016edf3e4
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Apr 11 15:07:36 2025 +0300
+
+    Added log_start_event, log_finish_event
+    ecron needs them
+
+M	external_distr/sbin_links
+
+commit c7d4f20712ffdc405c1bfb5ed86a7009128de42f
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Apr 11 13:45:29 2025 +0300
+
+    Disable debug output
+
+M	src/mover.py
+
+commit 363d1ccc92cf68f6e76a1ab340838cbb90a7da7a
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Apr 11 13:06:10 2025 +0300
+
+    Get range of available ports
+
+A	src/ports_to_use.py
+
+commit dd1aaa0e7023e3ffd7051e9dad43eb6796a50855
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Apr 11 13:04:35 2025 +0300
+
+        More changes to make mover working behind firewall.
+        Use ENSTORE_CLIENT_PORTS when initializing udp_client
+
+M	src/configuration_server.py
+M	src/library_manager.py
+
+commit dd1fe69eb9cb2b06d923b11ade3677dbb8f34400
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Apr 11 12:47:53 2025 +0300
+
+    Moved common parts of code to separate module
+
+M	src/callback.py
+M	src/event_relay_client.py
+M	src/generic_client.py
+M	src/mover.py
+
+commit 6073c1b65e2fbb0d94eb4c582b269d25f41aab57
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Apr 11 12:08:47 2025 +0300
+
+    More changes to make mover working behind firewall.
+    Use ENSTORE_CLIENT_PORTS when initializing udp_client
+
+M	src/mover.py
+
+commit 889af9b9d49848ca6f2a9d18a34e003f8cb5a1a8
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Apr 11 11:56:23 2025 +0300
+
+    Changes to make mover working behind firewall.
+    Use ENSTORE_CLIENT_PORTS when initializing udp_client
+
+M	src/mover.py
+
+commit 32938ebb8bd0f8dbe5899c78f4bdc6f4f4e7591b
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Apr 10 17:21:58 2025 +0300
+
+    Added ENSTORE_CLIENT_PORTS to sudoers
+
+M	etc/enstore.sudoers
+M	spec/enstore_dev.spec
+
+commit f8e78fcb7eb53da8fc6d998251a357f39e9cc11a
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Apr 10 14:04:35 2025 +0300
+
+     create ld config file for python library get recognized when doing sudo
+
+M	spec/enstore_dev.spec
+
+commit 63817e674c710af5a918509d3edda5444852ff6d
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Apr 10 13:44:42 2025 +0300
+
+    Expanded tape label rule to include JE
+
+M	src/enstore_functions3.py
+
+commit 8759d3d6bbfe33b66359868c7d852219d0eda538
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed Apr 9 16:14:15 2025 +0300
+
+    More changes
+
+M	src/event_relay_client.py
+
+commit 77f64ecc7c0fdc5b280cc7c70f7ccad602c24b15
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed Apr 9 13:23:31 2025 +0300
+
+    Wrong code was committed before
+
+M	src/event_relay_client.py
+
+commit c92446b08b74fea8d8ac4197cd155e302d116c90
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed Apr 9 12:20:54 2025 +0300
+
+    Changes to make event_relay working on configurable port.
+
+M	src/event_relay.py
+M	src/event_relay_messages.py
+
+commit 31c6cdfa399fea8d4c2c9db11456f7c1f41dba4b
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed Apr 9 12:07:09 2025 +0300
+
+    Removed debug print
+
+M	src/callback.py
+
+commit abfe6e6696b4fece36b2092c54461479ce7be77d
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Apr 8 16:15:19 2025 +0300
+
+    If environment variable ENSTORE_CLIENT_PORTS is set select port from
+    range defined by this variable. To use with firewall ports restriction
+
+M	src/callback.py
+M	src/generic_client.py
+
+commit aeaa86f326908c111eb221f67f2505b7e5aaf7ec
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Apr 8 12:14:23 2025 +0300
+
+    More fixes
+
+M	sbin/make_enstore_system.py
+
+commit cb68187270619eb894fba0c56c31edcd437f2ef5
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Apr 8 11:45:38 2025 +0300
+
+    Fixed os calls
+
+M	sbin/make_enstore_system.py
+
+commit f09a57c679ba1deb8a507549f24111709450976b
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Apr 8 11:25:57 2025 +0300
+
+    Make symlinks to sgi python files if needed
+
+M	sbin/make_enstore_system.py
+
+commit d62c2891aeb9d0a706cabb55f8405a1fdbe98e69
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Apr 7 16:13:11 2025 +0300
+
+    Fixed
+
+M	packaging/package_enstore_dev.sh
+
+commit 2705e2128bd9adfb6bccb916cddeb666f73959bb
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Apr 7 16:02:38 2025 +0300
+
+    Fixes for deployment of web server
+
+M	packaging/package_enstore_dev.sh
+M	sbin/make_enstore_system.py
+
+commit 9278308f59515ec4b514f9696e4f1e9d34728560
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Tue Apr 1 17:35:28 2025 +0300
+
+    Replaced execute_command with execute_status_command.
+    Removed command_table_struct command_table[22] because on new system (AL9) it would zero the external table.
+
+M	modules/SWIG/mtx.i
+
+commit 5591d47be9b61cb990e33dfb2634a92ca17a1cd1
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Mon Mar 31 14:43:34 2025 +0300
+
+    Correctly added symlink for make_enstore_system
+
+M	external_distr/sbin_links
+M	external_distr/update_sym_links.sh
+
+commit 26f179d32b84e2a7109f9dc312902d9aee1079d6
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Mon Mar 31 14:28:40 2025 +0300
+
+    Added media changer device rule
+
+M	spec/enstore_dev.spec
+
+commit 796cbf5876df9ae20a18fcfeeb166f2431a0bc69
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Thu Mar 27 11:33:51 2025 +0300
+
+    Added missing symlinks
+
+M	external_distr/sbin_links
+
+commit 37760d3a9c640169fe3d64e945878ff1a2e08ae3
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Mar 25 17:28:49 2025 +0300
+
+    Now db can be added after database server started
+
+M	sbin/create_database.py
+
+commit 8a2252d3f34068d4ec141950a609341e85223079
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Mar 24 18:22:40 2025 +0300
+
+    Added validate_host
+
+M	external_distr/update_sym_links.sh
+
+commit 4be52f0c0b9131e327d60b6b856973b54942622b
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Mar 24 17:33:40 2025 +0300
+
+    Fixed entry (update_database_schema)
+
+M	external_distr/update_sym_links.sh
+
+commit 29a14250cb527997bc920d6acdd9e87fd9871fa1
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Mar 24 16:10:44 2025 +0300
+
+    Do not copy symlinks
+
+M	packaging/package_enstore_dev.sh
+
+commit 59ecff9a12c4a8670537446ec1268057e868e031
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Mar 24 15:38:44 2025 +0300
+
+    removed pnfs link
+
+M	external_distr/bin_links
+
+commit 83ca7bab0e5d19d6e3cf8d4314a1e69e8c49b2e5
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Mar 24 14:59:08 2025 +0300
+
+    Changes to host_config.py reverted to the previous commit
+
+M	src/host_config.py
+
+commit 02419b876737e26863ac9ac0d5b668b6c55fa9c9
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Mar 24 10:43:12 2025 +0300
+
+    If no preferred_ip specified guess address family by ENSTORE_CONFIG_HOST
+
+M	src/host_config.py
+
+commit 9b791c124b641160c29359d11e6c8bd4ba766ae3
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Mar 21 17:58:24 2025 +0300
+
+    Importatnt change done to host_config.py as it was noticed that on nodes with no host name
+    interface resolution fails.
+
+M	sbin/create_database.py
+M	spec/enstore_dev.spec
+M	src/host_config.py
+
+commit 81a527a472bf050502e531294c0bf41cab2e5bf9
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Mar 21 12:25:31 2025 +0300
+
+    More fixes
+
+M	spec/enstore_dev.spec
+
+commit aa5212929d46287b5e480ec056a146903c37c714
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Mar 21 10:52:00 2025 +0300
+
+    more fixes
+
+M	spec/enstore_dev.spec
+
+commit 0550ed3de45ef2fe49c15a1acd30c0a814b267d9
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Mar 20 17:20:19 2025 +0300
+
+    More changes
+
+M	spec/enstore_dev.spec
+
+commit b6551fc4e89752085552815390e176f4d7f72977
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Mar 20 17:06:34 2025 +0300
+
+    Fixed postun
+
+M	spec/enstore_dev.spec
+
+commit 5275062db2a2cc2fd89339924936cd723a89d5c3
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Mar 20 15:59:18 2025 +0300
+
+    Added postun section
+
+M	spec/enstore_dev.spec
+
+commit 7bccdb18e4603810f36aa54b90562a61c450fad1
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed Mar 19 13:19:13 2025 +0300
+
+    Returned lm_update interval setting in setattr back to what it was
+
+M	src/mover.py
+
+commit 7fee53c40eed07c7ec002a2613bd151993245a7a
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed Mar 19 13:02:16 2025 +0300
+
+    Fixed reset_interval in setattr
+
+M	src/mover.py
+
+commit b72ac1ce361dab4b4d1332f1933c09b2b627d74b
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed Mar 19 11:46:24 2025 +0300
+
+    Removed leftover debug output
+
+M	src/mover.py
+
+commit 8e01caf594bbb8299d620ec7f4b67743df0844df
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed Mar 19 10:45:35 2025 +0300
+
+    fixed
+
+M	spec/enstore_dev.spec
+
+commit d673259fff39e4cdc4ace44e2a93bc8284b37843
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed Mar 19 10:39:11 2025 +0300
+
+    Check if systemctl services are already installed and if not - install
+
+M	spec/enstore_dev.spec
+
+commit e8cdca89e445f2109b757f8db79938cae8aa1384
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed Mar 19 10:18:28 2025 +0300
+
+    Added setup of enstore and enstore-monitor services to start on boot
+    Why they were removed?
+
+M	spec/enstore_dev.spec

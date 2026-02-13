@@ -1,5 +1,5 @@
 # generate main enstore html page
-55 * * * * enstore  source /usr/local/etc/setups.sh; setup enstore; $ENSTORE_DIR/sbin/enstore_system_html > /dev/null 2> /dev/null
+55 * * * * enstore  source /usr/local/etc/setups.sh; setup enstore; $ENSTORE_DIR/sbin/html_main --system-html > /dev/null 2> /dev/null
 
 # gererate additional enstore web pages.
 16 * * * * enstore source /usr/local/etc/setups.sh; setup enstore; $ENSTORE_DIR/sbin/ecron -p make_quota_plot_page make_quota_plot_page  > /dev/null 2> /dev/null

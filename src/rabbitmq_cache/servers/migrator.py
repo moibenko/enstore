@@ -655,7 +655,7 @@ class Migrator(dispatching_worker.DispatchingWorker,
             # this gradation allows 1000 distinct file names
             fraction = int((t - t_int) * 1000)
             thread = threading.current_thread()
-            th_name = thread.getName()
+            th_name = thread.name
             src_fn = "package-%s-%s-%s.%sZ" % (self.queue_in_name,
                                                th_name,
                                                time.strftime("%Y-%m-%dT%H:%M:%S",
@@ -1964,8 +1964,8 @@ class Migrator(dispatching_worker.DispatchingWorker,
     # runs in a separate thread
     def run_mw_request(self, message):
         # add sender
-        thread = threading.currentThread()
-        sndr = self.amq_client.add_sender(thread.getName(), self.amq_client.target_queue)
+        thread = threading.current_thread()
+        sndr = self.amq_client.add_sender(thread.name, self.amq_client.target_queue)
         Trace.trace(10, "run_mw_request: %s %s %s" % (message, message.content, message.correlation_id))
         # run worker
         Trace.log(
@@ -1986,7 +1986,7 @@ class Migrator(dispatching_worker.DispatchingWorker,
                 message, q, status_dict))
         #mw_proc = threading.Thread(
         #    target=self.process_mw_request, args=(
-        #        message, q, status_dict))
+        #        message, q, status_dict), name=message.correlation_id)
         try:
             Trace.trace(10, "run_mw_request: starting process")
             mw_proc.start()
@@ -2090,7 +2090,6 @@ class Migrator(dispatching_worker.DispatchingWorker,
         # check process counter
         proc_counter = self._change_proc_counter()
         Trace.trace(10, "handle_request PC: %s" % (proc_counter))
-        print("AAAA", self.draining)
         if self.draining:
             # do not process request
             # waiting for all works to finish
@@ -2128,7 +2127,6 @@ class Migrator(dispatching_worker.DispatchingWorker,
             return False
         # self.work_dict[message.correlation_id] = message # remove after debug AM!!
         # prepare work:
-        print("BBBB")
         request_type = message.properties["en_type"]
         if request_type in (mt.MWC_ARCHIVE, mt.MWC_PURGE, mt.MWC_STAGE):
             self.work_dict[message.correlation_id] = message
@@ -2139,14 +2137,12 @@ class Migrator(dispatching_worker.DispatchingWorker,
                 self.state = mt.PURGING
             elif request_type == mt.MWC_STAGE:
                 self.status = mt.STAGING
-            print("BBBBB11111")
             confirmation_message = mw_client.MWRConfirmation(orig_msg=message,
                                                              content=message.content,
                                                              reply_to=self.queue_in_name,
                                                              correlation_id=message.correlation_id)
             # reply now to report name of the queue for inquiry commands
             # such as MWC_STATUS
-            print("CCCCCC")
             try:
                 Trace.trace(10, "Sending confirmation")
                 self._send_reply(confirmation_message)
@@ -2160,8 +2156,8 @@ class Migrator(dispatching_worker.DispatchingWorker,
             try:
                 Trace.trace(
                     10, "handle_request: launching worker. Active threads %s" %
-                    (threading.activeCount(),))
-                dispatching_worker.run_in_thread(thread_name=None,
+                    (threading.active_count(),))
+                dispatching_worker.run_in_thread(thread_name=message.correlation_id,
                                                  function=self.run_mw_request,
                                                  args=(message,))
 
@@ -2429,7 +2425,7 @@ def do_work():
 def thread_is_running(thread_name):
     threads = threading.enumerate()
     for thread in threads:
-        if ((thread.getName() == thread_name) and thread.isAlive()):
+        if ((thread.name == thread_name) and thread.is_alive()):
             Trace.trace(10, "%s running" % (thread_name,))
             return True
         else:

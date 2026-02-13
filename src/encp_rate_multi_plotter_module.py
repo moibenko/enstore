@@ -72,6 +72,7 @@ class EncpRateMultiPlotterModule(enstore_plotter_module.EnstorePlotterModule):
         plot_fp.write("set origin 0.0, 0.0\n")
         plot_fp.write("set multiplot\n")
         plot_fp.write("set size 0.5, 0.6\n")
+        plot_fp.write('set colorsequence classic\n')
 
         # Overall
         plot_fp.write("set origin 0.25,1.2\n")

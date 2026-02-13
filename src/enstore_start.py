@@ -297,7 +297,7 @@ def start_server(cmd, servername):
         print("Will execute", cmd_list)
         #print("Will execute", cmd_list)
         # Execute the new server.
-        if any (s in cmd for s in ('media_changer', 'mover')):
+        if any (s in cmd for s in ('media_changer', 'mover', 'migrator')):
             subprocess.Popen(cmd_list, stdout=fd, stderr=subprocess.STDOUT, close_fds=False).wait()
             #    #subprocess.Popen(cmd, stdout=fd, stderr=subprocess.STDOUT, close_fds=False, shell=True).wait()
             #    #subprocess.Popen(cmd_list, stdout=fd)
@@ -419,15 +419,12 @@ def check_event_relay(csc, intf, cmd):
         print("Found event_relay.")
 
 
-# lets start fixing thisngs at least from configuration server
+# lets start fixing things at least from configuration server
 def check_config_server(intf, name='configuration_server', start_cmd=None):
-    # host = socket.gethostname()
     config_host = os.environ.get('ENSTORE_CONFIG_HOST')
     if not config_host:
         print("ENSTORE_CONFIG_HOST is not set. Exiting")
         sys.exit(1)
-
-    # host_ips = socket.gethostbyname_ex(host)[2]
 
     config_host_ip = socket.getaddrinfo(config_host, None)[0][4][0]
 
@@ -435,20 +432,7 @@ def check_config_server(intf, name='configuration_server', start_cmd=None):
     # the config server.  Otherwise return.
     if not is_on_host(config_host_ip):
         return
-    # chip = config_host_ip.split('.')
-    # for host_ip in host_ips:
-    #    hip = host_ip.split('.')
-    #    matched = 0
-    #    for i in range(0, len(chip)):
-    #        if hip[i] != chip[i]:
-    #            break
-    #    else:
-    #        matched = 1
-    #    if matched:
-    #        break
-    # if not matched:
-    #    return
-
+    rtn = None # to make linter happy
     if intf.nocheck:
         rtn = {'status': ("nocheck", "nocheck")}
     else:

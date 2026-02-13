@@ -2,8 +2,8 @@
 
 import sys, string
 
-leadin = 'static PyObject *_wrap_'
-
+#leadin = 'static PyObject *_wrap_'
+leadin = 'SWIGINTERN PyObject *_wrap_'
 fname = 'no function yet'
 
 for line in sys.stdin.readlines():
@@ -14,6 +14,10 @@ for line in sys.stdin.readlines():
         fname = line[len(leadin):]
         while fname[-1] != '(':
             fname = fname[:-1]
+        if fname.find("SWIGUNUSEDPARM") > 0:
+            fname = fname[:-1]
+            while fname[-1] != '(':
+                fname = fname[:-1]
         fname = fname[:-1]
     elif line.find(fname+'(')>0:
         print ("Py_BEGIN_ALLOW_THREADS")

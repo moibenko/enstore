@@ -187,6 +187,7 @@ class MoverSummaryPlotterModule(enstore_plotter_module.EnstorePlotterModule):
                 "set title '" + name + " %s'" % (time.strftime("%Y-%b-%d %H:%M:%S", time.localtime(time.time()))) + "\n" \
                 "set xrange [ : ]\n" + \
                 "set size 1.5,1\n" + \
+                "set colorsequence classic\n" + \
                 "set grid\n" + \
                 "set ylabel '# Errors'\n" + \
                 "set xlabel 'date'\n" + \

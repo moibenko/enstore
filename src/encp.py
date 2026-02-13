@@ -470,7 +470,7 @@ def int32(v):
 def encp_client_version():
     # this gets changed automatically in {enstore,encp}Cut
     # You can edit it manually, but do not change the syntax
-    version_string = "v3_11r"
+    version_string = "v3_12a"
     encp_file = globals().get('__file__', "")
     if encp_file:
         version_string = version_string + \
@@ -8823,7 +8823,6 @@ def write_hsm_file(work_ticket, control_socket, data_path_socket,
         return combine_dict(result_dict, work_ticket)
     else:
         in_fd = done_ticket['fd']
-
     Trace.message(TRANSFER_LEVEL, "Input file %s opened.   elapsed=%s" %
                   (work_ticket['infile'],
                    time.time() -tinfo['encp_start_time']))
@@ -8853,6 +8852,19 @@ def write_hsm_file(work_ticket, control_socket, data_path_socket,
             return combine_dict(result_dict, work_ticket)
 
     lap_time = time.time()  # ------------------------------------------Start
+
+    # Before transferring a file check if it is in name space.
+    # This is done because there were cases when by the time the file gets transferred
+    # it was alredy overwritten with the same path, but different pnfs id
+
+    sfs = namespace.StorageFS(work_ticket.get('outfilepath'))
+    current_pnfs_id = sfs.get_id()
+    if current_pnfs_id != work_ticket['fc']['pnfsid']:
+        result_dict = {'status':
+                       [e_errors.FILE_MODIFIED,
+                        'Inconsistent pnfs ids: actual: {} in request: {}'.format(current_pnfs_id, work_ticket['fc']['pnfsid'])]}
+        close_descriptors(control_socket, data_path_socket)
+        return combine_dict(result_dict, work_ticket)
 
     done_ticket = transfer_file(in_fd, data_path_socket,
                                 control_socket, work_ticket,

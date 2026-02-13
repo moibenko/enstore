@@ -247,13 +247,15 @@ def setup_signal_handling():
         # We need this for non-Linux systems that don't define SIGRTMIN.
         sig_leave_alone_list = []
 
-    # This is a known list of signals to leave thier default handler in place.
+    # This is a known list of signals to leave their default handler in place.
     sig_leave_alone_list.append(signal.SIGTSTP)
     sig_leave_alone_list.append(signal.SIGCONT)
     sig_leave_alone_list.append(signal.SIGCHLD)
     sig_leave_alone_list.append(signal.SIGWINCH)
-    sig_leave_alone_list.append(signal.SIGPIPE)  # Use python's default.
-    ##sig_leave_alone_list.append(signal.SIGKILL)
+    sig_leave_alone_list.append(signal.SIGPIPE) # Use python's default.
+    sig_leave_alone_list.append(signal.SIGKILL) # Use python's default.
+    sig_leave_alone_list.append(signal.SIGSTOP) # Use python's default.
+
 
     # Handle all signals not in the known skip list.
     for sig in signal.valid_signals():
@@ -262,10 +264,10 @@ def setup_signal_handling():
                 signal.signal(sig.value, signal_handler)
             except RuntimeError:
                 pass
-            except (ValueError, TypeError, OSError):
+            except (ValueError, TypeError, OSError) as e:
                 try:
-                    sys.stderr.write("Setting signal %s to %s failed.\n" %
-                                     (sig, signal_handler))
+                    sys.stderr.write("Setting signal {} to {} failed. Exception {}\n".format(
+                        sig, signal_handler, e))
                     sys.stderr.flush()
                 except IOError:
                     pass

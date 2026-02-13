@@ -66,7 +66,7 @@ class MountsPlotterModule(enstore_plotter_module.EnstorePlotterModule):
         outf.write("set grid\n")
         outf.write("set ylabel 'Mounts'\n")
         outf.write("set terminal postscript color solid\n")
-
+        outf.write("set colorsequence classic\n")
         outf.write("set title '%s Tape Mounts per Volume (plotted at %s)'\n"
                    % (library, time.ctime(time.time())))
         if self.toh > 0:
@@ -126,10 +126,8 @@ class MountsPlotterModule(enstore_plotter_module.EnstorePlotterModule):
         outf.write(set_label)
         outf.write(set_xtics)
         outf.write("set tics out\n")
-        if os.uname()[1] == 'cdfensrv2.fnal.gov':
-            outf.write("set arrow from 21,2000 to 21,500\n")
-            outf.write("set label \"Bakken's Tape\" at 21,2250 center\n")
         outf.write("set terminal postscript color solid\n")
+        outf.write("set colorsequence classic\n")
         outf.write("set output '" + ps_filename + "'\n")
         outf.write("set title '%s Tape Mounts (plotted at %s)'\n"
                    % (library, time.ctime(time.time())))

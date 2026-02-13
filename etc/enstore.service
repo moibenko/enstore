@@ -2,6 +2,8 @@
 [Unit]
 Description=Enstore Boot Service
 After=network.target
+After=rabbitmq-server.service
+
 
 [Service]
 Type=oneshot

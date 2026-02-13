@@ -2298,7 +2298,7 @@ class Mover(dispatching_worker.DispatchingWorker,
                 if have_tape == 1:
                     self.init_stat(self.logname)
                     status = self.tape_driver.verify_label(None)
-                    Trace.log(e_errors.INFO, "AM verify_label returned {}".format(status))
+                    Trace.log(e_errors.INFO, "verify_label returned {}".format(status))
                     # self.write_counter = 0 # this flag is used in write_tape
                     # to verify tape position
                     if status[0] == e_errors.OK:
@@ -2307,10 +2307,7 @@ class Mover(dispatching_worker.DispatchingWorker,
                         found = False
                         not_found_count = 0
                         for i in range(3):
-                            Trace.log(e_errors.INFO, "AM sending inquire_vol %s %s" %(i, self.current_volume))
-                            Trace.log(e_errors.INFO, "AM MT %s prod_id %s" % (self.media_type, self.config['product_id']))
                             v = self.vcc.inquire_vol(self.current_volume)
-                            Trace.log(e_errors.INFO, "AM inquire_vol returned %s" % (v,))
                             if isinstance(v, dict) and 'status' in v and v['status'][0] == e_errors.OK:
                                 self.vol_info.update(v)
                                 found = True
@@ -6304,10 +6301,10 @@ class Mover(dispatching_worker.DispatchingWorker,
                     Trace.trace(10, "ticket %s" % (self.current_work_ticket))
                     vol1_label = self.wrapper.vol_labels(
                         volume_label, self.wrapper_ticket)
-                    Trace.log(e_errors.INFO, "AM vol1 label %s %s" % (type(vol1_label), vol1_label))
+                    Trace.log(e_errors.INFO, "vol1 label %s %s" % (type(vol1_label), vol1_label))
                     self.tape_driver.write(vol1_label, 0, len(vol1_label))
                     self.tape_driver.writefm()
-                    Trace.log(e_errors.INFO, "AM tape labeled")
+                    Trace.log(e_errors.INFO, "tape labeled")
                     # WAYNE FOO
                     # if self.config['product_id'] == 'T9940B':
                     # Trace.trace(42, "WAYNE DEBUG: rewinding")
@@ -6618,6 +6615,7 @@ n the drive" % (self.current_volume,))
                 act_thread_name = 'tape_thread'
             else:
                 act_thread_name = None
+                alt_thread_name = None
             if act_thread_name:
                 self.dont_update_lm = 1
                 # check if tape_thread is active before allowing dismount
@@ -7305,8 +7303,10 @@ n the drive" % (self.current_volume,))
                             self.finish_transfer_setup)
                         return
                     except Exception as e:
-                        Trace.log(e_errors.ERROR, "error sending to %s (%s: %s)" %
-                                  (ticket['routing_callback_addr'], os.strerror(errno.ETIMEDOUT, str(e))))
+                        Trace.log(e_errors.ERROR,
+                                  "error sending to {} ({}: {})".format(ticket['routing_callback_addr'],
+                                                                        os.strerror(errno.ETIMEDOUT),
+                                                                        str(e)))
                         self.del_udp_client(u)
                         # del u
                         # just for a case
@@ -9701,7 +9701,8 @@ class DiskMover(Mover):
         self.bytes_to_read = self.bytes_to_transfer
         self.expected_transfer_time = self.bytes_to_write * 1.0 / self.max_rate
         self.real_transfer_time = 0.
-
+        work_file = None
+        
         if self.client_hostname:
             client_filename = self.client_hostname + ":" + client_filename
 

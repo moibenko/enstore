@@ -1,0 +1,3 @@
+#!/bin/bash
+export ENSTORE_CONFIG_HOST=#put here hostname or ip of configuration server
+export ENSTORE_CONFIG_PORT=7500

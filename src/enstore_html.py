@@ -2231,7 +2231,10 @@ class EnConfigurationPage(EnBaseHtmlDoc):
         for server in dkeys:
             server_dict = data_dict[server]
             server_keys = sort_keys(server_dict)
-            server_keys.remove('status')
+            try:
+                server_keys.remove('status')
+            except ValueError:
+                pass
             first_line = 1
             for server_key in server_keys:
                 if first_line:

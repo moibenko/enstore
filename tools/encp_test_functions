@@ -2476,7 +2476,7 @@ single_assert_test()
     fi
 
     #Snag a volume_read_test volume.
-    volumes=$($enstore_cmd info --query "select label from volume where file_family = 'volume_read_test' and label not like '%.deleted' ;" | sed '1,2d')
+    volumes=$($enstore_cmd info --query "select label from volume where file_family = 'volume_read_test' and label not like '%.deleted' and system_inhibit_0='none';" | sed '1,2d')
     if [ -z "$volumes" ]; then
 	echo "No suitable volumes found.  Skipping test and continuing." 1>&2
     else

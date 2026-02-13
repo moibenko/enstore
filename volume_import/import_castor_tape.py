@@ -10,7 +10,6 @@ import file_clerk_client
 import volume_clerk_client
 import e_errors
 import pnfs
-import popen2
 import stat
 import sys
 import getopt
@@ -24,8 +23,7 @@ GB = MB * KB
 def castor2enstoreadler32(signed):
     if signed < 0:
         return 0x100000000 + signed
-    else:
-        return signed
+    return signed
 
 
 def location_to_cookie(location):
@@ -170,7 +168,7 @@ class FileEntry(object):
             self.file_path, internal_path, lst[src_keys.index('name')])
         print("DEBUG PNFS PATH: %s" % (self.fd['pnfs_name0']))
         # some translation from the "castor file path" to the
-        ## "enstore file path" is needed
+        # "enstore file path" is needed
 
         # create bit file entry
         if os.path.exists(self.fd['pnfs_name0']):
@@ -488,12 +486,12 @@ if __name__ == "__main__":
             line = line.strip()
             if line == "":
                 continue
-            list = line.split(' ')
+            alist = line.split(' ')
             if list[0] != vo_name:
                 continue
             else:
-                castor_path = list[1]
-                pnfs_path = list[2]
+                castor_path = alist[1]
+                pnfs_path = alist[2]
 
         print("will use default pnfs path", pnfs_path)
     if library is None:

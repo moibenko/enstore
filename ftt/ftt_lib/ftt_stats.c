@@ -821,18 +821,19 @@ ftt_get_stats(ftt_descriptor d, ftt_stat_buf b) {
             long umbytesr, cmbytesr;
 
 	    do_page = buf2[4+i];
-	    DEBUG2(stderr, "Page %d\n", do_page);
-            switch( do_page ) {
-		case 0x02:
-		case 0x03:
-		case 0x0c:
-		case 0x12:
-		case 0x2e:
-		case 0x30:
-	    case 0x31:
-		case 0x32:
-	    case 0x39:
-		case 0x3c:
+	    DEBUG2(stderr, "Page %xh\n", do_page);
+            switch( do_page )
+	      {
+	      case 0x02:
+	      case 0x03:
+	      case 0x0c:
+	      case 0x12:
+	      case 0x2e:
+	      case 0x30:
+	      case 0x31:
+	      case 0x32:
+	      case 0x39:
+	      case 0x3c:
 
 		    cdb_log_sense[2] = 0x40 | do_page;
 		    res = ftt_do_scsi_command(d,"Log Sense", cdb_log_sense, 10,
@@ -901,6 +902,10 @@ ftt_get_stats(ftt_descriptor d, ftt_stat_buf b) {
 			      }
 
                             }
+			    if (strncmp(d->prod_id,"0359260", 7) == 0) {
+			      (void)decrypt_ls(b,buf,0x8003,FTT_REMAIN_TAPE,1024.);
+			    }
+
 			    break;
 
 			case 0x12:

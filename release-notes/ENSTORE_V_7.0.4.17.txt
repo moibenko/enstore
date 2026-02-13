@@ -1,0 +1,28 @@
+commit f303ab1da9e70379b11f5a370f43231e15548ecd
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Sep 23 15:26:54 2025 +0300
+
+    1. Added remaining bytes entry for 0359260 drive type (IBM Enterprise)
+    2. Changed some log messages (and removed some) in mover.
+
+M	ftt/ftt_lib/ftt_stats.c
+M	src/mover.py
+
+commit 01b4a7d917b66684014e1b2b10c8f7a7a8b5b261
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Sep 16 15:51:28 2025 +0300
+
+    Deal with delfile
+
+M	external_distr/update_sym_links.sh
+D	sbin/delfile
+D	sbin/delfile.cron
+D	sbin/delfile.py
+
+commit e37f18667a3af158ff0272a75a4941645cd9cd57
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Wed Sep 3 13:25:09 2025 +0300
+
+    Added release notes
+
+A	release-notes/ENSTORE_V_7.0.4.16.txt

@@ -1,5 +1,6 @@
 #!/bin/bash
 # run as enstore/package_encp_dcache_bin.sh from directory above enstore
+if [ "${1:-}" = "-x" ] ; then set -xv; shift; fi
 NAME=encp_dcache_bin
 
 if [[ ! -v VERSION ]]; then
@@ -14,6 +15,14 @@ if [ ! -d enstore ]; then
    echo "`basename $0` is expecting to be executed as enstore/packaging/`basename $0`" >&2
    exit 1
 fi
+PYTHON_DIR=`pyenv virtualenv-prefix`
+if [ -z "${PYTHON_DIR:-}" ]; then
+    echo "No python distro found"
+    exit 1
+fi
+
+export PYTHONINC=`ls -d $PYTHON_DIR/include/python*`
+export PYTHONLIB=`ls -d $PYTHON_DIR/lib/python*`
 
 export ENSTORE_INSTALL_DIR=$HOME/encp_bin_distr_dir/${VERS}
 if [ ! -d $ENSTORE_INSTALL_DIR ]; then
@@ -26,7 +35,10 @@ fi
 cp -r enstore/* $ENSTORE_BUILD_DIR/
 export ENSTORE_DIR=$ENSTORE_BUILD_DIR/
 export FTT_DIR=$ENSTORE_DIR/ftt
-PYTHONPATH=$PATH:$ENSTORE_DIR:$ENSTORE_DIR/src:$ENSTORE_DIR/modules
+
+PYTHONPATH=$PATH:$ENSTORE_DIR:$ENSTORE_DIR/src:$ENSTORE_DIR/modules:$ENSTORE_DIR/HTMLgen:$ENSTORE_DIR/PyGreSQL; export PYTHONPATH
+PATH=$PYTHON_DIR/bin:$PYTHONINC:$PATH:$ENSTORE_DIR/sbin:$ENSTORE_DIR/bin:$ENSTORE_DIR/tools:$ENSTORE_DIR/HTMLgen; export PATH
+#PYTHONPATH=$PYTHON_DIR/bin:$PATH:$ENSTORE_DIR:$ENSTORE_DIR/src:$ENSTORE_DIR/modules
 cd $ENSTORE_DIR
 pushd .
 

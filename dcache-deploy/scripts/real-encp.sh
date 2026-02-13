@@ -274,7 +274,7 @@ import sys
 try:
   code='d='+sys.argv[1]
   exec(code)
-  print d.get('system_inhibit')[0]
+  print(d.get('system_inhibit')[0])
 except:
   sys.exit(1)
 " "${vol_info}")
@@ -295,7 +295,7 @@ import sys
 try:
   code='d='+sys.argv[1]
   exec(code)
-  print d.get('package_id')
+  print(d.get('package_id'))
 except:
   sys.exit(1)
 " "${file_info}")
@@ -444,7 +444,14 @@ elif [ "$command" = "put" ] ; then
     # if encp supports --cksm-value option, pass checksum value to it
     #
     if [ "${si_flag_c}" != "" ]; then
-	si_flag_c=`echo ${si_flag_c}| cut -d":" -f2`
+	#si_flag_c=`echo ${si_flag_c}| cut -d":" -f2` - OLD
+	# new below
+	# OLD way works in case of single checksum
+	# double checksum comes like
+	# 2:d27677c3916e215d6722ff2941ee84ca,1:b806421d
+	# where adler32 is second.
+	# The solution below extracts adler32 no matter how it comes
+	si_flag_c=`echo ${si_flag_c} | awk -F, '{for (i=1;i<=NF;i++)print $i}' | grep "^1:" | cut -d":" -f2`
 	crc_value=`printf "%d" "0x"${si_flag_c}`
 	encp --help | egrep "\-\-cksm\-value"  >/dev/null 2>&1 && options="${options:-} --cksm-value ${crc_value}"
     fi
@@ -470,7 +477,7 @@ elif [ "$command" = "put" ] ; then
     else
         override=0; override_msg=" "
         say  p10  can not find acceptable path in SI.  si_path=\"$si_path\"  Using lookup mode
-        sayE p10e can not find acceptable path in SI.  si_path=\"$si_path\"  Using lookup mode
+       # sayE p10e can not find acceptable path in SI.  si_path=\"$si_path\"  Using lookup mode
 	CMD="$ENCP $options $wrapper --pnfs-mount $pnfs_root --put-cache $pnfsid $filepath"
         say p11 $CMD
     fi

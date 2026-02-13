@@ -51,6 +51,7 @@ def read_input_file(fname):
             vdict[key] = value
     return volumes
 
+
 config_host = os.environ.get("ENSTORE_CONFIG_HOST", "localhost")
 config_port = int(os.environ.get("ENSTORE_CONFIG_PORT", "7500"))
 

@@ -3271,7 +3271,7 @@ class LibraryManagerMethods(object):
         Trace.trace(
     self.trace_level, "next_work_this_volume: current volume info: %s" %
      (self.current_volume_info,))
-        if self.current_volume_info['status'][0] == e_errors.TIMEDOUT:
+        if self.current_volume_info['status'][0] in (e_errors.TIMEDOUT, e_errors.UNKNOWN):
             Trace.log(e_errors.ERROR, "No volume info %s. Do not know how to proceed" %
                       (self.current_volume_info,))
             return None, (e_errors.NOWORK, None)

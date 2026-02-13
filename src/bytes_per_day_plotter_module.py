@@ -162,6 +162,7 @@ class BytesPerDayPlotterModule(enstore_plotter_module.EnstorePlotterModule):
         plot_fp.write('set timefmt "%Y-%m-%d"\n')
         plot_fp.write('set xdata time\n')
         plot_fp.write('set size 1.5,1\n')
+        plot_fp.write('set colorsequence classic\n')
         plot_fp.write('set grid\n')
         plot_fp.write('set format x "%Y-%m-%d"\n')
         plot_fp.write(

@@ -3,12 +3,12 @@
 # $Id$
 #
 
-SWIG_GENERATED_C_FILES=../aci_shadow_wrap.c ../derrno_wrap.c \
+SWIG_GENERATED_C_FILES=../derrno_wrap.c \
 	../checksum_wrap_thread.c ../socket_ext_wrap.c \
 	../strbuffer_wrap_thread.c ../ftt2_wrap_thread.c \
 	../runon_wrap.c ../enroute_wrap.c ../mtx_wrap_thread.c
 
-SWIG_GENERATED_PY_FILES=../aci_shadow.py ../derrno.py ../checksum.py \
+SWIG_GENERATED_PY_FILES=../derrno.py ../checksum.py \
 	../ftt2.py ../socket_ext.py ../strbuffer.py ../enroute.py \
 	../runon.py ../mtx.py
 
@@ -21,16 +21,6 @@ clean:
 	rm -f $(SWIG_GENERATED_C_FILES)
 	rm -f $(SWIG_GENERATED_PY_FILES)
 
-../aci_shadow_wrap.c: aci_shadow.i aci_typemaps.i aci_typedefs.h
-	if [ "$(ACI_DIR)_" != _ ] ; then \
-	swig -shadow -python -py3 -D__STDC__ aci_shadow.i ;\
-	mv aci_shadow_wrap.c .. ;\
-	mv aci_shadow.py .. ;\
-	fi
-
-../aci_shadow.py: ../aci_shadow_wrap.c
-
-
 ../derrno_wrap.c: derrno.i
 	if [ "$(ACI_DIR)_" != _ ] ; then \
 	swig -I$(ACI_DIR)/inc -shadow -python -py3 derrno.i ; \
@@ -42,9 +32,8 @@ clean:
 
 
 ../checksum_wrap_thread.c: checksum.i
-	swig -shadow -python -py3 -D__STDC__ checksum.i
-	./threadit.py < checksum_wrap.c > ../checksum_wrap_thread.c
-	rm checksum_wrap.c
+	swig -shadow -python -py3 -threads -D__STDC__ checksum.i
+	mv checksum_wrap.c ../checksum_wrap_thread.c
 	mv checksum.py ..
 
 ../checksum.py: ../checksum_wrap_thread.c
@@ -53,9 +42,8 @@ clean:
 
 ../ftt2_wrap_thread.c: ftt2.i
 	if [ "$(FTT_DIR)_" != _ ] ; then \
-		swig -I$(FTT_DIR)/include -shadow -python -py3 ftt2.i ; \
-		./threadit.py < ftt2_wrap.c > ../ftt2_wrap_thread.c; \
-		rm ftt2_wrap.c ; \
+		swig -I$(FTT_DIR)/include -shadow -python -py3 -threads ftt2.i ; \
+		mv ftt2_wrap.c ../ftt2_wrap_thread.c; \
 		mv ftt2.py .. ; \
 	fi
 
@@ -63,7 +51,7 @@ clean:
 
 
 ../socket_ext_wrap.c: socket_ext.i
-	swig -shadow -python -py3 socket_ext.i
+	swig -shadow -python -py3 -threads socket_ext.i
 	mv socket_ext_wrap.c ..
 	mv socket_ext.py ..
 
@@ -71,9 +59,8 @@ clean:
 
 
 ../strbuffer_wrap_thread.c: strbuffer.i
-	swig -shadow -python -py3 strbuffer.i
-	./threadit.py < strbuffer_wrap.c > ../strbuffer_wrap_thread.c ; \
-	rm strbuffer_wrap.c ;
+	swig -shadow -python -py3 -threads strbuffer.i
+	mv strbuffer_wrap.c ../strbuffer_wrap_thread.c ; \
 	mv strbuffer.py ..
 
 ../strbuffer.py: ../strbuffer_wrap_thread.c
@@ -99,9 +86,8 @@ clean:
 ../runon.py: ../runon_wrap.c
 
 ../mtx_wrap_thread.c: mtx.i
-	swig -I$(ENSTORE_DIR)/mtx/mtx-1.3.12 -shadow -python -py3 mtx.i
-	./threadit.py < mtx_wrap.c > ../mtx_wrap_thread.c ; \
-	rm mtx_wrap.c ;
+	swig -I$(ENSTORE_DIR)/mtx/mtx-1.3.12 -shadow -python -py3 -threads mtx.i
+	mv mtx_wrap.c ../mtx_wrap_thread.c ; \
 	mv mtx.py ..
 
 ../mtx.py: ../mtx_wrap_thread.c

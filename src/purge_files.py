@@ -87,7 +87,8 @@ class FilePurger(object):
                 self.filedb_dict = edb.FileDB(host=dbInfo.get('db_host', None),
                                               port=dbInfo.get('db_port', None),
                                               user=dbInfo.get('dbuser', None),
-                                              database=dbInfo.get('dbname', None))
+                                              database=dbInfo.get('dbname', None),
+                                              auto_journal=0)
                 Trace.log(e_errors.INFO, "Connected to enstore DB")
                 break
             except BaseException:

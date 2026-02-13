@@ -256,8 +256,8 @@ class _Session(object):
                 'Declared authentication mechanism %s is not in the list of allowed: %s' %
                 (self.authentication, ALLOWED_SASL_MECHANISM,))
         if self.authentication == 'PLAIN' and self.user is None:
-            self.user = 'enstore'
-            self.password = '12345'
+            self.user = 'enstore' # TO DO: get this from someweher else or use SASL
+            self.password = '12345' # TO DO: get this from someweher else
         credentials = pika.PlainCredentials(username=self.user, password=self.password)
 
         self.log = logging.getLogger('log.encache.messaging')

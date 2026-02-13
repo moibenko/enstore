@@ -1,5 +1,6 @@
 #!/bin/bash -x
 # run as enstore/package_enstore_dev.sh from directory above enstore
+if [ "${1:-}" = "-x" ] ; then set -xv; shift; fi
 if [[ ! -v NAME ]]; then
     NAME=enstore_dev
 fi

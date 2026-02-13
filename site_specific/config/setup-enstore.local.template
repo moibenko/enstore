@@ -25,3 +25,6 @@ ENSTORE_CONFIG_PORT=7500
 # These are used for remote commands between enstore hosts
 #export ENSSH=/usr/bin/ssh
 #export ENSCP=/usr/bin/scp
+# Set the range of ports for firewall if firewall is set
+# Open these ports in firewall
+#export ENSTORE_CLIENT_PORTS=30000,33000

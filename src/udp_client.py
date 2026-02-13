@@ -23,7 +23,7 @@ try:
 except ImportError:
     thread_support = 0
 import types
-import inspect
+#import inspect
 
 # enstore imports
 import Trace
@@ -70,6 +70,7 @@ class UDPClient(object):
         '''
 
         self.thread_specific_data = threading.local()  # Thread-specific data
+        self.port_range = port_range
         self.reinit(receiver_ip, port_range)
 
     def reinit(self, receiver_ip=None, port_range=None):
@@ -80,6 +81,8 @@ class UDPClient(object):
         pid = os.getpid()
         cnt = 0
         failure = False
+        if not port_range:
+            port_range = self.port_range
         while cnt < 1000:
             if port_range:
                 inport = random.randint(min(port_range), max(port_range))

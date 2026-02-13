@@ -1,0 +1,90 @@
+commit b4ea07a361f717d9581b5acb7e5cdbd2322013dc
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Oct 10 09:41:34 2025 +0300
+
+    Without this change enroute module could not be found
+
+M	packaging/package_encp_dcache_bin.sh
+
+commit 90ac969241a5362054ff5c152ab6a021a0ea7820
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 9 15:43:38 2025 +0300
+
+    Wrong comment was entered in the previous commit.
+    Correct comment:
+    Start after rabbit server if last is installed
+
+M	etc/enstore.service
+
+commit dfee6e5196a86a1bf4e3420d6eac9d4ade8aa2c9
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 9 15:42:13 2025 +0300
+
+    Correct output
+
+M	spec/enstore_dev.spec
+
+commit 4a908d39127dc3d7bd200f9e369199f17f035d6b
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 9 15:41:51 2025 +0300
+
+    Correct output
+
+M	etc/enstore.service
+
+commit f4d7bf847e4957547f75415ec10a1347b0313e9d
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 9 15:38:27 2025 +0300
+
+    Set auto_journal=0. In a futute reconsider using ejournal (I believe it is not used and not needed)
+
+M	src/purge_files.py
+
+commit da210a0ecac42ac71939d62fbb95b97d843b9e07
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 9 14:09:11 2025 +0300
+
+    More changes to make it working without sophisticated adjustments
+
+M	packaging/package_encp_dcache_bin.sh
+
+commit cc0c39497519211a26420be75a31730ea451f98d
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 9 12:11:23 2025 +0300
+
+    Add diangostics in package_encp_dcache_bin.sh and package_enstore_dev.sh.
+    Replace PYTHONPATH with PATH in package_encp_dcache_bin.sh
+    Better volume selection for volume assert in encp_test_functions
+
+M	packaging/package_encp_dcache_bin.sh
+M	packaging/package_enstore_dev.sh
+M	tools/encp_test_functions
+
+commit 26e6b424d6b78cbc67d33e822e0f2c031cf53b97
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Oct 3 15:51:12 2025 +0300
+
+    double checksum comes like
+    2:d27677c3916e215d6722ff2941ee84ca,1:b806421d
+    where adler32 is second.
+    This solution extracts adler32 no matter how it comes
+
+M	dcache-deploy/scripts/real-encp.sh
+
+commit 5fc98ace6a2c287541cfe97e1d15141ce264c98d
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 2 14:34:04 2025 +0300
+
+    Check if file with given pnfs id is present just before starting its transfer to mover.
+    This should minimize cases when file has been overwritten in dcache.
+    Such files will not be written to tape, thus saving media space.
+
+M	src/encp.py
+
+commit 68a7ba95e3ba736a01302219ff2b23a0c5914b65
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Sep 23 18:30:20 2025 +0300
+
+    Fixed error introduce in the previous commit
+
+M	src/mover.py

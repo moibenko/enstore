@@ -132,6 +132,12 @@ then
     ln -s $ENSTORE_DIR/src/migrate_chimera.py $ENSTORE_DIR/bin/migrate
     rm -f $ENSTORE_DIR/bin/duplicate
     ln -s $ENSTORE_DIR/src/duplicate_chimera.py $ENSTORE_DIR/bin/duplicate
+    rm -f $ENSTORE_DIR/sbin/delfile_chimera_by_vol
+    ln -s $ENSTORE_DIR/src/delfile_chimera_by_vol.py $ENSTORE_DIR/sbin/delfile_chimera_by_vol
+    rm -f $ENSTORE_DIR/sbin/delfile_chimera
+    ln -s $ENSTORE_DIR/src/delfile_chimera.py $ENSTORE_DIR/sbin/delfile_chimera
+    
+    
 fi
 ######
 
@@ -239,6 +245,10 @@ if [ $do_update -ne 0 ]
 then
     rm -f $ENSTORE_DIR/sbin/make_enstore_system
     ln -s $ENSTORE_DIR/sbin/make_enstore_system.py  $ENSTORE_DIR/sbin/make_enstore_system
+    rm -f $ENSTORE_DIR/sbin/drives_info
+    ln -s $ENSTORE_DIR/sbin/drives_info.py  $ENSTORE_DIR/sbin/drives_info
+    rm -f $ENSTORE_DIR/migration_summary
+    ln -s $ENSTORE_DIR/sbin/migration_summary.py $ENSTORE_DIR/migration_summary
 
 fi
 

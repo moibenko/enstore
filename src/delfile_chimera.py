@@ -133,7 +133,7 @@ def main(intf):
             cmd = "select * from t_locationinfo_trash where itype={}".format(itype)
             cursor.execute(cmd)
             res = cursor.fetchall()
-
+            del_count = 0
             for row in res:
                 delete_cursor = None
                 pnfsid = row.get('ipnfsid')
@@ -157,6 +157,7 @@ def main(intf):
                             print(bfid, result['status'][1])
                             success = False
                         else:
+                            del_count += 1
                             success = delete_trash_record(db, pnfsid, itype)
 
 
@@ -190,6 +191,7 @@ def main(intf):
                         print(bfid, result['status'][1])
                         success = False
                     else:
+                        del_count += 1
                         success = delete_trash_record(db, pnfsid, itype)
                     """
                     during SFA testing we encountered many cases where BFID of these file
@@ -201,6 +203,8 @@ def main(intf):
                         success = False
                     else:
                         success = delete_trash_record(db, pnfsid, itype)
+            if del_count != 0:
+                Trace.log(e_errors.INFO, "set deleted {} files".format(del_count))
         except psycopg2.OperationalError as opr:
             Trace.alarm(
                 e_errors.ALARM,

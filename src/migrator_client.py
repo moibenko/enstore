@@ -40,11 +40,11 @@ class MigratorClient(generic_client.GenericClient):
         self.tries = rcv_tries
 
     def status(self, rcv_timeout=RCV_TIMEOUT, tries=RCV_TRIES):
-        r = self.send({"work": "get_status"})
+        r = self.send({"work": "get_status"}, rcv_timeout, tries)
         return r
 
     def quit_and_exit(self, rcv_timeout=RCV_TIMEOUT, tries=RCV_TRIES):
-        r = self.send({"work": "quit_and_exit"})
+        r = self.send({"work": "quit_and_exit"}, rcv_timeout, tries)
         return r
 
 

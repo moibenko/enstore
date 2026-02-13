@@ -620,8 +620,8 @@ def do_work():
 def thread_is_running(thread_name):
     threads = threading.enumerate()
     for thread in threads:
-        if ((thread.getName() == thread_name) and thread.is_alive()):
-            Trace.trace(10, "running")
+        if ((thread.name == thread_name) and thread.is_alive()):
+            Trace.trace(10, "running {}".format(thread_name))
             return True
     else:
         Trace.trace(10, "not running")

@@ -79,6 +79,8 @@ class PriSelector(object):
         # with 'wrapper' (see ticket structure)
         if 'wrapper' in flat_ticket['vc']:
             del (flat_ticket['vc']['wrapper'])
+        if 'wrapper' in flat_ticket['fc']:
+            del (flat_ticket['fc']['wrapper'])
         for key in list(flat_ticket.keys()):
             if isinstance(flat_ticket[key], type({})):
                 for k in list(flat_ticket[key].keys()):

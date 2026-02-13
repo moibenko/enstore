@@ -58,8 +58,7 @@ SETUP_FILE=/opt/ehome/site_specific/config/setup-enstore
 if [ ! -f $SETUP_FILE ]; then
    echo "Creating $SETUP_FILE"
    mkdir -p `dirname $SETUP_FILE`
-   cp $ENSTORE_DIR/dcache-deploy/scripts/setup-enstore $SETUP_FILE
-   chown enstore.enstore $SETUP_FILE
+   $ENSTORE_DIR/dcache-deploy/site_specific/config/setup-enstore $SETUP_FILE
 fi
 echo "Check $SETUP_FILE and modify it as necessary"
 ENCP_OPT=/opt/ehome/site_specific/config/encp_options
@@ -67,7 +66,6 @@ if [ ! -f $ENCP_OPT ]; then
    echo "Creating $ENCP_OPT"
    mkdir -p `dirname $ENCP_OPT`
    cp $ENSTORE_DIR/dcache-deploy/scripts/encp_options.sample $ENCP_OPT
-   chown enstore.enstore $ENCP_OPT
 fi
 echo "Check $ENCP_OPT and modify it if needed"
 
@@ -81,7 +79,6 @@ echo "encp_dcache installed. Please read README file"
 rm -rf $RPM_BUILD_ROOT/*
 
 %files
-%defattr(-,enstore,enstore,-)
 %doc
 /%{prefix}
 #%config /usr/local/etc/setups.sh

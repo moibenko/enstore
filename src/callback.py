@@ -49,106 +49,6 @@ MSG_LEN_POSITIONS = 12
 MSG_LEN_POSITIONS_OLD = 8
 PROTOCOL = "PROTO001"  # must be 8 caharacters to be used in place of old message length
 
-"""
-class TCPError(socket.error):
-
-    def __init__(self, e_errno, e_message = None):
-
-        socket.error.__init__(self)
-
-        #If only a message is present, it is in the e_errno spot.
-        if e_message == None:
-            if type(e_errno) == types.IntType:
-                self.errno = e_errno
-                self.e_message = None
-            elif type(e_errno) == types.StringType:
-                self.errno = None
-                self.e_message = e_errno
-            else:
-                self.errno = None
-                self.e_message = "Unknown error"
-        #If both are there then we have both to use.
-        else:
-            self.errno = e_errno
-            self.e_message = e_message
-
-        #Generate the string that stringifying this obeject will give.
-        self.strerror = "" #Define this to make pychecker happy.
-        self._string()
-
-        self.args = (self.errno, self.e_message)
-
-    def __str__(self):
-        self._string()
-        return self.strerror
-
-    def __repr__(self):
-        return "TCPError"  #String value.
-
-    def _string(self):
-        if self.errno in errno.errorcode.keys():
-            errno_name = errno.errorcode[self.errno]
-            errno_description = os.strerror(self.errno)
-            self.strerror = "%s: [ ERRNO %s ] %s: %s" % (errno_name,
-                                                        self.errno,
-                                                        errno_description,
-                                                        self.e_message)
-        else:
-            self.strerror = self.e_message
-
-        return self.strerror
-
-
-class FIFOError(OSError):
-
-    def __init__(self, e_errno, e_message = None):
-
-        OSError.__init__(self)
-
-        #If only a message is present, it is in the e_errno spot.
-        if e_message == None:
-            if type(e_errno) == types.IntType:
-                self.errno = e_errno
-                self.e_message = None
-            elif type(e_errno) == types.StringType:
-                self.errno = None
-                self.e_message = e_errno
-            else:
-                self.errno = None
-                self.e_message = "Unknown error"
-        #If both are there then we have both to use.
-        else:
-            self.errno = e_errno
-            self.e_message = e_message
-
-        #Generate the string that stringifying this obeject will give.
-        self.strerror = "" #Define this to make pychecker happy.
-        self._string()
-
-        self.args = (self.errno, self.e_message)
-
-    def __str__(self):
-        self._string()
-        return self.strerror
-
-    def __repr__(self):
-        return "FIFOError"  #String value.
-
-    def _string(self):
-        if self.errno in errno.errorcode.keys():
-            errno_name = errno.errorcode[self.errno]
-            errno_description = os.strerror(self.errno)
-            self.strerror = "%s: [ ERRNO %s ] %s: %s" % (errno_name,
-                                                        self.errno,
-                                                        errno_description,
-                                                        self.e_message)
-        else:
-            self.strerror = self.e_message
-
-        return self.strerror
-"""
-
-
 def hex8(x):
     s = hex(x)[2:]  # kill the 0x
     if s.endswith('L'):
@@ -804,7 +704,7 @@ def read_tcp_obj(sock, timeout=15*60):
         error_string = "%s from %s" % (e, peername)
         Trace.log(e_errors.ERROR, error_string)
 
-        raise e_errors.EnstoreError(None, e, e_errors.NET_ERROR)
+        raise e_errors.EnstoreError(errno.EFAULT, e, e_errors.NET_ERROR)
 
     try:
         obj = pickle.loads(s)

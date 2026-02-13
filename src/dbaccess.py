@@ -184,6 +184,7 @@ class DatabaseAccess(object):
                 cursor.execute(s, values)
             else:
                 cursor.execute(s)
+            db.commit()
             colnames = [desc[0] for desc in cursor.description]
             res = cursor.fetchall()
             cursor.close()

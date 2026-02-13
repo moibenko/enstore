@@ -1,5 +1,4 @@
 %module ftt2
-
 %{
 #include <ftt.h>
 
@@ -110,12 +109,15 @@ int ftt_set_last_operation(ftt_descriptor d, int op){
 /* Include in the generated wrapper file */
 typedef char * cptr;
 typedef char * byteptr;
+//typedef char *ftt_stat_buf;
+//typedef char *ftt_descriptor;
+
 %}
 /* Tell SWIG about it */
 typedef char * cptr;
 typedef char * byteptr;
-typedef cher *ftt_stat_buf;
-typedef cher *ftt_descriptor;
+typedef ftt_stat *ftt_stat_buf;
+typedef ftt_descriptor_buf *ftt_descriptor;
 
 %typemap(in) cptr{
         $1 = PyBytes_AS_STRING($input);
@@ -528,6 +530,7 @@ extern char *ftt_ascii_error[]; /* maps error numbers to their names */
 
 /* This is a Hack*/
 int ftt_set_last_operation(ftt_descriptor, int);
+%nothread do_read_scsi_command;
 
 /* copied from ftt_types.h */
 /* operation flags for last_operation, scsi_ops */

@@ -6828,7 +6828,7 @@ def _move_package_file(src,volume,src_chimera_file):
     except:
         exc = sys.exc_info()
         # any other error than package dir exists - return with error
-        if not (exc[0] is exceptions.OSError and exc[1][0] == errno.EEXIST) :
+        if not (exc[0] is OSError and exc[1][0] == errno.EEXIST) :
             return (("Can not move package file in pnfs from %s to %s" % (src,dest,)), None)
 
     try:
@@ -8685,6 +8685,7 @@ def final_scan_volume(vol, intf):
         assert_errors = {}
         if do_vol_assert:
             log(my_task, "asserting %s" % (vol,))
+            # volume_assert_options = "--crc-check --skip-deleted-files"
             volume_assert_options = "--crc-check"
             cmd = ("volume_assert --volume %s %s" % (vol,volume_assert_options))
             try:

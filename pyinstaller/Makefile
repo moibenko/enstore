@@ -134,6 +134,8 @@ enmv_cmd_for_dcache:
 delfile_cmd:
 	pyinstaller --onefile --distpath delfile_dist  --workpath delfile_build --hidden-import enroute ../src/delfile_chimera.py
 	$(CP) delfile_dist/delfile_chimera      $(ENSTORE_BIN_DCACHE)
+	pyinstaller --onefile --distpath delfile_dist  --workpath delfile_build --hidden-import enroute ../src/delfile_chimera_by_vol.py
+	$(CP) delfile_dist/delfile_chimera_by_vol      $(ENSTORE_BIN_DCACHE)
 	$(RM) delfile_dist delfile_build
 
 

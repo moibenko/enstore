@@ -97,7 +97,6 @@ class MigrationWorker(object):
                                            target_queue=queue_reply,
                                            target_exchange=r_exch,
                                            authentication=cfb.get('sasl-mechanism'))
-        print("amq_client: {}".format(dir(self.amq_client)))
         self.trace.debug("amq_client: %s", dir(self.amq_client))
         self.trace.debug(
             "reading commands from '%s', replying to '%s'",

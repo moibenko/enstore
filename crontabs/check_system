@@ -1,0 +1,1 @@
+0-59/10 * * * * root source /usr/local/etc/setups.sh; setup enstore; $ENSTORE_DIR/sbin/ecron -p enstore_up_down enstore up_down >/dev/null 2>/dev/null

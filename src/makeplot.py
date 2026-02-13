@@ -226,6 +226,7 @@ def write_plot_file(sys_name, smooth_filename, plot_file, graphic_filename,
     plot_file.write("set grid ytics\n")
     plot_file.write("set terminal postscript color solid\n")
     plot_file.write("set size 1.4,1.2\n")
+    plot_file.write('set colorsequence classic\n')
     plot_file.write("set output \"%s\"\n" % graphic_filename)
     plot_file.write("plot \"%s\" using 1:%d title \"read\" with lines,"
                     "\"%s\" using 1:%d title \"write\" with lines,"
