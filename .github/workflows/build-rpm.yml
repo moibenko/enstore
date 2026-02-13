@@ -22,7 +22,7 @@ jobs:
        rpmbuild -ba SPECS/enstore_rpm.spec # > 6.3.4-15.out 2>&1
        # cat 6.3.4-15.out
     - name: upload enstore rpm as artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with: 
         name: enstore-rpm
         path: ~/rpmbuild/RPMS/x86_64/enstore-*.rpm
