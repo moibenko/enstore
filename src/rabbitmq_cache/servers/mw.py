@@ -67,10 +67,6 @@ class MigrationWorker(object):
         self.log.setLevel(logging.INFO)
         self.trace = logging.getLogger('trace.encache.%s' % name)
         self.trace.setLevel(logging.DEBUG)
-        print("LOGGER", self.log)
-        print("TRACER", self.trace)
-        print("START {}".format(name))
-        self.log.info("LLLLL starting")
         self.trace.debug("extract configuration")
         try:
             self.name = name
