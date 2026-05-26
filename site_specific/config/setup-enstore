@@ -28,7 +28,7 @@ export ENSTORE_DIR=/$(rpm -q --queryformat "%{instprefixes}\n" enstore)
 
 # Directories for enstore submodules and tools
 export PYTHON_DIR=$ENSTORE_DIR/Python
-export FTT_DIR=$ENSTORE_DIR/FTT
+export FTT_DIR=$ENSTORE_DIR/ftt
 
 # These use absolute paths:
 export ENSTORE_OUT=/var/log/enstore
@@ -39,13 +39,14 @@ _pathmunge $ENSTORE_DIR/tools
 _pathmunge $ENSTORE_DIR/bin
 _pathmunge $ENSTORE_DIR/sbin
 _pathmunge $PYTHON_DIR/bin
+_pathmunge $ENSTORE_DIR/xml2ddl/scripts
 
 unset _pathmunge
 
 # definitions for python installed in enstore subtree
 export PYTHONINC=$(ls -d $PYTHON_DIR/include/python*)
 export PYTHONLIB=$(ls -d $PYTHON_DIR/lib/python*)
-export PYTHONPATH=$ENSTORE_DIR:$ENSTORE_DIR/src:$ENSTORE_DIR/modules:$ENSTORE_DIR/HTMLgen:$ENSTORE_DIR/PyGreSQL
+export PYTHONPATH=$ENSTORE_DIR:$ENSTORE_DIR/src:$ENSTORE_DIR/modules:$ENSTORE_DIR/HTMLgen:$ENSTORE_DIR/PyGreSQL:$ENSTORE_DIR/xml2ddl/xml2ddl
 export PYTHONUNBUFFERED="x";
 
 # These urls are used to configure git to point to central enstore repositories at FNAL.

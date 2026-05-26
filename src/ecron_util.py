@@ -15,11 +15,11 @@ import time
 
 gscript = """
 set term postscript landscape enhanced color solid 'Helvetica' 10
-set output '%s.ps'
+set output '{}.ps'
 set xlabel 'Date'
-set timefmt '%%Y-%%m-%%d:%%H:%%M:%%S'
+set timefmt '%Y-%m-%d:%H:%M:%S'
 set xdata time
-set xrange ['%s' :'%s']
+set xrange ['{}' :'{}']
 set yrange [-5:15]
 set key box
 set grid
@@ -27,7 +27,7 @@ set label ' DIS ' at graph 0,.2 right
 set label ' ACT ' at graph 0,.15 right
 set label ' DWN ' at graph 0,.1 right
 set label ' OOB ' at graph 0,.6 right
-plot '-' using 1:2 t '%s' with points 13, 0 t '' with lines 2, 10 t '' with lines 2, '-' using 1:2 t 'Last Monday' with lines lt 3 lw 4
+plot '-' using 1:2 t '{}' with points 13, 0 t '' with lines 2, 10 t '' with lines 2, '-' using 1:2 t 'Last Monday' with lines lt 3 lw 4
 """
 
 # show past time
@@ -158,24 +158,27 @@ class EcronData(object):
                 name, node.split('.')[0], name, node.split('.')[0])
         return self.db.query(q).getresult()
 
-    def plot(self, file, name, data, start=None):
+    def plot(self, a_file, name, data, start=None):
         # get a gnuplot
         # need to put convert together here to make sure the files
         # are ready before the conversion
-        cmd = "gnuplot; convert -flatten -background lightgray -rotate 90 %s.ps %s.jpg; convert -flatten -background lightgray -rotate 90 -geometry 120x120 -modulate 80 %s.ps %s_stamp.jpg" % (file, file, file, file)
+        cmd = "gnuplot; convert -flatten -background lightgray -rotate 90 %s.ps %s.jpg; convert -flatten -background lightgray -rotate 90 -geometry 120x120 -modulate 80 %s.ps %s_stamp.jpg" % (a_file, a_file, a_file, a_file)
         p = subprocess.Popen(cmd, shell=True,
                              stdin=subprocess.PIPE,
                              stdout=subprocess.PIPE,
-                             close_fds=True)
-        (out, gp) = (p.stdin, p.stdout)
+                             close_fds=True,
+                             text=True)
+        (out, gp) = (p.stdout, p.stdin)
         if not start:
             start = self.get_duration(name)
-        gp.write(gscript % (file, start, tomorrow(), name))
+        gp.write(gscript.format(a_file, start, tomorrow(), name))
         if not data:
             gp.write("%s -5\n" % (one_year_ago()))
         else:
             for i in data:
-                gp.write("%s %d\n" % (i[0].replace(' ', ':'), i[1]))
+                d0 = str(i[0])
+                dd = d0.replace(' ', ':')
+                gp.write("%s %d\n" % (dd, i[1]))
         gp.write("e\n")
         gp.write("%s, %d\n" % (last_monday(), -3))
         gp.write("%s, %d\n" % (last_monday(), -5))

@@ -118,10 +118,12 @@ fi
 cp -f $ENSTORE_DIR/sbin/rc.local /etc/rc.d
 chmod +x /etc/rc.d/rc.local
 
-# copy setups.sh
-if [ ! -f /usr/local/etc/setups.sh ];then
-    cp -f $ENSTORE_DIR/external_distr/setups.sh /usr/local/etc/setups.sh
-fi
+# copy esetup.sh
+rsync $ENSTORE_DIR/external_distr/esetup.sh /usr/local/etc/esetup.sh
+
+# make copy setups.sh for inheritance, stop doing this later
+rm -f /usr/local/etc/setups.sh
+ln -s /usr/local/etc/esetup.sh /usr/local/etc/setups.sh
 
 # create ld config file for python library get recognized when doing sudo
 if [ ! -f /etc/ld.so.conf.d/enstore.conf ];then
@@ -155,6 +157,7 @@ if [ $1 -eq 0 ]; then # removing product
     rm -f /etc/udev/rules.d/75-changer-aliases-generator.rules
     rm -f /etc/sudoers.d/enstore
     rm -f /usr/local/etc/setups.sh
+    rm -f /usr/local/etc/esetup.sh
     rm -rf /usr/local/etc/farmlets
     rm -rf /opt/enstore
     rm -rf /home/enstore

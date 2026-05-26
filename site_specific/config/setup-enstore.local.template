@@ -28,3 +28,4 @@ ENSTORE_CONFIG_PORT=7500
 # Set the range of ports for firewall if firewall is set
 # Open these ports in firewall
 #export ENSTORE_CLIENT_PORTS=30000,33000
+#export ENSTORE_MAIL=<replace with valid email address>

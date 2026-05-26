@@ -1,0 +1,797 @@
+commit 0c82a9e373b2c3ad4c8c34f555f3861ca08dff60
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri May 22 10:58:34 2026 +0300
+
+    1. Cleaned spec dir
+    2. Introduced esetup.sh - setups.sh. Long intended change as setups is not a good name,
+    because UPS is not used anymore for a long time.
+
+A	external_distr/esetup.py
+M	external_distr/sbin_links
+R100	spec/aci.spec	spec/deprecated/aci.spec
+R100	spec/encp.spec	spec/deprecated/encp.spec
+R100	spec/encp_conf.spec	spec/deprecated/encp_conf.spec
+R100	spec/enstore_RH6.spec	spec/deprecated/enstore_RH6.spec
+R100	spec/enstore_RH6_python_2.7.6.spec	spec/deprecated/enstore_RH6_python_2.7.6.spec
+R100	spec/enstore_RH6_python_2.7.9.spec	spec/deprecated/enstore_RH6_python_2.7.9.spec
+R100	spec/enstore_RH6_python_2.7.spec	spec/deprecated/enstore_RH6_python_2.7.spec
+R100	spec/enstore_RH7_bin_distr.spec	spec/deprecated/enstore_RH7_bin_distr.spec
+R100	spec/enstore_cache.spec	spec/deprecated/enstore_cache.spec
+R100	spec/enstore_html-base.spec	spec/deprecated/enstore_html-base.spec
+R100	spec/enstore_python_2.7.spec	spec/deprecated/enstore_python_2.7.spec
+R100	spec/enstore_sa.spec	spec/deprecated/enstore_sa.spec
+R100	spec/entv.spec	spec/deprecated/entv.spec
+R100	spec/ftt.spec	spec/deprecated/ftt.spec
+R100	spec/ftt_RH6.spec	spec/deprecated/ftt_RH6.spec
+R100	spec/pkginfo	spec/deprecated/pkginfo
+R100	spec/prototype	spec/deprecated/prototype
+R100	spec/prototype-conf	spec/deprecated/prototype-conf
+R100	spec/python_enstore.spec	spec/deprecated/python_enstore.spec
+R100	spec/python_enstore2.6.1.spec	spec/deprecated/python_enstore2.6.1.spec
+R100	spec/python_enstore2.6.3.spec	spec/deprecated/python_enstore2.6.3.spec
+R100	spec/python_enstore2.6.3_RH6.spec	spec/deprecated/python_enstore2.6.3_RH6.spec
+R100	spec/python_enstore2.7.16_RH7.spec	spec/deprecated/python_enstore2.7.16_RH7.spec
+R100	spec/python_enstore2.7.3.spec	spec/deprecated/python_enstore2.7.3.spec
+R100	spec/python_enstore2.7.3_RH6.spec	spec/deprecated/python_enstore2.7.3_RH6.spec
+R100	spec/python_enstore2.7.6.spec	spec/deprecated/python_enstore2.7.6.spec
+R100	spec/python_enstore2.7.6_RH6.spec	spec/deprecated/python_enstore2.7.6_RH6.spec
+R100	spec/swig_enstore.spec	spec/deprecated/swig_enstore.spec
+R100	spec/swig_enstore_RH6.spec	spec/deprecated/swig_enstore_RH6.spec
+M	spec/enstore_dev.spec
+
+commit 7136c581c7d08213c612b8aa934ff1d05e1da5ee
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed May 20 15:50:32 2026 +0300
+
+    Linter exposed changes
+
+M	src/enstore_make_plot_page.py
+
+commit fec3cc6f5d494a9c43ea5a5974df14751160fc04
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed May 20 15:37:38 2026 +0300
+
+    Removed unused entries
+
+M	src/enstore_make_plot_page.py
+
+commit 21673e137a87370beb1f6be63dcc05decabcdcc7
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed May 20 15:21:02 2026 +0300
+
+    removed debug prints
+
+M	src/enstore_make_plot_page.py
+
+commit 0ae6e80d4c877e84b651491aee9f6207c3093312
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue May 19 14:55:46 2026 +0300
+
+    Remove directories "deprecated" before building rpm
+
+M	packaging/package_enstore_dev.sh
+
+commit 2e26db821a97a41b22538465ba1e691502d6b479
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue May 19 13:07:56 2026 +0300
+
+    Fixed chkcrons.
+
+M	crontabs/chkcrons
+D	sbin/chkcrons
+M	src/ecron_util.py
+
+commit 5d29359b183c18baffc1975d7ef9b6b62bbbeb4f
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri May 15 10:13:02 2026 +0300
+
+    Get rid of udp_proxy
+
+D	src/cache/servers/udp_proxy_server.py
+M	src/enstore.py
+M	src/library_manager_director_client.py
+M	src/lm_director.py
+D	src/udp_proxy_client.py
+
+commit 9bdf74c6cb79e03e074096548789d288352d53e2
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu May 14 15:11:49 2026 +0300
+
+    Removed debugging print statements
+
+M	src/rabbitmq_cache/servers/mw.py
+
+commit c3887be375ce87f5ca175da7a0b4515e36740e21
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed May 13 18:07:40 2026 +0300
+
+    enstore config works now as user and can be used in rpm for dcache client.
+
+M	src/configuration_client.py
+M	src/enstore.py
+
+commit 535e4b872d69350072da9ff69daf3e3b47ae1d53
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed May 13 11:41:14 2026 +0300
+
+    Some mods and changes
+
+M	doc/guides/Enstore_Administrator_Guide.odm
+M	doc/guides/Enstore_Administrator_Guide.pdf
+M	doc/guides/booktitle_admin.odt
+M	doc/guides/commands.odt
+
+commit 4c94f80d01bcea8f8ba421a64ada48af75881007
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue May 5 12:46:41 2026 +0300
+
+    Bug in get_default_interface_ip in some case lead to long delays.
+
+M	src/host_config.py
+
+commit 57cb43feea15a48b26922adb75bbc361b79eda0d
+Author: Alexander Moibenko <moibenko@jinr.ru>
+Date:   Tue Apr 7 19:32:30 2026 +0300
+
+    Bug fix: copy setup-enstore tepmlate
+
+M	spec/encp_dcache_bin.spec
+
+commit ea3f9da05dd3ea7bfd9da374462baf97cf836176
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Mar 20 13:43:55 2026 +0300
+
+    Modified enstoredb.schema. The one taken from production did not contain disk files statuses.
+    Also simplified minimum configuration.
+
+M	databases/schemas/enstoredb.schema
+M	etc/minimal_enstore.conf
+M	site_specific/config/setup-enstore.local.template
+M	src/media_changer.py
+
+commit 83db8f9b56f4c8e1fb28df54b4defe50f65f46c1
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Feb 3 11:48:41 2026 +0300
+
+    Make full path to schema files
+
+M	sbin/create_database.py
+
+commit 802d87e9800b6489f740775f34d4514fd5fd4d37
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Feb 2 17:38:21 2026 +0300
+
+    More changes
+
+M	spec/enstore_dev.spec
+
+commit c4c9a7ad455949b3623e4e5d63d904aba7ea3758
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Feb 2 17:29:33 2026 +0300
+
+    More configuration changes
+
+M	spec/enstore_dev.spec
+
+commit d9003ccaeaeebbe0fe469d3f9d4a98964f7d1e5f
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Feb 2 16:37:59 2026 +0300
+
+    Some more mods
+
+M	spec/enstore_dev.spec
+
+commit 07883e83955fe2e0ea83fb47edb0d3544c7877a1
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Feb 2 16:20:22 2026 +0300
+
+    Copy enstore system configuration on initial install
+
+M	spec/enstore_dev.spec
+
+commit 069decff6b70041258fb5bab32ee623a96696bcb
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Feb 2 16:02:45 2026 +0300
+
+    Added deletion of user, group on uninstall
+
+M	spec/enstore_dev.spec
+
+commit c2433d9dd4a9662f5eca0af66f141cacd1ff5db1
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Feb 2 15:58:13 2026 +0300
+
+    Fixed bug
+
+M	spec/enstore_dev.spec
+
+commit 488552dcbad72a5f675c293793b0d89221421131
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Feb 2 15:20:39 2026 +0300
+
+    More cleaning after removing product
+
+M	spec/enstore_dev.spec
+
+commit 3d531e0e9876e3a64dda1f25eb624f86a7f14c18
+Author: Alexander <anm12345@gmail.com>
+Date:   Mon Feb 2 11:34:25 2026 +0300
+
+    Copy some setup scripts during initial installation for
+    automation of setup procedure.
+
+M	site_specific/config/setup-enstore.local.template
+M	spec/enstore_dev.spec
+
+commit 730d8110c83c2508b2c116c7263006a15ba7e2d8
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Jan 30 11:03:36 2026 +0300
+
+    Added release notes
+
+A	release-notes/ENSTORE_V_7.0.4.28.txt
+
+commit 445cfb9b2360ee00cf209eb4afd93ab6ae0f7831
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Jan 30 10:12:33 2026 +0300
+
+    Configured all databases on the same DB server and port.
+
+M	etc/minimal_enstore.conf
+
+commit 654c8addcadc17f9f7d5b154a137e62920fe50e2
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jan 29 17:48:22 2026 +0300
+
+    Made some comments and changes
+
+M	etc/minimal_enstore.conf
+
+commit b8ca457bd71741c0810f6dacb7774e0471620183
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jan 29 17:19:34 2026 +0300
+
+    Up to date schemas added (as on enstore01)
+
+A	databases/schemas/accounting.schema
+A	databases/schemas/drivestat.schema
+A	databases/schemas/enstoredb.schema
+
+commit a8c14fd7fbcac5ef9f02aa631982c4d32b9c7f18
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jan 29 17:14:24 2026 +0300
+
+    Moved old schemas to directory old
+
+R100	databases/schemas/accounting.schema	databases/schemas/old/accounting.schema
+R100	databases/schemas/drivestat.schema	databases/schemas/old/drivestat.schema
+R100	databases/schemas/enstoredb.schema	databases/schemas/old/enstoredb.schema
+R100	databases/schemas/operation.schema	databases/schemas/old/operation.schema
+
+commit 206a61f30bcdbea8c98f165ac454e0c4392d2078
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jan 29 17:10:15 2026 +0300
+
+    Convenience scripts for migration.
+
+A	src/check_for_deleted_chimera_by_vol.py
+A	src/delfile_chimera_by_vol1.py
+A	src/delfile_chimera_by_vol_2.py
+
+commit 2bbd58208ea5c2f604e5cb2d918825e80f5de302
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jan 29 16:26:17 2026 +0300
+
+    Added lightweight bashrc template
+
+A	etc/bashrc_template
+
+commit f7fc61ce6e06d9ce3fdf62148a2660daf01d7e8d
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jan 29 16:17:41 2026 +0300
+
+    Changes to fix uncaught exception
+
+M	src/library_manager.py
+
+commit a37e0f7ea19f4d5ca46e00e51dfeef374fa02672
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed Nov 12 14:08:25 2025 +0300
+
+    threadit.py stopped working wit files generated by new swig.
+    This is the change to make ot workig again, although it is not used now,
+    the -threads swig option is used instead
+
+M	modules/SWIG/threadit.py
+
+commit 7bd3ae337cb864df80613be8aef62cc323606c85
+Author: Alexander <anm12345@gmail.com>
+Date:   Wed Nov 12 13:56:48 2025 +0300
+
+    do_read_scsi_command started causin core dumps after -threads option was added to swig builds.
+    It appeares that threading has to be disabled for this function.
+
+M	modules/SWIG/ftt2.i
+
+commit 8059f17c49846be05f9c568ca6c7a84b132cf30e
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Nov 11 15:37:19 2025 +0300
+
+    queries all volumes, finds volumes with deleted to total ratio above
+    specified threshold and sends to stdout.
+    Default threshold 80%%
+
+A	src/migration_candidates.py
+
+commit a46376319c282fc2227a90163fdaf1240941e65b
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Nov 11 13:02:43 2025 +0300
+
+    Log the amount of files set deleted.
+
+M	src/delfile_chimera.py
+
+commit 382d57ccbed735b68cfaf4ea5be2771100c46f7a
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Nov 11 12:14:19 2025 +0300
+
+       To stop warning messages 2nd approach (it is better, because resolves the issue, does not hide it):
+        swig/python detected a memory leak of type 'ftt_descriptor *', no destructor found.
+        swig/python detected a memory leak of type 'ftt_stat_buf *', no destructor found.
+
+M	modules/SWIG/ftt2.i
+
+commit f64f27b487d080db66788eefdd2b7b387040d642
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Oct 24 11:51:49 2025 +0300
+
+    To stop warning messages:
+    swig/python detected a memory leak of type 'ftt_descriptor *', no destructor found.
+    swig/python detected a memory leak of type 'ftt_stat_buf *', no destructor found.
+
+M	modules/SWIG/ftt2.i
+
+commit b1e51ccba6900a4c139175697d06de2473a0ece9
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 23 11:31:05 2025 +0300
+
+    If destination is local do not use enrsh
+
+M	sbin/rdist-log
+
+commit 45be96d19e6d2c6f10e4c28800e0d2d1e92ad2b1
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Oct 10 12:53:51 2025 +0300
+
+    Added release notes
+
+A	release-notes/ENSTORE_V_7.0.4.18.txt
+A	release-notes/ENSTORE_V_7.0.4.25.txt
+
+commit b4ea07a361f717d9581b5acb7e5cdbd2322013dc
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Oct 10 09:41:34 2025 +0300
+
+    Without this change enroute module could not be found
+
+M	packaging/package_encp_dcache_bin.sh
+
+commit 90ac969241a5362054ff5c152ab6a021a0ea7820
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 9 15:43:38 2025 +0300
+
+    Wrong comment was entered in the previous commit.
+    Correct comment:
+    Start after rabbit server if last is installed
+
+M	etc/enstore.service
+
+commit dfee6e5196a86a1bf4e3420d6eac9d4ade8aa2c9
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 9 15:42:13 2025 +0300
+
+    Correct output
+
+M	spec/enstore_dev.spec
+
+commit 4a908d39127dc3d7bd200f9e369199f17f035d6b
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 9 15:41:51 2025 +0300
+
+    Correct output
+
+M	etc/enstore.service
+
+commit f4d7bf847e4957547f75415ec10a1347b0313e9d
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 9 15:38:27 2025 +0300
+
+    Set auto_journal=0. In a futute reconsider using ejournal (I believe it is not used and not needed)
+
+M	src/purge_files.py
+
+commit da210a0ecac42ac71939d62fbb95b97d843b9e07
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 9 14:09:11 2025 +0300
+
+    More changes to make it working without sophisticated adjustments
+
+M	packaging/package_encp_dcache_bin.sh
+
+commit cc0c39497519211a26420be75a31730ea451f98d
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 9 12:11:23 2025 +0300
+
+    Add diangostics in package_encp_dcache_bin.sh and package_enstore_dev.sh.
+    Replace PYTHONPATH with PATH in package_encp_dcache_bin.sh
+    Better volume selection for volume assert in encp_test_functions
+
+M	packaging/package_encp_dcache_bin.sh
+M	packaging/package_enstore_dev.sh
+M	tools/encp_test_functions
+
+commit 26e6b424d6b78cbc67d33e822e0f2c031cf53b97
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Oct 3 15:51:12 2025 +0300
+
+    double checksum comes like
+    2:d27677c3916e215d6722ff2941ee84ca,1:b806421d
+    where adler32 is second.
+    This solution extracts adler32 no matter how it comes
+
+M	dcache-deploy/scripts/real-encp.sh
+
+commit 5fc98ace6a2c287541cfe97e1d15141ce264c98d
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Oct 2 14:34:04 2025 +0300
+
+    Check if file with given pnfs id is present just before starting its transfer to mover.
+    This should minimize cases when file has been overwritten in dcache.
+    Such files will not be written to tape, thus saving media space.
+
+M	src/encp.py
+
+commit 68a7ba95e3ba736a01302219ff2b23a0c5914b65
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Sep 23 18:30:20 2025 +0300
+
+    Fixed error introduce in the previous commit
+
+M	src/mover.py
+
+commit 3cc7b6a587b59c7139712bb482e72021eb09000c
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Sep 23 15:35:10 2025 +0300
+
+    Added release notes for tag ENSTORE_V_7.0.4.17
+
+A	release-notes/ENSTORE_V_7.0.4.17.txt
+
+commit f303ab1da9e70379b11f5a370f43231e15548ecd
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Sep 23 15:26:54 2025 +0300
+
+    1. Added remaining bytes entry for 0359260 drive type (IBM Enterprise)
+    2. Changed some log messages (and removed some) in mover.
+
+M	ftt/ftt_lib/ftt_stats.c
+M	src/mover.py
+
+commit 01b4a7d917b66684014e1b2b10c8f7a7a8b5b261
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Sep 16 15:51:28 2025 +0300
+
+    Deal with delfile
+
+M	external_distr/update_sym_links.sh
+D	sbin/delfile
+D	sbin/delfile.cron
+D	sbin/delfile.py
+
+commit e37f18667a3af158ff0272a75a4941645cd9cd57
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Wed Sep 3 13:25:09 2025 +0300
+
+    Added release notes
+
+A	release-notes/ENSTORE_V_7.0.4.16.txt
+
+commit 3622b249d2dfb2032d188e40f4002d0039e4a0e3
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Wed Sep 3 13:16:02 2025 +0300
+
+    Raised encp version.
+    Reverted volume_assert options
+
+M	src/encp.py
+M	src/migrate_chimera.py
+
+commit d0dad4e975cd40486a74cc20f668c08d43624b63
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Fri Aug 29 11:20:58 2025 +0300
+
+    Replaced call to generate main html page
+
+M	crontabs/enstore_html
+
+commit 157fded89b0f0466648e33298895e58b0a8519bd
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Fri Aug 29 10:41:04 2025 +0300
+
+    Make symlink to delfile_chimera_by_vol.py
+
+M	external_distr/update_sym_links.sh
+
+commit 02ebd5aa08bee94db8df2220b244938ab5df4a96
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Fri Aug 29 10:16:59 2025 +0300
+
+    In scan skip deleted files in volume_assert
+
+M	src/migrate_chimera.py
+
+commit e014e15980e52407245312d9ab835beba4b24672
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Thu Aug 28 11:12:12 2025 +0300
+
+    Add signal.SIGKILL, signal.SIGSTOP to leave_alone list as they cause
+    Setting signal 9 to <function signal_handler at 0x14f924f9cae0> failed.
+
+M	src/delete_at_exit.py
+
+commit 57e79ba01596d61a046ea4e6897399373db703dd
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Thu Aug 28 11:05:49 2025 +0300
+
+    To stop the following traceback:
+    ENCP    File "encp.py", line 5202, in receive_final_dialog
+    ENCP    File "callback.py", line 807, in read_tcp_obj
+    ENCP  e_errors.EnstoreError: <exception str() failed>
+    During handling of the above exception, another exception occurred:
+    ...
+
+M	src/callback.py
+
+commit 9f9b163daa6a68e959e6be899aa3cae0b3367769
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Wed Aug 27 14:18:41 2025 +0300
+
+    Now fc info returns 'wrapper' not just vc info.
+    Do not know when and by whom it was added, but it breaks pririty selection based on src host name.
+    This patch fixes this problem.
+
+M	src/priority_selector.py
+
+commit 42ede514eab37c08744dd2bf50212ccb6f11278c
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Tue Aug 26 16:24:40 2025 +0300
+
+    Fixed overlooked python3 conversion
+
+M	dcache-deploy/scripts/real-encp-new-sfa.sh
+
+commit 4eccfe41da2cc56ea2dbd69104082bd9eb85de8f
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Tue Aug 26 16:20:37 2025 +0300
+
+    Fixed overlooked python3 conversion.
+
+M	dcache-deploy/scripts/real-encp.sh
+
+commit bca93aa838e63b01821821c714fb7aa3fc41b7bf
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Thu Aug 14 17:46:25 2025 +0300
+
+    Make SFA server, using rabbitMQ, working again. There were 2 main problems:
+    1. Lost sys.stderr - fixed in enstore_start.py
+    2. Complicate thread name containing " (....). - did not see this before.
+
+M	src/enstore_start.py
+M	src/rabbitmq_cache/servers/dispatcher.py
+M	src/rabbitmq_cache/servers/migrator.py
+M	src/rabbitmq_cache/servers/mw.py
+
+commit 474f71df12654366b9cb8f11fe1d8cad6cbd7431
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Mon Aug 11 13:53:44 2025 +0300
+
+    Remove symlink before updating it.
+
+M	external_distr/update_sym_links.sh
+
+commit becc5f6b0645b597a2e8ee503e959caece5aa877
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Mon Aug 11 13:51:21 2025 +0300
+
+    Save port range.
+
+M	src/udp_client.py
+
+commit c203c73b63a71eddc39f764f190fe7ef7ed9318e
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Fri Aug 8 17:16:17 2025 +0300
+
+    Attempt to create new configuration client failed so far.
+    Reverted to old configuration_client.py
+    New code is in configuration_client.py.new, but will not be used for who knows how long
+
+M	src/configuration_client.py
+A	src/configuration_client.py.new
+
+commit e14f0a3ed730c9de26bc09f649295e61758a6f08
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Tue Aug 5 16:46:01 2025 +0300
+
+    Release notes between tag ENSTORE_V_7.0.3 and enstore rpm 7.0.4.9
+
+A	release-notes/ENSTORE_V_7.0.4.9.txt
+
+commit 77e986215f5a8fba2bb7d7156a9aa82d35847bc6
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Tue Aug 5 16:13:23 2025 +0300
+
+    Set classic color palette for gnuplot
+
+M	src/mounts_plotter_module.py
+M	src/slots_usage_plotter_module.py
+
+commit f59c6cfbc6380a08467978ccf6cc29a9d658c3b0
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Mon Aug 4 12:10:02 2025 +0300
+
+    Changes needed with new changes of configuration_client.py
+
+M	src/enstore_html.py
+
+commit 171d61c9bbb906792e839367de40b476b59ead61
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Fri Aug 1 20:39:41 2025 +0300
+
+    Fixed typos
+
+M	modules/SWIG/ftt2.i
+
+commit 56be43af8c279f19093219fddcc47b60a5a4ee8d
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Fri Aug 1 20:29:37 2025 +0300
+
+    make configuration client read from local configuration file instead of sending requests
+    to configuration server, if $ENSTORE_CONFIG_HOST points to local to configuration client host.
+
+M	src/configuration_client.py
+A	src/configuration_dictionary.py
+
+commit b80bd97e5b9ad5590e28d730a37cd3e036106abf
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Thu Jul 31 21:40:57 2025 +0300
+
+    Threaded build os swig modules. Old way stopped working
+
+M	modules/SWIG/Makefile
+
+commit 4cfe5ddede845655fcf9f7d3671e8cb22ee6e194
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Thu Jul 31 17:01:05 2025 +0300
+
+    Added ENSTORE_CONFIG_FILE
+
+M	etc/enstore.sudoers
+
+commit fde4a36fd2edc9cb54dfaa27baeee0313f8a4b3f
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Thu Jul 31 16:44:48 2025 +0300
+
+    Fixed typos in type definitions
+
+M	modules/SWIG/ftt2.i
+
+commit aed555b38b927cba9b975a26d0b15fc1b2b85779
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Mon Jul 28 16:18:44 2025 +0300
+
+    Added cron job to check if servers and movers are running
+
+A	crontabs/check_system
+
+commit 5145e086a0dc902c27d13cf0512d8cf26db63824
+Author: Alexander Moibenko <anm12345@gmail.com>
+Date:   Mon Jul 28 14:06:08 2025 +0300
+
+    Fixed symlink
+
+M	external_distr/update_sym_links.sh
+
+commit 3bd125562ece0e486745694bd53eca50ac2afae5
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Jul 25 11:46:35 2025 +0300
+
+    Added yet another symlink
+
+M	external_distr/update_sym_links.sh
+
+commit ff99f2010e3f6012f068c3b5178e0078a44b89c4
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Jul 25 09:45:45 2025 +0300
+
+    Added symlink
+
+M	external_distr/update_sym_links.sh
+
+commit 1bab3e107a5e2bc692f0e7cc3fee097a8bf2e019
+Author: Alexander <anm12345@gmail.com>
+Date:   Fri Jul 25 09:28:45 2025 +0300
+
+    Force set classic color schema for gnuplot
+
+M	src/bytes_per_day_plotter_module.py
+M	src/encp_rate_multi_plotter_module.py
+M	src/enstore_plots.py
+M	src/histogram.py
+M	src/makeplot.py
+M	src/mover_summary_plotter_module.py
+
+commit 20cc7ccee68f69810adc94cb3836cfd2fc8e90b4
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 24 15:09:21 2025 +0300
+
+    Commented confusing error condition message. Per tvv.
+
+M	dcache-deploy/scripts/real-encp.sh
+
+commit 3c33e6bae0758fd9c5f9e4adb48accf815c00d05
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 24 15:05:17 2025 +0300
+
+    migrator_client.py - wthout this change inqusitor hangs if migrator is down
+
+M	src/migrator_client.py
+M	src/rabbitmq_cache/messaging/client.py
+
+commit 5083763c0c927c43bf371852be6c6300f46bcd00
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 17 12:47:02 2025 +0300
+
+    removed defattr
+
+M	spec/encp_dcache_bin.spec
+
+commit c6df5fd73addbb92e197faea417d59daa0d4c77b
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 17 12:21:52 2025 +0300
+
+    Activated check option
+
+M	src/delfile_chimera_by_vol.py
+
+commit 95faef0a8508e4108298d46f2531bf02e91ec979
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 17 11:16:20 2025 +0300
+
+    Changed location of source setup-enstore file
+
+M	spec/encp_dcache_bin.spec
+
+commit 3f9c8353c1cfbae2d6bfd581ce2b0c115926a574
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 17 11:11:51 2025 +0300
+
+    removed enstore.enstore
+
+M	spec/encp_dcache_bin.spec
+
+commit dab41a886af3471769fa00c8d29fe80797bf1543
+Author: Alexander <anm12345@gmail.com>
+Date:   Thu Jul 17 10:48:25 2025 +0300
+
+    Added delfile_chimera_by_vol. Not checked
+
+M	pyinstaller/Makefile
+A	src/delfile_chimera_by_vol.py
+
+commit 26c13eeec09656887f821ef0e86c225566e9fc4a
+Author: Alexander <anm12345@gmail.com>
+Date:   Tue Jul 15 13:21:54 2025 +0300
+
+    Added tag ENSTORE_V_7.0.4 and correspondig release notes.
+
+A	release-notes/ENSTORE_V_7.0.4.txt

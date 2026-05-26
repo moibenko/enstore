@@ -42,6 +42,7 @@ mkdir -p $ENSTORE_INSTALL_DIR/Python
 cp -r $PYTHON_SRC/* $ENSTORE_INSTALL_DIR/Python
 
 cd $ENSTORE_INSTALL_DIR
+rm -rf deprecated
 export ENSTORE_DIR=$ENSTORE_INSTALL_DIR/
 export PYTHON_DIR=$ENSTORE_DIR/Python
 export PYTHONINC=`ls -d $PYTHON_DIR/include/python*`

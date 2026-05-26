@@ -16,7 +16,6 @@ import enstore_plots
 import enstore_html
 import enstore_files
 import enstore_functions
-import enstore_functions2
 import enstore_constants
 import generic_client
 import option
@@ -56,59 +55,48 @@ QUOTA = "quota"
 
 
 ENGLISH_TITLES = {
-    "ADICDrvBusy": "(e)Get ADIC Drive Info",
-    "aml2logs": "(e)Get AML2 Logs",
-                   "aml2mirror": "(e)Mirror AML2 Disk",
-                   "backup": "(e)Backup Enstore Db",
-                   "backupsystem2Tape": "(e)Backup tarit Output To Tape",
-                   "backup2Tape": "(e)Back up Metadata To Tape Daily",
-                   "checkdb": "(e)Scan Db keys",
-                   "chkcrons": "(r)Make CRON plots",
-                   "chk_prod_code": "(e)Check Production Code Consistency",
-                   "cleaning_report": "(e)Get # Cleanings/Tapes",
-                   "copy_ran_file": "(e)Read 3 Random Files",
-                   "delfile": "(r)PNFS delete",
-                   "dailyblanks": "(e)STK Tape/Blank Rpt",
-                   "d0-aml2-drives": "(e)Check D0 AML/2 Drive Status",
-                   "enstoreNetwork": "(e)Measure Network Encp Speeds",
-                   "enstoreSystem": "(e)Make SAAG Page",
-                   "enstore_overall_status": "(r)Make Operator SAAG Page",
-                   "failedX": "(e)Get Failed Transfers",
-                   "fix_url": "(e)Fix CGI URLs",
-                   "getcons": "(r)Get Console Logs",
-                   "getnodeinfo": "(r)Get Node Info",
-                   "inqPlotUpdate": "(e)Make Inq Plots",
-                   "log-stash": "(e)Save Logs to history",
-                   "make_cron_plot_page": "(r)Make CRON Plot Page",
-                   "make_overall_plot": "(r)Make Total BPD Plot",
-                   "makeplot": "(e)Make Rate Plots",
-                   "noaccess": "(e)Make VOLUME/NOACCESS Page",
-                   "offline_inventory": "(e)Get Tape Inv Info",
-                   "PNFSRATE": "(e)Get PNFS Rate Info",
-                   "plog": "(r)Rollover PNFS Log",
-                   "pnfsExports": "(r)Make PNFS Exports Page",
-                   "pnfsFastBackup": "(r)Backup PNFS Files",
-                   "quickcheck": "(r)Get Netperf Rates",
-                   "quickquota": "(e)Get Volume Quotas",
-                   "raidcheck": "(r)Check Raid Disk",
-                   "readDcache": "(e)Read From Disk Cache",
-                   "rdist-log": "(e)Backup Enstore Logs to srv3",
-                   "robot_inventory": "(e)Get AML Volume Status",
-                   "STKDrvBusy": "(r,e)Get STK Drive Info",
-                   "STKlog": "(e)Get STK Logs",
-                   "STKquery": "(e)Measure STK Response Time",
-                   "STKrobot_inventory": "(e)Get STK Volume Info",
-                   "Sdr": "(r)Get Node Temps/Fan",
-                   "Sel": "(r)Get System Event Log",
-                   "selbit": "(r)Clear System Event Log",
-                   "sgPlotUpdate": "(e)Make Storage Group Plot",
-                   "silocheck": "(e)Find Non-Standard Tapes",
-                   "stk_response_time": "(e)STK Response Time",
-                   "syncit": "(r)Rsync Mover Nodes",
-                   "tarit": "(r)Backup Host Files",
-                   "udpclog": "(r)Get UDP Clog Info",
-                   "user_bytes": "(e)Get User Bytes on Tape",
-                   "volmap": "(r)Chmod volmap Dirs"}
+    "backup": "(e)Backup Enstore Db",
+    "backupsystem2Tape": "(e)Backup tarit Output To Tape",
+    "backup2Tape": "(e)Back up Metadata To Tape Daily",
+    "checkdb": "(e)Scan Db keys",
+    "chkcrons": "(r)Make CRON plots",
+    "chk_prod_code": "(e)Check Production Code Consistency",
+    "cleaning_report": "(e)Get # Cleanings/Tapes",
+    "copy_ran_file": "(e)Read 3 Random Files",
+    "delfile": "(r)PNFS delete",
+    "enstoreNetwork": "(e)Measure Network Encp Speeds",
+    "enstoreSystem": "(e)Make SAAG Page",
+    "enstore_overall_status": "(r)Make Operator SAAG Page",
+    "failedX": "(e)Get Failed Transfers",
+    "fix_url": "(e)Fix CGI URLs",
+    "getcons": "(r)Get Console Logs",
+    "getnodeinfo": "(r)Get Node Info",
+    "inqPlotUpdate": "(e)Make Inq Plots",
+    "log-stash": "(e)Save Logs to history",
+    "make_cron_plot_page": "(r)Make CRON Plot Page",
+    "make_overall_plot": "(r)Make Total BPD Plot",
+    "makeplot": "(e)Make Rate Plots",
+    "noaccess": "(e)Make VOLUME/NOACCESS Page",
+    "offline_inventory": "(e)Get Tape Inv Info",
+    "PNFSRATE": "(e)Get PNFS Rate Info",
+    "plog": "(r)Rollover PNFS Log",
+    "pnfsExports": "(r)Make PNFS Exports Page",
+    "pnfsFastBackup": "(r)Backup PNFS Files",
+    "quickcheck": "(r)Get Netperf Rates",
+    "quickquota": "(e)Get Volume Quotas",
+    "raidcheck": "(r)Check Raid Disk",
+    "readDcache": "(e)Read From Disk Cache",
+    "rdist-log": "(e)Backup Enstore Logs to srv3",
+    "robot_inventory": "(e)Get AML Volume Status",
+    "Sdr": "(r)Get Node Temps/Fan",
+    "Sel": "(r)Get System Event Log",
+    "selbit": "(r)Clear System Event Log",
+    "sgPlotUpdate": "(e)Make Storage Group Plot",
+    "syncit": "(r)Rsync Mover Nodes",
+    "tarit": "(r)Backup Host Files",
+    "udpclog": "(r)Get UDP Clog Info",
+    "user_bytes": "(e)Get User Bytes on Tape",
+    "volmap": "(r)Chmod volmap Dirs"}
 
 # find all the files under the current directory that are jpg files.
 # (*.jpg). then create a smaller version of each file (if it does not
@@ -144,24 +132,12 @@ def do_the_walk(input_dir, url):
         input_dir = "%s/" % (input_dir,)
     if url[-1] != "/":
         url = "%s/" % (url,)
-    print("INPUT_DIR", input_dir)
-    #os.path.walk(input_dir, find_jpg_files, (jpgs, stamps, pss,
-    #                                         input_dir, url))
-
-    #for root, dirs, files in  os.walk('/diskb/enstore/www/web-pages/enstore/'):
     for root, dirs, files in  os.walk(input_dir):
-
-        #print("ROOT", root)
-        #print("DIRS", dirs)
-        #print("FILES", files)
         find_jpg_files((jpgs, stamps, pss, input_dir, url), root, files)
 
     jpgs.sort()
     stamps.sort()
     pss.sort()
-    print("JPGS", jpgs)
-    print("STAMPS", stamps)
-    print("PSS", pss)
     return (jpgs, stamps, pss)
 
 
@@ -444,7 +420,7 @@ def do_work2(intf):
 
 if __name__ == "__main__":   # pragma: no cover
 
-    intf = PlotPageInterface(user_mode=0)
+    interface = PlotPageInterface(user_mode=0)
 
-    do_work(intf)
-    # do_work2(intf)
+    do_work(interface)
+    # do_work2(interface)

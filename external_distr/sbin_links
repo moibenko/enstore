@@ -31,3 +31,4 @@ plotter_main
 web_server
 log_start_event
 log_finish_event
+checkdb_PITR

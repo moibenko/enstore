@@ -58,7 +58,7 @@ SETUP_FILE=/opt/ehome/site_specific/config/setup-enstore
 if [ ! -f $SETUP_FILE ]; then
    echo "Creating $SETUP_FILE"
    mkdir -p `dirname $SETUP_FILE`
-   $ENSTORE_DIR/dcache-deploy/site_specific/config/setup-enstore $SETUP_FILE
+   cp $ENSTORE_DIR/dcache-deploy/site_specific/config/setup-enstore $SETUP_FILE
 fi
 echo "Check $SETUP_FILE and modify it as necessary"
 ENCP_OPT=/opt/ehome/site_specific/config/encp_options

@@ -49,7 +49,6 @@ import enstore_start
 import enstore_stop
 import enstore_restart
 import backup
-import udp_proxy_client
 import lm_director_client
 import dispatcher_client
 
@@ -107,8 +106,6 @@ server_functions = {
                    lm_director_client.do_work, option.ADMIN],
     "dispatcher": [dispatcher_client.DispatcherClientInterface,
                    dispatcher_client.do_work, option.ADMIN],
-    "udp_proxy": [udp_proxy_client.ProxyClientInterface,
-                  udp_proxy_client.do_work, option.ADMIN],
     "inquisitor": [inquisitor_client.InquisitorClientInterface,
                    inquisitor_client.do_work, option.ADMIN],
     "library": [library_manager_client.LibraryManagerClientInterface,
@@ -363,6 +360,11 @@ class EnstoreInterface(object):
                 if server_functions[server][2] == option.USER:
                     # users cannot talk to this server
                     allowed_servers.append(server)
+        if self.user_mode == 2:
+            server_functions.pop("configuration")
+            server_functions["configuration"] = [configuration_client.ConfigurationClientInterface,
+                 configuration_client.do_work_just_info, option.ADMIN]
+            allowed_servers.append("configuration")
         else:
             allowed_servers = servers
         return allowed_servers
@@ -478,7 +480,7 @@ class Enstore(object):
     def verify_node(self, node, command):
         if VERIFY in command:
             if len(node) <= 3:
-                return
+                return 0
             # 1st three letters return the "production" cluster, almost
             gang = node[0:3]
             # there are just 4 clusters we deal with right now... (code this
@@ -510,9 +512,8 @@ class Enstore(object):
                     "Is this want you want to do - execute ", node)
                 if answer[0] == "y" or answer[0] == "Y":
                     return 1
-                else:
-                    print('command canceled')
-                    return 0
+                print('command canceled')
+                return 0
             else:
                 return 1
         else:
@@ -533,14 +534,13 @@ class Enstore(object):
                                      node="farmlet %s" % get_farmlet(""))
         return answer
 
-    def got_help(self, help):
+    def got_help(self, help_prompt):
         for arg in sys.argv:
             if arg in HELP_OPTS:
                 # the user asked for help, give it to him and do nothing else
-                print("\nenstore %s \n" % (help,))
+                print("\nenstore %s \n" % (help_prompt,))
                 return 1
-        else:
-            return None
+        return None
 
     # this is where all the work gets done
     def do_work(self):
@@ -579,8 +579,7 @@ class Enstore(object):
 
         # handles new interface style
         elif arg1 in list(server_functions.keys()):
-            intf = server_functions[arg1][0](args=sys.argv[:],
-                                             user_mode=self.user_mode)
+            intf = server_functions[arg1][0](args=sys.argv[:], user_mode=self.user_mode)
             rtn = server_functions[arg1][1](intf)
 
         # execute remote scripts

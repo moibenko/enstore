@@ -1,18 +1,11 @@
 #!/usr/bin/env python
 
-###############################################################################
-#
-# src/$RCSfile$   $Revision$
-#
-###############################################################################
-
 """The client-side configuration file will be called /etc/enstore.conf but this can
 be overridden with env. var. ENSTORE_CONF"""
 from __future__ import print_function
 
 from builtins import str
 from builtins import range
-from future.utils import raise_
 import os
 import sys
 import random
@@ -21,9 +14,9 @@ import pprint
 import re
 import errno
 import time
+from future.utils import raise_
 
 import Trace
-import e_errors
 import multiple_interface
 import enroute
 import runon
@@ -65,7 +58,7 @@ def read_config_file(filename):
         f = open(filename, 'r')
     except BaseException:
         try:
-            sys.stderr.write("Can't open %s" % (filename,))
+            sys.stderr.write("Can't open {}\n".format(filename))
             sys.stderr.flush()
         except IOError:
             pass
@@ -85,8 +78,7 @@ def read_config_file(filename):
             if eq <= 0:
                 try:
                     sys.stderr.write(
-                        "%s: syntax error, %s" %
-                        (filename, token))
+                        "{}: syntax error, {}".format(filename, token))
                     sys.stderr.flush()
                 except IOError:
                     pass
@@ -159,6 +151,7 @@ def get_default_interface_ip(preferred_ip=None):
                     if e[0] == address_family:
                         index = ips.index(e)
                         break
+            found = False
             for k in range(ips_len):
                 ip_info = ips[index]
                 default = ip_info[4][0]
@@ -167,23 +160,24 @@ def get_default_interface_ip(preferred_ip=None):
                 try:
                     s1 = socket.socket(ip_info[0])
                     s1.bind((default, 0))
+                    found = True
                     break
                 except OSError as e:
                     index += 1
                 finally:
                     s1.close()
+            if found:
+                break
         except socket.error as msg:
             if msg.args[0] == errno.EAGAIN or msg.args[0] == errno.EINTR:
                 time.sleep(1)
                 continue
-            else:
-                break
+            break
         except (socket.herror, socket.gaierror) as msg:
             if msg.args[0] == socket.EAI_AGAIN:
                 time.sleep(1)
                 continue
-            else:
-                break
+            break
 
     # If the default ip address so far is determined to be 127.0.0.1, we should
     # first check all of the interfaces for thier IPs and lookup what name
@@ -247,14 +241,13 @@ def get_default_interface_ip(preferred_ip=None):
 def get_interfaces():
     config = get_config()
     if not config:
-        return
+        return None
     interface_dict = config.get('interface')
     if not interface_dict:
-        return
+        return None
     interfaces = list(interface_dict.keys())
     if not interfaces:
-        return
-
+        return None
     return interfaces
 
 # Returns the dictionary, that represents one interface line in entore.conf.
@@ -383,11 +376,6 @@ def update_cached_routes():
     return _cached_netstat
 
 
-def clear_cached_routes():
-    global _cached_netstat
-    _cached_netstat = None
-    return None
-
 # Rerturns true if the destination is already in the routing table.  False,
 # otherwise.
 
@@ -406,13 +394,11 @@ def is_route_in_table(dest):
         except (socket.error,) as msg:
             if msg.args[0] == errno.EAGAIN or msg.args[0] == errno.EINTR:
                 continue
-            else:
-                raise_(socket.error, msg, sys.exc_info()[2])
+            raise_(socket.error, msg, sys.exc_info()[2])
         except (socket.herror, socket.gaierror) as msg:
             if msg.args[0] == socket.EAI_AGAIN:
                 continue
-            else:
-                raise_(sys.exc_info()[0], msg, sys.exc_info()[2])
+            raise_(sys.exc_info()[0], msg, sys.exc_info()[2])
 
     route_table = get_routes()
     for route in route_table:
@@ -498,7 +484,6 @@ def runon_cpu(interface):
         err = runon.runon(cpu)
         if err:
             sys.stdout.write("runon(%s): failed, err=%s" % (cpu, err))
-            # Trace.log(e_errors.ERROR, "runon(%s): failed, err=%s" % (cpu,err))
 
 ##############################################################################
 # The following two functions manipulate the routing table.
@@ -539,23 +524,22 @@ def set_route(dest, interface_ip):
 
     if err == 1:  # Not called from encp/enstore.  (should never see this)
         raise OSError(errno.EPERM, "Routing:" + enroute.errstr(err))
-    elif err == 2:  # Not supported.
+    if err == 2:  # Not supported.
         raise OSError(errno.ENOPROTOOPT, "Routing:" + enroute.errstr(err))
-    elif err == 3:  # Not permitted.
+    if err == 3:  # Not permitted.
         raise OSError(errno.EACCES, "Routing:" + enroute.errstr(err))
-    elif err == 4:  # Not valid parameters.
+    if err == 4:  # Not valid parameters.
         raise OSError(errno.EINVAL, "Routing:" + enroute.errstr(err))
-    elif err == 5:  # Return code if route selection is not supported.
+    if err == 5:  # Return code if route selection is not supported.
         pass
-    elif err == 6:  # Route change failed.
+    if err == 6:  # Route change failed.
         raise OSError(errno.EINVAL, "Routing: " + enroute.errstr(err))
-    elif err == 7:  # Feature not supported by enroute2. (ignore)
+    if err == 7:  # Feature not supported by enroute2. (ignore)
         try:
             sys.stderr.write("enroute2 does not support route addition\n")
             sys.stderr.flush()
         except IOError:
             pass
-
 
 def update_route(dest, interface_ip):
     config = get_config()
@@ -591,23 +575,22 @@ def update_route(dest, interface_ip):
 
     if err == 1:  # Not called from encp/enstore.  (should never see this)
         raise OSError(errno.EPERM, "Routing: " + enroute.errstr(err))
-    elif err == 2:  # Not supported.
+    if err == 2:  # Not supported.
         raise OSError(errno.ENOPROTOOPT, "Routing: " + enroute.errstr(err))
-    elif err == 3:  # Not permitted.
+    if err == 3:  # Not permitted.
         raise OSError(errno.EACCES, "Routing: " + enroute.errstr(err))
-    elif err == 4:  # Not valid parameters.
+    if err == 4:  # Not valid parameters.
         raise OSError(errno.EINVAL, "Routing: " + enroute.errstr(err))
-    elif err == 5:  # Return code if route selection is not supported.
+    if err == 5:  # Return code if route selection is not supported.
         pass
-    elif err == 6:  # Route change failed.
+    if err == 6:  # Route change failed.
         raise OSError(errno.EINVAL, "Routing: " + enroute.errstr(err))
-    elif err == 7:  # Feature not supported by enroute2. (ignore)
+    if err == 7:  # Feature not supported by enroute2. (ignore)
         try:
             sys.stderr.write("enroute2 does not support route modification\n")
             sys.stderr.flush()
         except IOError:
             pass
-
 
 def unset_route(dest):
     config = get_config()
@@ -635,17 +618,17 @@ def unset_route(dest):
 
     if err == 1:  # Not called from encp/enstore.  (should never see this)
         raise OSError(errno.EPERM, "Routing: " + enroute.errstr(err))
-    elif err == 2:  # Not supported.
+    if err == 2:  # Not supported.
         raise OSError(errno.ENOPROTOOPT, "Routing: " + enroute.errstr(err))
-    elif err == 3:  # Not permitted.
+    if err == 3:  # Not permitted.
         raise OSError(errno.EACCES, "Routing: " + enroute.errstr(err))
-    elif err == 4:  # Not valid parameters.
+    if err == 4:  # Not valid parameters.
         raise OSError(errno.EINVAL, "Routing: " + enroute.errstr(err))
-    elif err == 5:  # Return code if route selection is not supported.
+    if err == 5:  # Return code if route selection is not supported.
         pass
-    elif err == 6:  # Route change failed.
+    if err == 6:  # Route change failed.
         raise OSError(errno.EINVAL, "Routing: " + enroute.errstr(err))
-    elif err == 7:  # Feature not supported by enroute2. (ignore)
+    if err == 7:  # Feature not supported by enroute2. (ignore)
         try:
             sys.stderr.write("enroute2 does not support route deletion\n")
             sys.stderr.flush()
@@ -659,7 +642,6 @@ def unset_route(dest):
 
 def get_default_interface(receiver_ip=None):
     return get_interface_info_by_ip(get_default_interface_ip(receiver_ip))
-
 
 def choose_interface():
     interfaces = get_interfaces()
@@ -699,7 +681,7 @@ def check_load_balance(mode=None):
         # Get the rates of the current interface.
         try:
             recv_rate, send_rate = rate_dict[interface]
-            total_rate = (recv_rate + send_rate)
+            total_rate = recv_rate + send_rate
         except KeyError:
             continue
 
@@ -752,15 +734,13 @@ def setup_interface(dest, interface_ip):
         except socket.error as msg:
             if msg.args[0] == errno.EAGAIN or msg.args[0] == errno.EINTR:
                 continue
-            else:
-                # raise socket.error, msg, sys.exc_info()[2]
-                return
+            # raise socket.error, msg, sys.exc_info()[2]
+            return
         except (socket.herror, socket.gaierror) as msg:
             if msg.args[0] == socket.EAI_AGAIN:
                 continue
-            else:
-                # raise sys.exc_info(), msg, sys.exc_info()[2]
-                return
+            # raise sys.exc_info(), msg, sys.exc_info()[2]
+            return
     else:
         # raise socket.error(errno.ENETUNREACH, os.strerror(errno.ENETUNREACH))
         return
@@ -773,15 +753,13 @@ def setup_interface(dest, interface_ip):
         except socket.error as msg:
             if msg.args[0] == errno.EAGAIN or msg.args[0] == errno.EINTR:
                 continue
-            else:
-                # raise socket.error, msg, sys.exc_info()[2]
-                return
+            # raise socket.error, msg, sys.exc_info()[2]
+            return
         except (socket.herror, socket.gaierror) as msg:
             if msg.args[0] == socket.EAI_AGAIN:
                 continue
-            else:
-                # raise sys.exc_info(), msg, sys.exc_info()[2]
-                return
+            # raise sys.exc_info(), msg, sys.exc_info()[2]
+            return
     else:
         # raise socket.error(errno.ENETUNREACH, os.strerror(errno.ENETUNREACH))
         return

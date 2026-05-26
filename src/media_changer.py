@@ -3832,16 +3832,18 @@ class MTXN_MediaLoader(MediaLoaderMethods):
                       (cmd, args))
             if cmd in ["Load", "Unload"]:
                 retry_cnt = self.mount_retries
+                start_time = time.time()
                 while retry_cnt:
                     try:
                         Trace.log(ACTION_LOG_LEVEL,
-                                  "MTX server: calling load_unload_local")
+                                  "MTX server: calling load_unload_local. to=%s" % (self.mount_timeout,))
                         a, b = return_by(self.load_unload_local,
                                          (int(args[0]),
                                           int(args[1]), cmd),
                                          self.mount_timeout)
-                        Trace.log(ACTION_LOG_LEVEL, "MTX server: load_unload_local returned %s %s" %
-                        (a, b))
+                        Trace.log(ACTION_LOG_LEVEL,
+                                  "MTX server: load_unload_local returned %s %s. Execution time %s" % (
+                                      a, b, time.time() - start_time))
                         if -1 == a:
                             Trace.log(ACTION_LOG_LEVEL, ' mtx load / unload timeout')
                             retry_cnt -= 1

@@ -38,7 +38,7 @@ class LibraryManagerDirectorClient(generic_client.GenericClient):
         self.library_manager = self.name
         self.conf = csc.get(server_name)
         if server_address is None:
-            server_address = (self.conf['hostip'], self.conf['udp_port'])
+            server_address = (self.conf['hostip'], int(self.conf['port']))
 
         self.log_name = "C_" + server_name.replace(".LMD", MY_NAME).upper()
 
@@ -60,8 +60,8 @@ class LibraryManagerDirectorClient(generic_client.GenericClient):
         saved_work = ticket['work']
         # The new work is "get_library_manager".
         # This is needed because request can be sent
-        # using udp_proxy server or directly to lm_director,
-        # depending on the configuration.
+        # to lm_director
+
         ticket['work'] = 'get_library_manager'
         ticket = self.send(ticket)
         ticket['work'] = saved_work

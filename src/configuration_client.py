@@ -796,6 +796,7 @@ class ConfigurationClientInterface(generic_client.GenericClientInterface):
         self.file_fallback = 0
         self.print_1 = 0
         self.copy = None
+        self.user_mode = user_mode
 
         generic_client.GenericClientInterface.__init__(self, args=args,
                                                        user_mode=user_mode)
@@ -804,8 +805,12 @@ class ConfigurationClientInterface(generic_client.GenericClientInterface):
         option.check_for_config_defaults()
 
     def valid_dictionaries(self):
-        return (self.help_options, self.alive_options, self.trace_options,
+        opts = (self.help_options, self.alive_options, self.trace_options,
                 self.config_options)
+        if self.user_mode == 2: # dcache client
+            opts = (self.help_options, self.alive_options, self.trace_options,
+                    self.config_options_short)
+        return opts
 
     config_options = {
         option.CONFIG_FILE: {option.HELP_STRING: "config file to load",
@@ -882,6 +887,53 @@ class ConfigurationClientInterface(generic_client.GenericClientInterface):
                                option.USER_LEVEL: option.ADMIN},
     }
 
+    config_options_short = {
+        option.LIST_LIBRARY_MANAGERS: {option.HELP_STRING: "list all library managers in "
+                                       "configuration",
+                                       option.DEFAULT_VALUE: option.DEFAULT,
+                                       option.DEFAULT_TYPE: option.INTEGER,
+                                       option.VALUE_USAGE: option.IGNORED,
+                                       option.USER_LEVEL: option.USER},
+        option.LIST_MEDIA_CHANGERS: {option.HELP_STRING: "list all media changers in "
+                                     "configuration",
+                                     option.DEFAULT_VALUE: option.DEFAULT,
+                                     option.DEFAULT_TYPE: option.INTEGER,
+                                     option.VALUE_USAGE: option.IGNORED,
+                                     option.USER_LEVEL: option.USER},
+        option.LIST_MOVERS: {option.HELP_STRING: "list all movers in configuration",
+                             option.DEFAULT_VALUE: option.DEFAULT,
+                             option.DEFAULT_TYPE: option.INTEGER,
+                             option.VALUE_USAGE: option.IGNORED,
+                             option.USER_LEVEL: option.USER},
+        option.LIST_MIGRATORS: {option.HELP_STRING: "list all migrators in configuration",
+                                option.DEFAULT_VALUE: option.DEFAULT,
+                                option.DEFAULT_TYPE: option.INTEGER,
+                                option.VALUE_USAGE: option.IGNORED,
+                                option.USER_LEVEL: option.USER},
+        option.PRINT: {option.HELP_STRING: "print the current configuration",
+                       option.DEFAULT_TYPE: option.INTEGER,
+                       # Default label is used for switches that take an
+                       # unknown number arguments from intf.args and not
+                       # from the specification in this dictionary.
+                       option.DEFAULT_LABEL: "[value_name [value_name [...]]]",
+                       option.USER_LEVEL: option.USER,
+                       option.DEFAULT_NAME: "print_1",
+                       },
+        option.SHOW: {option.HELP_STRING: "print the current configuration in python format",
+                      option.DEFAULT_TYPE: option.INTEGER,
+                      # Default label is used for switches that take an
+                      # unknown number arguments from intf.args and not
+                      # from the specification in this dictionary.
+                      option.DEFAULT_LABEL: "[value_name [value_name [...]]]",
+                      option.USER_LEVEL: option.USER,
+                      },
+        option.SUMMARY: {option.HELP_STRING: "summary for saag",
+                         option.DEFAULT_TYPE: option.INTEGER,
+                         option.USER_LEVEL: option.USER},
+        option.TIMESTAMP: {option.HELP_STRING: "last time configfile was reloaded",
+                           option.DEFAULT_TYPE: option.INTEGER,
+                           option.USER_LEVEL: option.USER},
+    }
 
 # Used for --print.
 def flatten2(prefix, value, flat_dict):
@@ -925,7 +977,7 @@ def print_configuration(config_dict, intf_arg, prefix=""):
             print("%s:%s" % (key, flat_dict[key]))
 
 
-def do_work(intf_arg):  # pragma: no cover
+def do_work(intf_arg, just_info=False):  # pragma: no cover
     csc = ConfigurationClient((intf_arg.config_host, intf_arg.config_port))
     csc.csc = csc
     result = csc.handle_generic_commands(MY_SERVER, intf_arg)
@@ -1001,7 +1053,7 @@ def do_work(intf_arg):  # pragma: no cover
                 # Print the configuration to the terminal/stdout.
                 print_configuration(use_config, intf_arg, prefix)
 
-    elif intf_arg.load:
+    elif intf_arg.load and not just_info:
         result = csc.load(intf_arg.config_file, intf_arg.alive_rcv_timeout,
                           intf_arg.alive_retries)
 
@@ -1117,6 +1169,8 @@ def do_work(intf_arg):  # pragma: no cover
 
     csc.check_ticket(result)
 
+def do_work_just_info(intf_arg, just_info=False):
+    do_work(intf_arg, just_info=True)
 
 # configdict_from_file() -- make configdict from config file
 def configdict_from_file(config_file=None):
@@ -1155,7 +1209,6 @@ def get_config_dict(timeout=5, retry=2):
 
 if __name__ == "__main__":   # pragma: no cover
     Trace.init(MY_NAME)
-
     # fill in interface
     intf = ConfigurationClientInterface(user_mode=0)
     do_work(intf)
